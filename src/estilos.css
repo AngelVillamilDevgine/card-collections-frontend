@@ -313,14 +313,45 @@ button { cursor: pointer; }
 .carta { touch-action: manipulation; user-select: none; }
 .carta:active { transform: scale(0.9); }
 
-/* --------------------------------- entrar --------------------------------- */
+/* --------------------------------- entrada -------------------------------- */
+
+/* Una sola cosa en la pantalla, y va en el medio. min-height en vez de height
+   para que en un celular apaisado —o con el teclado abierto— pueda crecer y
+   hacer scroll en vez de recortarse. */
+.entrada {
+  min-height: 100vh;
+  min-height: 100dvh;  /* descuenta la barra del navegador en el celular */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+}
+
+.entrada-caja {
+  width: 100%;
+  max-width: 360px;
+  text-align: center;
+}
+
+.entrada-logo {
+  display: block;
+  width: 100%;
+  max-width: 260px;
+  height: auto;
+  margin: 0 auto 12px;
+}
+
+.entrada-bajada {
+  margin: 0 0 28px;
+  color: var(--tinta2);
+  font-size: 14px;
+}
 
 .entrar {
-  max-width: 340px;
-  margin: 36px 0 0;
   display: flex;
   flex-direction: column;
   gap: 14px;
+  text-align: left;   /* la caja está centrada, pero las etiquetas no */
 }
 
 .entrar label {
@@ -332,13 +363,15 @@ button { cursor: pointer; }
 }
 
 .entrar input {
-  font: inherit;
-  font-size: 15px;
+  width: 100%;
+  /* 16px y no menos: por debajo de eso, Safari en iPhone hace zoom al tocar el
+     campo y deja la pantalla corrida. */
+  font-size: 16px;
   color: var(--tinta);
   background: var(--blanco);
   border: 1px solid var(--linea2);
   border-radius: 6px;
-  padding: 9px 11px;
+  padding: 11px 12px;
 }
 .entrar input:focus {
   outline: none;
@@ -347,23 +380,27 @@ button { cursor: pointer; }
 }
 
 .entrar .principal {
+  /* 46px de alto: un dedo no acierta cómodo en menos. */
+  min-height: 46px;
+  margin-top: 4px;
   background: var(--acento);
   border: 1px solid var(--acento);
   color: #fff;
   font-weight: 600;
   border-radius: 6px;
-  padding: 10px 14px;
-  font-size: 15px;
+  padding: 11px 14px;
+  font-size: 16px;
 }
 .entrar .principal:hover { filter: brightness(1.06); }
-.entrar .principal:disabled { opacity: 0.6; filter: none; }
+.entrar .principal:disabled { opacity: 0.6; filter: none; cursor: default; }
 
 .entrar .secundario {
+  min-height: 44px;
   background: none;
   border: none;
   color: var(--tinta2);
-  font-size: 13px;
-  padding: 2px;
+  font-size: 14px;
+  padding: 4px;
 }
 .entrar .secundario:hover { color: var(--acento); }
 
@@ -374,5 +411,15 @@ button { cursor: pointer; }
   background: var(--reem-fondo);
   border: 1px solid var(--reem-linea);
   border-radius: 6px;
-  padding: 8px 11px;
+  padding: 9px 11px;
+}
+
+/* Pantallas muy bajas: celular apaisado, o vertical con el teclado abierto. Acá el
+   logo se come el alto que necesitan los campos. Se achica todo y se alinea arriba,
+   que es lo que hace que se pueda hacer scroll en vez de recortarse. */
+@media (max-height: 560px) {
+  .entrada { align-items: flex-start; padding: 18px 20px; }
+  .entrada-logo { max-width: 150px; margin-bottom: 8px; }
+  .entrada-bajada { margin-bottom: 16px; font-size: 13px; }
+  .entrar { gap: 10px; }
 }
