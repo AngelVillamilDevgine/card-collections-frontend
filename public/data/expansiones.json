@@ -1,0 +1,139 @@
+{
+  "coleccion": "Dragon Ball Z - Juego de Cartas Coleccionables",
+  "editorial": "Cromeros S.A. (Argentina)",
+  "anios": "2007-2008",
+  "notas": [
+    "Cada carta tiene un numero unico: la coleccion es la numeracion corrida del 1 al 1936, sin repetidos ni huecos.",
+    "Podes editar este archivo para corregir rangos o agregar sets sin recompilar la app."
+  ],
+  "expansiones": [
+    {
+      "id": "exp-1",
+      "nombre": "Expansión 1",
+      "corto": "E1",
+      "color": "#e8912d",
+      "desde": 1,
+      "hasta": 129
+    },
+    {
+      "id": "exp-2",
+      "nombre": "Expansión 2",
+      "corto": "E2",
+      "color": "#4472c4",
+      "desde": 130,
+      "hasta": 265
+    },
+    {
+      "id": "exp-3",
+      "nombre": "Expansión 3",
+      "corto": "E3",
+      "color": "#548235",
+      "desde": 266,
+      "hasta": 401
+    },
+    {
+      "id": "ocultas",
+      "nombre": "Cartas Ocultas",
+      "corto": "OC",
+      "color": "#4bc5d4",
+      "desde": 402,
+      "hasta": 407
+    },
+    {
+      "id": "exp-4",
+      "nombre": "Expansión 4",
+      "corto": "E4",
+      "color": "#c00000",
+      "desde": 408,
+      "hasta": 543
+    },
+    {
+      "id": "exp-5",
+      "nombre": "Expansión 5",
+      "corto": "E5",
+      "color": "#f5c242",
+      "desde": 544,
+      "hasta": 679
+    },
+    {
+      "id": "exp-6",
+      "nombre": "Expansión 6",
+      "corto": "E6",
+      "color": "#7030a0",
+      "desde": 680,
+      "hasta": 815
+    },
+    {
+      "id": "esp-personajes",
+      "nombre": "Expansión Especial Personajes",
+      "corto": "EP",
+      "color": "#a6a6a6",
+      "desde": 816,
+      "hasta": 951
+    },
+    {
+      "id": "exp-7",
+      "nombre": "Expansión 7",
+      "corto": "E7",
+      "color": "#767171",
+      "desde": 952,
+      "hasta": 1087
+    },
+    {
+      "id": "gl-1",
+      "nombre": "Expansión Guerreros Legendarios 1",
+      "corto": "GL1",
+      "color": "#3b3b3b",
+      "desde": 1088,
+      "hasta": 1223
+    },
+    {
+      "id": "gl-2",
+      "nombre": "Expansión Guerreros Legendarios 2",
+      "corto": "GL2",
+      "color": "#b7b5b3",
+      "desde": 1224,
+      "hasta": 1359
+    },
+    {
+      "id": "sb-1",
+      "nombre": "Expansión Super Batalla 1",
+      "corto": "SB1",
+      "color": "#ed7d31",
+      "desde": 1360,
+      "hasta": 1495
+    },
+    {
+      "id": "sb-2",
+      "nombre": "Expansión Super Batalla 2",
+      "corto": "SB2",
+      "color": "#ed7d31",
+      "desde": 1496,
+      "hasta": 1631
+    },
+    {
+      "id": "esp-gt",
+      "nombre": "Expansión Especial GT",
+      "corto": "GT",
+      "color": "#a9d18e",
+      "desde": 1632,
+      "hasta": 1760
+    },
+    {
+      "id": "bf-1",
+      "nombre": "Expansión Batalla Final 1",
+      "corto": "BF1",
+      "color": "#ffd966",
+      "desde": 1761,
+      "hasta": 1848
+    },
+    {
+      "id": "bf-2",
+      "nombre": "Expansión Batalla Final 2",
+      "corto": "BF2",
+      "color": "#ffd966",
+      "desde": 1849,
+      "hasta": 1936
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "name": "dbz-cromeros",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Seguimiento de la colección Dragon Ball Z - Juego de Cartas Coleccionables (Cromeros, 2007-2008)",
+  "scripts": {
+    "start": "vite",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^5.4.11"
+  }
+}
