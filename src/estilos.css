@@ -423,3 +423,45 @@ button { cursor: pointer; }
   .entrada-bajada { margin-bottom: 16px; font-size: 13px; }
   .entrar { gap: 10px; }
 }
+
+/* Los filtros que no están elegidos muestran el color de lo que listan, así el código
+   de colores de las cartas queda siempre a la vista y no hay que recordarlo. */
+.filtro.f-falta      { background: var(--falta-fondo); border-color: var(--falta-linea); color: var(--falta-tinta); }
+.filtro.f-reemplazar { background: var(--reem-fondo);  border-color: var(--reem-linea);  color: var(--reem-tinta); }
+.filtro.f-repetidas  { border-color: var(--acento); color: var(--acento); }   /* el del globito */
+.filtro.f-todas      { border-color: var(--linea2); }
+.filtro b { color: currentColor; opacity: 0.6; }
+
+/* Elegido gana el relleno naranja: el contorno de color es para los otros. */
+.filtro.activo, .filtro.activo b { color: #fff; opacity: 1; }
+.filtro.activo { background: var(--acento); border-color: var(--acento); }
+
+/* --------------------------------- exportar -------------------------------- */
+
+/* La lista necesita más ancho que la pregunta de la condición. */
+.dialogo.ancho { width: min(560px, 100%); }
+
+.dialogo .opcion.simple { background: var(--papel); border-color: var(--linea2); color: var(--tinta); }
+.dialogo .opcion.copiar { background: var(--acento); border-color: var(--acento); color: #fff; text-align: center; }
+
+.dialogo .lista {
+  display: block;
+  width: 100%;
+  height: 260px;
+  resize: vertical;
+  /* Monoespaciada para que los números queden en columna. pre-wrap y no pre: las
+     expansiones con muchos faltantes son líneas larguísimas, y con pre había que
+     arrastrar una barra horizontal para leerlas. El corte es sólo visual; el texto
+     que se copia conserva sus saltos de línea y nada más. */
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow: auto;
+  color: var(--tinta);
+  background: var(--papel);
+  border: 1px solid var(--linea2);
+  border-radius: 6px;
+  padding: 10px;
+  margin-bottom: 10px;
+}

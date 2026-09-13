@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ESTADOS, FALTA, etiqueta } from './estados'
 import Entrar from './Entrar'
+import Exportar from './Exportar'
 import {
   descargar, restaurar, quienSoy, salir,
   leerColeccion, guardarCarta, reemplazarColeccion,
@@ -131,6 +132,7 @@ export default function App() {
   const [filtro, setFiltro] = useState('todas')
   const [preguntando, setPreguntando] = useState(null)
   const [fallo, setFallo] = useState(false)
+  const [exportando, setExportando] = useState(false)
   const archivoRef = useRef(null)
   const pendientes = useRef(new Map())
 
@@ -295,7 +297,7 @@ export default function App() {
           {FILTROS.map((f) => (
             <button
               key={f.id}
-              className={`filtro${filtro === f.id ? ' activo' : ''}`}
+              className={`filtro f-${f.id}${filtro === f.id ? ' activo' : ''}`}
               onClick={() => setFiltro(f.id)}
               aria-pressed={filtro === f.id}
             >
@@ -360,6 +362,7 @@ export default function App() {
           </span>
         )}
 
+        <button onClick={() => setExportando(true)} className="secundario">Exportar</button>
         <button onClick={() => descargar(datos)} className="secundario">Bajar una copia</button>
         <input
           ref={archivoRef}
@@ -377,6 +380,10 @@ export default function App() {
         </button>
         <button onClick={cerrar} className="secundario">Salir</button>
       </footer>
+
+      {exportando && (
+        <Exportar catalogo={catalogo} datos={datos} onCerrar={() => setExportando(false)} />
+      )}
 
       {preguntando && (
         <Pregunta
