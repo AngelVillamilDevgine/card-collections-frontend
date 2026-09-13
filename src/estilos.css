@@ -425,11 +425,12 @@ button { cursor: pointer; }
 }
 
 /* Los filtros que no están elegidos muestran el color de lo que listan, así el código
-   de colores de las cartas queda siempre a la vista y no hay que recordarlo. */
-.filtro.f-falta      { background: var(--falta-fondo); border-color: var(--falta-linea); color: var(--falta-tinta); }
-.filtro.f-reemplazar { background: var(--reem-fondo);  border-color: var(--reem-linea);  color: var(--reem-tinta); }
-.filtro.f-repetidas  { border-color: var(--acento); color: var(--acento); }   /* el del globito */
+   de colores de las cartas queda siempre a la vista. Todos del mismo tipo: contorno y
+   sin relleno, como "Todas". Con relleno quedaban dos distintos de los otros dos. */
 .filtro.f-todas      { border-color: var(--linea2); }
+.filtro.f-falta      { border-color: var(--falta-tinta); color: var(--falta-tinta); }
+.filtro.f-repetidas  { border-color: var(--acento);      color: var(--acento); }   /* el del globito */
+.filtro.f-reemplazar { border-color: var(--reem-linea);  color: var(--reem-tinta); }
 .filtro b { color: currentColor; opacity: 0.6; }
 
 /* Elegido gana el relleno naranja: el contorno de color es para los otros. */
@@ -475,3 +476,27 @@ button { cursor: pointer; }
 }
 .dialogo .opcion b { float: right; font-variant-numeric: tabular-nums; opacity: 0.65; }
 .dialogo .nada { color: var(--tinta3); font-size: 13px; margin-bottom: 10px; }
+
+/* Del mismo tipo que los filtros, para que la barra se lea como una sola cosa. */
+.compartir {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid var(--linea2);
+  background: none;
+  color: var(--tinta2);
+}
+.compartir:hover { color: var(--acento); border-color: var(--acento); }
+
+/* Cuando la barra no entra en una fila, el icono se iba solo a una tercera fila, a la
+   izquierda, y la barra fija se comía un cuarto de la pantalla del celular. Así queda
+   arriba a la derecha, al lado de los filtros, y la ayuda pasa abajo de todo. */
+@media (max-width: 1040px) {
+  .filtros    { flex: 1 1 0; min-width: 0; }
+  .compartir  { order: 1; align-self: flex-start; }
+  .ayuda      { order: 2; flex-basis: 100%; margin-left: 0; }
+}

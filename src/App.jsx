@@ -310,6 +310,15 @@ export default function App() {
         <p className="ayuda">
           Tocá para marcar · de nuevo si tenés otra igual · mantené apretado para restar
         </p>
+        {/* A mano en la barra fija: el botón del pie queda abajo de las 1936 cartas. */}
+        <button className="compartir" onClick={() => setExportando(true)} aria-label="Exportar" title="Exportar">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M12 3v12" />
+            <path d="M7 8l5-5 5 5" />
+            <path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" />
+          </svg>
+        </button>
       </div>
 
       {catalogo.map((exp) => {
