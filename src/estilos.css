@@ -465,3 +465,13 @@ button { cursor: pointer; }
   padding: 10px;
   margin-bottom: 10px;
 }
+
+/* El paso de elegir expansión puede tener 17 botones: que scrollee la lista y no el
+   diálogo entero, para que "Elegir otra lista" quede siempre a la vista. */
+.dialogo .opciones {
+  max-height: 46vh;
+  overflow-y: auto;
+  margin-bottom: 4px;
+}
+.dialogo .opcion b { float: right; font-variant-numeric: tabular-nums; opacity: 0.65; }
+.dialogo .nada { color: var(--tinta3); font-size: 13px; margin-bottom: 10px; }

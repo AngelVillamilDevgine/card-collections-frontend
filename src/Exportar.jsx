@@ -1,7 +1,7 @@
-// Una lista de texto para pegar en un chat: qué me falta, qué me sobra, o las dos.
+// Una lista de texto para pegar donde quieras: qué me falta, qué me sobra, o las dos.
 //
-// Usa el mismo diálogo que la pregunta de la condición, en dos pasos: primero elegís
-// qué lista, después aparece el texto con el botón de copiar.
+// Tres pasos, con el mismo diálogo que ya pregunta la condición de la carta:
+// qué lista, de qué expansión, y el texto con el botón de copiar.
 import { useEffect, useRef, useState } from 'react'
 
 const OPCIONES = [
@@ -10,57 +10,64 @@ const OPCIONES = [
   { id: 'ambas',     label: 'Las dos cosas' },
 ]
 
-/* 77, 78, 79, 81 -> "77-79, 81". Sin esto, las que faltan son mil y pico de números
-   sueltos y no hay chat que aguante esa lista. */
-function rangos(numeros) {
+function faltantesDe(exp, cantidades) {
+  const numeros = exp.lista.filter((n) => !cantidades[`${exp.id}:${n}`])
+  return { textos: numeros.map(String), total: numeros.length }
+}
+
+function repetidasDe(exp, cantidades) {
+  const textos = []
+  let total = 0
+  for (const n of exp.lista) {
+    // Tener 3 es que me sobran 2. Es lo mismo que cuenta el "repetidas para cambiar"
+    // de arriba, así que los números coinciden.
+    const sobran = (cantidades[`${exp.id}:${n}`] ?? 0) - 1
+    if (sobran <= 0) continue
+    total += sobran
+    textos.push(sobran > 1 ? `${n}x${sobran}` : `${n}`)
+  }
+  return { textos, total }
+}
+
+const SECCIONES = {
+  falta:     [{ titulo: 'ME FALTAN', de: faltantesDe }],
+  repetidas: [{ titulo: 'REPETIDAS PARA CAMBIAR', de: repetidasDe }],
+  ambas:     [{ titulo: 'ME FALTAN', de: faltantesDe },
+              { titulo: 'REPETIDAS PARA CAMBIAR', de: repetidasDe }],
+}
+
+/* Para el paso 2: sólo las expansiones que tienen algo que listar, con cuántas. */
+function expansionesCon(modo, catalogo, cantidades) {
+  const salida = []
+  for (const exp of catalogo) {
+    let cuenta = 0
+    for (const s of SECCIONES[modo]) cuenta += s.de(exp, cantidades).total
+    if (cuenta) salida.push({ exp, cuenta })
+  }
+  return salida
+}
+
+/* Las cartas van una por una, sin agrupar en rangos: así se pega y se lee derecho. */
+function armar(modo, cuales, catalogo, cantidades) {
   const partes = []
-  for (let i = 0; i < numeros.length;) {
-    let j = i
-    while (j + 1 < numeros.length && numeros[j + 1] === numeros[j] + 1) j++
-    partes.push(i === j ? `${numeros[i]}` : `${numeros[i]}-${numeros[j]}`)
-    i = j + 1
-  }
-  return partes.join(', ')
-}
-
-function faltantes(catalogo, cantidades) {
-  const lineas = []
-  let total = 0
-  for (const exp of catalogo) {
-    const numeros = exp.lista.filter((n) => !cantidades[`${exp.id}:${n}`])
-    if (!numeros.length) continue
-    total += numeros.length
-    lineas.push(`${exp.nombre}: ${rangos(numeros)}`)
-  }
-  return lineas.length ? `ME FALTAN (${total})\n${lineas.join('\n')}` : 'No me falta ninguna.'
-}
-
-function repetidas(catalogo, cantidades) {
-  const lineas = []
-  let total = 0
-  for (const exp of catalogo) {
-    const textos = []
-    for (const n of exp.lista) {
-      // Tener 3 es que me sobran 2. Es lo mismo que cuenta el "repetidas para cambiar"
-      // de arriba, así que los números coinciden.
-      const sobran = (cantidades[`${exp.id}:${n}`] ?? 0) - 1
-      if (sobran <= 0) continue
-      total += sobran
-      textos.push(sobran > 1 ? `${n}x${sobran}` : `${n}`)
+  for (const s of SECCIONES[modo]) {
+    const lineas = []
+    let total = 0
+    for (const exp of catalogo) {
+      if (cuales !== 'todas' && exp.id !== cuales) continue
+      const { textos, total: suma } = s.de(exp, cantidades)
+      if (!textos.length) continue
+      total += suma
+      lineas.push(`${exp.nombre}: ${textos.join(', ')}`)
     }
-    if (textos.length) lineas.push(`${exp.nombre}: ${textos.join(', ')}`)
+    if (lineas.length) partes.push(`${s.titulo} (${total})\n${lineas.join('\n')}`)
   }
-  return lineas.length ? `REPETIDAS PARA CAMBIAR (${total})\n${lineas.join('\n')}` : 'No tengo repetidas.'
-}
-
-function armar(modo, catalogo, cantidades) {
-  if (modo === 'falta') return faltantes(catalogo, cantidades)
-  if (modo === 'repetidas') return repetidas(catalogo, cantidades)
-  return `${faltantes(catalogo, cantidades)}\n\n${repetidas(catalogo, cantidades)}`
+  return partes.join('\n\n') || 'No hay nada para listar.'
 }
 
 export default function Exportar({ catalogo, datos, onCerrar }) {
   const [modo, setModo] = useState(null)
+  const [cuales, setCuales] = useState(null)
   const [aviso, setAviso] = useState(null)
   const areaRef = useRef(null)
 
@@ -70,7 +77,10 @@ export default function Exportar({ catalogo, datos, onCerrar }) {
     return () => window.removeEventListener('keydown', f)
   }, [onCerrar])
 
-  const texto = modo ? armar(modo, catalogo, datos.cantidades) : ''
+  const { cantidades } = datos
+  const expansiones = modo ? expansionesCon(modo, catalogo, cantidades) : []
+  const enTotal = expansiones.reduce((a, e) => a + e.cuenta, 0)
+  const texto = modo && cuales ? armar(modo, cuales, catalogo, cantidades) : ''
 
   async function copiar() {
     // Se selecciona primero: si los dos caminos fallan, al menos queda listo para
@@ -91,14 +101,14 @@ export default function Exportar({ catalogo, datos, onCerrar }) {
   return (
     <div className="telon" onClick={onCerrar}>
       <div
-        className={`dialogo${modo ? ' ancho' : ''}`}
+        className={`dialogo${cuales ? ' ancho' : ''}`}
         role="dialog"
         aria-label="Exportar"
         onClick={(e) => e.stopPropagation()}
       >
         <h3>Exportar</h3>
 
-        {!modo ? (
+        {!modo && (
           <>
             <p>¿Qué lista querés?</p>
             {OPCIONES.map((o, i) => (
@@ -108,7 +118,30 @@ export default function Exportar({ catalogo, datos, onCerrar }) {
             ))}
             <button className="cancelar" onClick={onCerrar}>Cancelar</button>
           </>
-        ) : (
+        )}
+
+        {modo && !cuales && (
+          <>
+            <p>¿De qué expansión?</p>
+            {expansiones.length ? (
+              <div className="opciones">
+                <button className="opcion simple" onClick={() => setCuales('todas')} autoFocus>
+                  Todas <b>{enTotal}</b>
+                </button>
+                {expansiones.map(({ exp, cuenta }) => (
+                  <button key={exp.id} className="opcion simple" onClick={() => setCuales(exp.id)}>
+                    {exp.nombre} <b>{cuenta}</b>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="nada">No hay ninguna para listar.</p>
+            )}
+            <button className="cancelar" onClick={() => setModo(null)}>Elegir otra lista</button>
+          </>
+        )}
+
+        {modo && cuales && (
           <>
             <p>Copiala y pegala donde quieras.</p>
             <textarea
@@ -121,7 +154,7 @@ export default function Exportar({ catalogo, datos, onCerrar }) {
             <button className="opcion copiar" onClick={copiar} autoFocus>
               {aviso ?? 'Copiar'}
             </button>
-            <button className="cancelar" onClick={() => setModo(null)}>Elegir otra lista</button>
+            <button className="cancelar" onClick={() => setCuales(null)}>Elegir otra expansión</button>
           </>
         )}
       </div>
