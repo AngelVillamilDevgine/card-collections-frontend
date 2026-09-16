@@ -563,3 +563,9 @@ button { cursor: pointer; }
 .banda .plegar:hover { background: rgba(0, 0, 0, 0.09); }
 .banda .plegar svg { transition: transform 0.15s ease; }
 .banda .plegar.cerrada svg { transform: rotate(-90deg); }
+
+/* Los 40px de margen están para separar grillas enteras. Con la expansión cerrada sólo
+   queda la banda, y ese hueco se come justo el lugar que se quería ahorrar al cerrarla:
+   las cerradas se apilan juntas. */
+.expansion.plegada { margin-bottom: 10px; }
+.expansion.plegada .banda { margin-bottom: 0; }

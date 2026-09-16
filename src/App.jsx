@@ -344,7 +344,7 @@ export default function App() {
         const tengoAca = exp.lista.filter((n) => cantidades[`${exp.id}:${n}`]).length
         const plegada = plegadas.has(exp.id)
         return (
-          <section className="expansion" key={exp.id}>
+          <section className={`expansion${plegada ? ' plegada' : ''}`} key={exp.id}>
             <div className="banda" style={{ background: exp.color, color: textoSobre(exp.color) }}>
               <button
                 className={`plegar${plegada ? ' cerrada' : ''}`}
