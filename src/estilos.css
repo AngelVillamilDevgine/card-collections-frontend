@@ -35,7 +35,7 @@ button { cursor: pointer; }
 
 /* ------------------------------- encabezado ------------------------------- */
 
-.encabezado { padding: 56px 0 28px; }
+
 
 .encabezado h1 { margin: 0 0 10px; }
 
@@ -74,22 +74,9 @@ button { cursor: pointer; }
 
 /* -------------------------------- barra fija ------------------------------ */
 
-.herramientas {
-  position: sticky;
-  top: 0;
-  z-index: 5;
-  background: rgba(244, 242, 238, 0.94);
-  backdrop-filter: blur(6px);
-  border-bottom: 1px solid var(--linea);
-  margin: 0 -24px 32px;
-  padding: 12px 24px;
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  flex-wrap: wrap;
-}
 
-.ayuda { margin: 0 0 0 auto; font-size: 13px; color: var(--tinta3); }
+
+
 
 /* --------------------------------- filtros -------------------------------- */
 
@@ -492,14 +479,6 @@ button { cursor: pointer; }
 }
 .compartir:hover { color: var(--acento); border-color: var(--acento); }
 
-/* Cuando la barra no entra en una fila, el icono se iba solo a una tercera fila, a la
-   izquierda, y la barra fija se comía un cuarto de la pantalla del celular. Así queda
-   arriba a la derecha, al lado de los filtros, y la ayuda pasa abajo de todo. */
-@media (max-width: 1040px) {
-  .filtros    { flex: 1 1 0; min-width: 0; }
-  .compartir  { order: 1; align-self: flex-start; }
-  .ayuda      { order: 2; flex-basis: 100%; margin-left: 0; }
-}
 
 /* Las expansiones del paso 2 se marcan y desmarcan: casilla a la izquierda, cuántas a
    la derecha. Como es una fila y no un bloque, la cuenta va con margin y no con float. */
@@ -580,3 +559,49 @@ button { cursor: pointer; }
   opacity: 1;
 }
 .banda .cuenta.completa svg { flex: none; }
+
+/* --------------------------- header y barra fija --------------------------- */
+
+/* La columna del contenido, compartida por header, barra y footer: el fondo de cada
+   franja va de lado a lado, lo de adentro queda alineado con las cartas. */
+.columna { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+/* Un header es una franja con borde, no contenido suelto sobre el papel. Marca a la
+   izquierda, avance a la derecha; en el celular uno abajo del otro. */
+.encabezado {
+  background: var(--blanco);
+  border-bottom: 1px solid var(--linea);
+  padding: 22px 0 20px;
+}
+.encabezado .columna {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px 48px;
+}
+.encabezado h1 { margin: 0 0 6px; }
+.encabezado h1 img { width: 240px; max-width: 70vw; }
+.progreso { flex: 0 1 400px; min-width: 0; }
+.progreso .avance { margin-top: 0; }
+
+/* Blanca y opaca: la versión transparente dejaba ver las cartas pasando por detrás.
+   La sombra la despega del contenido cuando queda pegada arriba. */
+.herramientas {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--blanco);
+  border-bottom: 1px solid var(--linea);
+  box-shadow: 0 8px 16px -14px rgba(32, 29, 26, 0.5);
+  padding: 10px 0;
+}
+.herramientas .columna { display: flex; align-items: flex-start; gap: 12px; }
+.herramientas .filtros { flex: 1 1 auto; min-width: 0; }
+.herramientas .compartir { margin-left: auto; }
+
+.ayuda { margin: 16px 0 22px; font-size: 13px; color: var(--tinta3); }
+
+@media (max-width: 640px) {
+  .progreso { flex-basis: 100%; }
+}

@@ -281,164 +281,178 @@ export default function App() {
   const pct = (n) => (n / resumen.total) * 100
 
   return (
-    <div className="hoja">
+    <>
+      {/* Header, barra y footer van fuera de la columna de las cartas: así el fondo
+          de cada franja llega de lado a lado y lo de adentro sigue alineado. */}
       <header className="encabezado">
-        <h1>
-          <img src="./logo.png" alt="Dragon Ball Z" width="1999" height="510" />
-        </h1>
-        <p>Mi colección · Cartas Cromeros · 2007–2008</p>
-
-        <div className="avance">
-          <span className="grande">{resumen.tengo}</span>
-          <span className="de">de {resumen.total} cartas</span>
-          {resumen.sobrantes > 0 && (
-            <span className="sobrantes">
-              {resumen.sobrantes} repetida{resumen.sobrantes > 1 ? 's' : ''} para cambiar
-            </span>
-          )}
-        </div>
-        <div className="barra">
-          <span className="s-bien" style={{ width: `${pct(resumen.bien)}%` }} />
-          <span className="s-perfecta" style={{ width: `${pct(resumen.perfecta)}%` }} />
-          <span className="s-reemplazar" style={{ width: `${pct(resumen.reemplazar)}%` }} />
+        <div className="columna">
+          <div className="marca">
+              <h1>
+                <img src="./logo.png" alt="Dragon Ball Z" width="1999" height="510" />
+              </h1>
+              <p>Mi colección · Cartas Cromeros · 2007–2008</p>
+          </div>
+          <div className="progreso">
+              <div className="avance">
+                <span className="grande">{resumen.tengo}</span>
+                <span className="de">de {resumen.total} cartas</span>
+                {resumen.sobrantes > 0 && (
+                  <span className="sobrantes">
+                    {resumen.sobrantes} repetida{resumen.sobrantes > 1 ? 's' : ''} para cambiar
+                  </span>
+                )}
+              </div>
+              <div className="barra">
+                <span className="s-bien" style={{ width: `${pct(resumen.bien)}%` }} />
+                <span className="s-perfecta" style={{ width: `${pct(resumen.perfecta)}%` }} />
+                <span className="s-reemplazar" style={{ width: `${pct(resumen.reemplazar)}%` }} />
+              </div>
+          </div>
         </div>
       </header>
 
       <div className="herramientas">
-        <div className="filtros">
-          {FILTROS.map((f) => (
-            <button
-              key={f.id}
-              className={`filtro f-${f.id}${filtro === f.id ? ' activo' : ''}`}
-              onClick={() => setFiltro(f.id)}
-              aria-pressed={filtro === f.id}
-            >
-              {f.label}
-              <b>{resumen.porFiltro[f.id]}</b>
-            </button>
-          ))}
-        </div>
+        <div className="columna">
+            <div className="filtros">
+              {FILTROS.map((f) => (
+                <button
+                  key={f.id}
+                  className={`filtro f-${f.id}${filtro === f.id ? ' activo' : ''}`}
+                  onClick={() => setFiltro(f.id)}
+                  aria-pressed={filtro === f.id}
+                >
+                  {f.label}
+                  <b>{resumen.porFiltro[f.id]}</b>
+                </button>
+              ))}
+            </div>
 
-        <p className="ayuda">
-          Tocá para marcar · de nuevo si tenés otra igual · mantené apretado para restar
-        </p>
-        {/* A mano en la barra fija: el botón del pie queda abajo de las 1936 cartas. */}
-        <button className="compartir" onClick={() => setExportando(true)} aria-label="Exportar" title="Exportar">
-          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-               strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M12 3v12" />
-            <path d="M7 8l5-5 5 5" />
-            <path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" />
-          </svg>
-        </button>
+            {/* A mano en la barra fija: el botón del pie queda abajo de las 1936 cartas. */}
+            <button className="compartir" onClick={() => setExportando(true)} aria-label="Exportar" title="Exportar">
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M12 3v12" />
+                <path d="M7 8l5-5 5 5" />
+                <path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" />
+              </svg>
+            </button>
+        </div>
       </div>
 
-      {catalogo.map((exp) => {
-        const activo = FILTROS.find((f) => f.id === filtro)
-        const visibles = exp.lista.filter((n) => {
-          const clave = `${exp.id}:${n}`
-          return activo.pasa(cantidades[clave] ?? 0, estados[clave])
-        })
-        if (!visibles.length) return null
+      <div className="hoja">
+        {/* Fuera de la barra fija: son instrucciones, se leen una vez y pueden irse con
+            el scroll. Adentro ocupaban dos renglones fijos en el celular. */}
+          <p className="ayuda">
+            Tocá para marcar · de nuevo si tenés otra igual · mantené apretado para restar
+          </p>
 
-        const tengoAca = exp.lista.filter((n) => cantidades[`${exp.id}:${n}`]).length
-        const plegada = plegadas.has(exp.id)
-        return (
-          <section className={`expansion${plegada ? ' plegada' : ''}`} key={exp.id}>
-            <div className="banda" style={{ background: exp.color, color: textoSobre(exp.color) }}>
-              <button
-                className={`plegar${plegada ? ' cerrada' : ''}`}
-                onClick={() => plegar(exp.id)}
-                aria-expanded={!plegada}
-                aria-label={`${plegada ? 'Mostrar' : 'Contraer'} ${exp.nombre}`}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                     strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M6 9l6 6 6-6" />
-                </svg>
-              </button>
-              <h2>{exp.nombre}</h2>
-              <span className="rango">{exp.desde}–{exp.hasta}</span>
-              {/* Completa es tener todas, estén en el estado que estén: las "para reemplazar"
-                  también cuentan, y ya tienen su propio filtro. */}
-              {tengoAca === exp.lista.length ? (
-                <span className="cuenta completa" title={`${tengoAca} de ${exp.lista.length}`}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                       strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M5 13l4 4L19 7" />
+        {catalogo.map((exp) => {
+          const activo = FILTROS.find((f) => f.id === filtro)
+          const visibles = exp.lista.filter((n) => {
+            const clave = `${exp.id}:${n}`
+            return activo.pasa(cantidades[clave] ?? 0, estados[clave])
+          })
+          if (!visibles.length) return null
+
+          const tengoAca = exp.lista.filter((n) => cantidades[`${exp.id}:${n}`]).length
+          const plegada = plegadas.has(exp.id)
+          return (
+            <section className={`expansion${plegada ? ' plegada' : ''}`} key={exp.id}>
+              <div className="banda" style={{ background: exp.color, color: textoSobre(exp.color) }}>
+                <button
+                  className={`plegar${plegada ? ' cerrada' : ''}`}
+                  onClick={() => plegar(exp.id)}
+                  aria-expanded={!plegada}
+                  aria-label={`${plegada ? 'Mostrar' : 'Contraer'} ${exp.nombre}`}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                       strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M6 9l6 6 6-6" />
                   </svg>
-                  Completa
-                </span>
-              ) : (
-                <span className="cuenta">{tengoAca} de {exp.lista.length}</span>
+                </button>
+                <h2>{exp.nombre}</h2>
+                <span className="rango">{exp.desde}–{exp.hasta}</span>
+                {/* Completa es tener todas, estén en el estado que estén: las "para reemplazar"
+                    también cuentan, y ya tienen su propio filtro. */}
+                {tengoAca === exp.lista.length ? (
+                  <span className="cuenta completa" title={`${tengoAca} de ${exp.lista.length}`}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M5 13l4 4L19 7" />
+                    </svg>
+                    Completa
+                  </span>
+                ) : (
+                  <span className="cuenta">{tengoAca} de {exp.lista.length}</span>
+                )}
+              </div>
+              {!plegada && (
+              <div className="grilla">
+                {visibles.map((n) => {
+                  const clave = `${exp.id}:${n}`
+                  return (
+                    <Carta
+                      key={clave}
+                      numero={n}
+                      estado={estados[clave]}
+                      cantidad={cantidades[clave] ?? 0}
+                      onTocar={() => tocar(clave, n)}
+                      onMantener={() => restar(clave)}
+                    />
+                  )
+                })}
+              </div>
               )}
-            </div>
-            {!plegada && (
-            <div className="grilla">
-              {visibles.map((n) => {
-                const clave = `${exp.id}:${n}`
-                return (
-                  <Carta
-                    key={clave}
-                    numero={n}
-                    estado={estados[clave]}
-                    cantidad={cantidades[clave] ?? 0}
-                    onTocar={() => tocar(clave, n)}
-                    onMantener={() => restar(clave)}
-                  />
-                )
-              })}
-            </div>
-            )}
-          </section>
-        )
-      })}
+            </section>
+          )
+        })}
 
-      {resumen.porFiltro[filtro] === 0 && (
-        <p className="vacio">No hay ninguna carta en este listado.</p>
-      )}
-
-      <footer className="pie">
-        {fallo ? (
-          <span className="aviso">
-            No se pudo guardar el último cambio. Fijate la conexión.
-          </span>
-        ) : (
-          <span className="guardando">
-            Guardando en tu cuenta, <b>{usuario}</b>, a cada cambio
-          </span>
+        {resumen.porFiltro[filtro] === 0 && (
+          <p className="vacio">No hay ninguna carta en este listado.</p>
         )}
 
-        <button onClick={() => setExportando(true)} className="secundario">Exportar</button>
-        <button onClick={() => descargar(datos)} className="secundario">Bajar una copia</button>
-        <input
-          ref={archivoRef}
-          type="file"
-          accept="application/json"
-          hidden
-          onChange={(ev) => {
-            const f = ev.target.files?.[0]
-            if (f) restaurarCopia(f)
-            ev.target.value = ''
-          }}
-        />
-        <button onClick={() => archivoRef.current.click()} className="secundario">
-          Restaurar una copia
-        </button>
-        <button onClick={cerrar} className="secundario">Salir</button>
-      </footer>
+        <footer className="pie">
+          {fallo ? (
+            <span className="aviso">
+              No se pudo guardar el último cambio. Fijate la conexión.
+            </span>
+          ) : (
+            <span className="guardando">
+              Guardando en tu cuenta, <b>{usuario}</b>, a cada cambio
+            </span>
+          )}
 
-      {exportando && (
-        <Exportar catalogo={catalogo} datos={datos} onCerrar={() => setExportando(false)} />
-      )}
+          <button onClick={() => setExportando(true)} className="secundario">Exportar</button>
+          <button onClick={() => descargar(datos)} className="secundario">Bajar una copia</button>
+          <input
+            ref={archivoRef}
+            type="file"
+            accept="application/json"
+            hidden
+            onChange={(ev) => {
+              const f = ev.target.files?.[0]
+              if (f) restaurarCopia(f)
+              ev.target.value = ''
+            }}
+          />
+          <button onClick={() => archivoRef.current.click()} className="secundario">
+            Restaurar una copia
+          </button>
+          <button onClick={cerrar} className="secundario">Salir</button>
+        </footer>
 
-      {preguntando && (
-        <Pregunta
-          numero={preguntando.numero}
-          onElegir={responder}
-          onCerrar={() => setPreguntando(null)}
-        />
-      )}
-    </div>
+        {exportando && (
+          <Exportar catalogo={catalogo} datos={datos} onCerrar={() => setExportando(false)} />
+        )}
+
+        {preguntando && (
+          <Pregunta
+            numero={preguntando.numero}
+            onElegir={responder}
+            onCerrar={() => setPreguntando(null)}
+          />
+        )}
+      </div>
+    </>
   )
 }
