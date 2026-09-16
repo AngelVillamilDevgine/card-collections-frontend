@@ -500,3 +500,43 @@ button { cursor: pointer; }
   .compartir  { order: 1; align-self: flex-start; }
   .ayuda      { order: 2; flex-basis: 100%; margin-left: 0; }
 }
+
+/* Las expansiones del paso 2 se marcan y desmarcan: casilla a la izquierda, cuántas a
+   la derecha. Como es una fila y no un bloque, la cuenta va con margin y no con float. */
+.dialogo .opcion.elegible {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 500;
+}
+.dialogo .opcion.elegible.marcada { border-color: var(--acento); font-weight: 600; }
+.dialogo .opcion.elegible b { float: none; margin-left: auto; }
+
+.tilde {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+  border-radius: 4px;
+  border: 1px solid var(--linea2);
+  background: var(--blanco);
+  color: #fff;
+}
+.tilde.si { background: var(--acento); border-color: var(--acento); }
+
+/* El que cierra el paso: mismo peso que "Copiar", para que se vea qué sigue. */
+.dialogo .ver {
+  display: block;
+  width: 100%;
+  min-height: 46px;
+  margin-top: 6px;
+  padding: 11px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--acento);
+  background: var(--acento);
+  color: #fff;
+  font-weight: 600;
+  font-size: 15px;
+}
+.dialogo .ver:disabled { opacity: 0.45; cursor: default; }
