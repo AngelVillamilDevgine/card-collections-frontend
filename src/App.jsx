@@ -124,6 +124,16 @@ const VACIA = { estados: {}, cantidades: {} }
    quedar guardado el 2 después del 3. Esperando, sale uno solo con el número final. */
 const ESPERA = 250
 
+/* Las expansiones que dejaste cerradas. Se guardan en el navegador y no en la cuenta:
+   es cómo te gusta ver la lista en este aparato, no un dato de la colección. Por eso
+   la compu y el celular se acuerdan cada uno de lo suyo. */
+const CLAVE_PLEGADAS = 'dbz-cromeros-plegadas'
+
+function leerPlegadas() {
+  try { return new Set(JSON.parse(localStorage.getItem(CLAVE_PLEGADAS)) ?? []) }
+  catch { return new Set() }
+}
+
 export default function App() {
   const [catalogo, setCatalogo] = useState(null)
   const [error, setError] = useState(null)
@@ -133,7 +143,12 @@ export default function App() {
   const [preguntando, setPreguntando] = useState(null)
   const [fallo, setFallo] = useState(false)
   const [exportando, setExportando] = useState(false)
-  const [plegadas, setPlegadas] = useState(() => new Set())
+  const [plegadas, setPlegadas] = useState(leerPlegadas)
+
+  useEffect(() => {
+    try { localStorage.setItem(CLAVE_PLEGADAS, JSON.stringify([...plegadas])) }
+    catch { /* modo privado o sin lugar: se pierde al recargar, nada más */ }
+  }, [plegadas])
   const archivoRef = useRef(null)
   const pendientes = useRef(new Map())
 
@@ -227,8 +242,8 @@ export default function App() {
     return { total, tengo, sobrantes, porFiltro, ...cuenta }
   }, [catalogo, estados, cantidades])
 
-  /* Contraer una expansión: deja de dibujarse su grilla y queda sólo la banda. Vive
-     en memoria: es para moverse más rápido mientras scrolleás, no una preferencia. */
+  /* Contraer una expansión: deja de dibujarse su grilla y queda sólo la banda. Queda
+     guardado: lo que dejaste cerrado sigue cerrado cuando volvés. */
   function plegar(id) {
     setPlegadas((antes) => {
       const ahora = new Set(antes)
