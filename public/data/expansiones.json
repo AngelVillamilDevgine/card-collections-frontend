@@ -65,7 +65,7 @@
     },
     {
       "id": "esp-personajes",
-      "nombre": "Expansión Especial Personajes",
+      "nombre": "Especial Personajes",
       "corto": "EP",
       "color": "#a6a6a6",
       "desde": 816,
@@ -81,7 +81,7 @@
     },
     {
       "id": "gl-1",
-      "nombre": "Expansión Guerreros Legendarios 1",
+      "nombre": "Guerreros Legendarios 1",
       "corto": "GL1",
       "color": "#3b3b3b",
       "desde": 1088,
@@ -89,7 +89,7 @@
     },
     {
       "id": "gl-2",
-      "nombre": "Expansión Guerreros Legendarios 2",
+      "nombre": "Guerreros Legendarios 2",
       "corto": "GL2",
       "color": "#b7b5b3",
       "desde": 1224,
@@ -97,7 +97,7 @@
     },
     {
       "id": "sb-1",
-      "nombre": "Expansión Super Batalla 1",
+      "nombre": "Super Batalla 1",
       "corto": "SB1",
       "color": "#ed7d31",
       "desde": 1360,
@@ -105,7 +105,7 @@
     },
     {
       "id": "sb-2",
-      "nombre": "Expansión Super Batalla 2",
+      "nombre": "Super Batalla 2",
       "corto": "SB2",
       "color": "#ed7d31",
       "desde": 1496,
@@ -113,7 +113,7 @@
     },
     {
       "id": "esp-gt",
-      "nombre": "Expansión Especial GT",
+      "nombre": "Especial GT",
       "corto": "GT",
       "color": "#a9d18e",
       "desde": 1632,
@@ -121,7 +121,7 @@
     },
     {
       "id": "bf-1",
-      "nombre": "Expansión Batalla Final 1",
+      "nombre": "Batalla Final 1",
       "corto": "BF1",
       "color": "#ffd966",
       "desde": 1761,
@@ -129,7 +129,7 @@
     },
     {
       "id": "bf-2",
-      "nombre": "Expansión Batalla Final 2",
+      "nombre": "Batalla Final 2",
       "corto": "BF2",
       "color": "#ffd966",
       "desde": 1849,
