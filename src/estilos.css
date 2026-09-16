@@ -540,3 +540,26 @@ button { cursor: pointer; }
   font-size: 15px;
 }
 .dialogo .ver:disabled { opacity: 0.45; cursor: default; }
+
+/* --------------------------------- plegar --------------------------------- */
+
+/* La flechita de cada banda. Toma el color del texto de la banda, que ya se eligió
+   midiendo contraste, así se ve igual sobre el amarillo que sobre el azul. Los márgenes
+   negativos hacen que no agrande la banda. */
+.banda .plegar {
+  align-self: center;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin: -6px -2px -6px -8px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+}
+.banda .plegar:hover { background: rgba(0, 0, 0, 0.09); }
+.banda .plegar svg { transition: transform 0.15s ease; }
+.banda .plegar.cerrada svg { transform: rotate(-90deg); }

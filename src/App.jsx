@@ -133,6 +133,7 @@ export default function App() {
   const [preguntando, setPreguntando] = useState(null)
   const [fallo, setFallo] = useState(false)
   const [exportando, setExportando] = useState(false)
+  const [plegadas, setPlegadas] = useState(() => new Set())
   const archivoRef = useRef(null)
   const pendientes = useRef(new Map())
 
@@ -225,6 +226,17 @@ export default function App() {
     }
     return { total, tengo, sobrantes, porFiltro, ...cuenta }
   }, [catalogo, estados, cantidades])
+
+  /* Contraer una expansión: deja de dibujarse su grilla y queda sólo la banda. Vive
+     en memoria: es para moverse más rápido mientras scrolleás, no una preferencia. */
+  function plegar(id) {
+    setPlegadas((antes) => {
+      const ahora = new Set(antes)
+      if (ahora.has(id)) ahora.delete(id)
+      else ahora.add(id)
+      return ahora
+    })
+  }
 
   /* Un toque: si no la tenés, pregunta la condición. Si ya la tenés, suma una. */
   function tocar(clave, numero) {
@@ -330,13 +342,26 @@ export default function App() {
         if (!visibles.length) return null
 
         const tengoAca = exp.lista.filter((n) => cantidades[`${exp.id}:${n}`]).length
+        const plegada = plegadas.has(exp.id)
         return (
           <section className="expansion" key={exp.id}>
             <div className="banda" style={{ background: exp.color, color: textoSobre(exp.color) }}>
+              <button
+                className={`plegar${plegada ? ' cerrada' : ''}`}
+                onClick={() => plegar(exp.id)}
+                aria-expanded={!plegada}
+                aria-label={`${plegada ? 'Mostrar' : 'Contraer'} ${exp.nombre}`}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </button>
               <h2>{exp.nombre}</h2>
               <span className="rango">{exp.desde}–{exp.hasta}</span>
               <span className="cuenta">{tengoAca} de {exp.lista.length}</span>
             </div>
+            {!plegada && (
             <div className="grilla">
               {visibles.map((n) => {
                 const clave = `${exp.id}:${n}`
@@ -352,6 +377,7 @@ export default function App() {
                 )
               })}
             </div>
+            )}
           </section>
         )
       })}
