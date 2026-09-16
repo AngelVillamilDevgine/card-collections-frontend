@@ -31,7 +31,7 @@ body {
 button, input, select { font: inherit; color: inherit; }
 button { cursor: pointer; }
 
-.hoja { max-width: 1120px; margin: 0 auto; padding: 0 24px 96px; }
+.hoja { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
 
 /* ------------------------------- encabezado ------------------------------- */
 
@@ -169,43 +169,6 @@ button { cursor: pointer; }
 
 /* ---------------------------------- pie ----------------------------------- */
 
-.pie {
-  border-top: 1px solid var(--linea);
-  margin-top: 48px;
-  padding-top: 18px;
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  flex-wrap: wrap;
-  font-size: 13px;
-}
-
-.pie .aviso { color: #9a5518; }
-.pie .aviso b, .pie .guardando b { font-weight: 700; }
-.pie .guardando { color: var(--perf-tinta); }
-.pie .guardando::before { content: '● '; color: #4f9a63; }
-
-.pie button.principal {
-  background: var(--acento);
-  border: 1px solid var(--acento);
-  color: #fff;
-  font-weight: 600;
-  border-radius: 6px;
-  padding: 7px 14px;
-}
-.pie button.principal:hover { filter: brightness(1.06); }
-
-.pie button {
-  background: var(--blanco);
-  border: 1px solid var(--linea2);
-  border-radius: 6px;
-  padding: 7px 12px;
-  color: var(--tinta2);
-}
-.pie button.secundario { margin-left: 0; }
-.pie button:hover { border-color: var(--tinta3); color: var(--tinta); }
-
-.pie .secundario:first-of-type { margin-left: auto; }
 
 .cargando { padding: 80px 0; color: var(--tinta2); }
 
@@ -605,3 +568,53 @@ button { cursor: pointer; }
 @media (max-width: 640px) {
   .progreso { flex-basis: 100%; }
 }
+
+/* --------------------------------- footer --------------------------------- */
+
+/* Una franja blanca de lado a lado, como el header. Antes era una línea finita con
+   cuatro botones iguales y papel vacío abajo: Salir pesaba lo mismo que bajar una copia. */
+.pie {
+  margin-top: 48px;
+  background: var(--blanco);
+  border-top: 1px solid var(--linea);
+  padding: 20px 0 30px;
+  font-size: 13px;
+}
+.pie .columna { display: flex; flex-direction: column; gap: 14px; }
+.pie-cuenta, .pie-copias { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 20px; }
+.pie-cuenta { justify-content: space-between; }
+
+.pie .aviso { color: #9a5518; }
+.pie .aviso b, .pie .guardando b { font-weight: 700; }
+.pie .guardando { color: var(--perf-tinta); }
+.pie .guardando::before { content: '● '; color: #4f9a63; }
+
+/* Del mismo tipo redondo que los filtros y el icono de la barra. */
+.pie .salir {
+  background: none;
+  border: 1px solid var(--linea2);
+  border-radius: 999px;
+  padding: 6px 18px;
+  color: var(--tinta2);
+}
+.pie .salir:hover { border-color: var(--reem-linea); color: var(--reem-tinta); }
+
+.pie-copias { padding-top: 14px; border-top: 1px solid var(--linea); }
+.pie-rotulo {
+  color: var(--tinta3);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.pie .enlace {
+  min-height: 32px;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--tinta2);
+  text-decoration: underline;
+  text-decoration-color: var(--linea2);
+  text-underline-offset: 3px;
+}
+.pie .enlace:hover { color: var(--acento); text-decoration-color: currentColor; }

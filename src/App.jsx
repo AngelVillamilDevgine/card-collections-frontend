@@ -411,36 +411,6 @@ export default function App() {
           <p className="vacio">No hay ninguna carta en este listado.</p>
         )}
 
-        <footer className="pie">
-          {fallo ? (
-            <span className="aviso">
-              No se pudo guardar el último cambio. Fijate la conexión.
-            </span>
-          ) : (
-            <span className="guardando">
-              Guardando en tu cuenta, <b>{usuario}</b>, a cada cambio
-            </span>
-          )}
-
-          <button onClick={() => setExportando(true)} className="secundario">Exportar</button>
-          <button onClick={() => descargar(datos)} className="secundario">Bajar una copia</button>
-          <input
-            ref={archivoRef}
-            type="file"
-            accept="application/json"
-            hidden
-            onChange={(ev) => {
-              const f = ev.target.files?.[0]
-              if (f) restaurarCopia(f)
-              ev.target.value = ''
-            }}
-          />
-          <button onClick={() => archivoRef.current.click()} className="secundario">
-            Restaurar una copia
-          </button>
-          <button onClick={cerrar} className="secundario">Salir</button>
-        </footer>
-
         {exportando && (
           <Exportar catalogo={catalogo} datos={datos} onCerrar={() => setExportando(false)} />
         )}
@@ -453,6 +423,39 @@ export default function App() {
           />
         )}
       </div>
+
+      {/* Una franja al final, no una línea suelta sobre el papel. Arriba la cuenta y
+          Salir, que es la acción de la cuenta; abajo, más callado, lo que se hace con
+          la colección, que se usa poco. */}
+      <footer className="pie">
+        <div className="columna">
+          <div className="pie-cuenta">
+            {fallo ? (
+              <span className="aviso">No se pudo guardar el último cambio. Fijate la conexión.</span>
+            ) : (
+              <span className="guardando">Guardando en tu cuenta, <b>{usuario}</b>, a cada cambio</span>
+            )}
+            <button onClick={cerrar} className="salir">Salir</button>
+          </div>
+          <div className="pie-copias">
+            <span className="pie-rotulo">Tu colección</span>
+            <button onClick={() => setExportando(true)} className="enlace">Exportar</button>
+            <button onClick={() => descargar(datos)} className="enlace">Bajar una copia</button>
+            <input
+              ref={archivoRef}
+              type="file"
+              accept="application/json"
+              hidden
+              onChange={(ev) => {
+              const f = ev.target.files?.[0]
+              if (f) restaurarCopia(f)
+              ev.target.value = ''
+              }}
+            />
+            <button onClick={() => archivoRef.current.click()} className="enlace">Restaurar una copia</button>
+          </div>
+        </div>
+      </footer>
     </>
   )
 }
