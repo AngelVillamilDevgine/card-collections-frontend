@@ -359,7 +359,19 @@ export default function App() {
               </button>
               <h2>{exp.nombre}</h2>
               <span className="rango">{exp.desde}–{exp.hasta}</span>
-              <span className="cuenta">{tengoAca} de {exp.lista.length}</span>
+              {/* Completa es tener todas, estén en el estado que estén: las "para reemplazar"
+                  también cuentan, y ya tienen su propio filtro. */}
+              {tengoAca === exp.lista.length ? (
+                <span className="cuenta completa" title={`${tengoAca} de ${exp.lista.length}`}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                       strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M5 13l4 4L19 7" />
+                  </svg>
+                  Completa
+                </span>
+              ) : (
+                <span className="cuenta">{tengoAca} de {exp.lista.length}</span>
+              )}
             </div>
             {!plegada && (
             <div className="grilla">

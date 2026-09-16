@@ -569,3 +569,14 @@ button { cursor: pointer; }
    las cerradas se apilan juntas. */
 .expansion.plegada { margin-bottom: 10px; }
 .expansion.plegada .banda { margin-bottom: 0; }
+
+/* Una expansión completa cambia "129 de 129" por un tilde. Se lee de un vistazo, que es
+   cuando se miran las bandas: cerradas y scrolleando rápido. Toma el color del texto de
+   la banda, así que se ve en todas. El número exacto queda en el title. */
+.banda .cuenta.completa {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  opacity: 1;
+}
+.banda .cuenta.completa svg { flex: none; }
