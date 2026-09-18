@@ -6,9 +6,11 @@
 // y no había usuarios. Con cuentas de verdad nada de eso hace falta.
 const CLAVE_TOKEN = 'dbz-cromeros-token'
 
-// En desarrollo el proxy de Vite manda /api al servidor local; en producción esto
-// lo pone Cloudflare al construir (VITE_API_URL=https://api.tu-dominio).
-const RAIZ = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '') + '/api'
+// En desarrollo se usa el proxy de Vite, así el navegador ve un solo origen y no hay
+// CORS que arreglar. En producción se le pega directo a la API, que vive en el mismo
+// dominio que la app. Si algún día cambia, se cambia acá (o se pisa con VITE_API_URL).
+const API = import.meta.env.DEV ? '' : 'https://api.cromeros.com.ar'
+const RAIZ = (import.meta.env.VITE_API_URL ?? API).replace(/\/$/, '') + '/api'
 
 export class ErrorApi extends Error {}
 
