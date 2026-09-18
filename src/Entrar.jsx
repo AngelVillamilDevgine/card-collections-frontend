@@ -34,11 +34,14 @@ export default function Entrar({ onEntro }) {
 
         <form className="entrar" onSubmit={enviar}>
           <label>
-            Usuario
+            {nuevo ? 'Tu mail' : 'Mail o usuario'}
+            {/* type="email" sólo al crear la cuenta. Al entrar va de texto: hay cuentas
+                viejas con nombre a secas, y el navegador no las dejaría escribirlo. */}
             <input
+              type={nuevo ? 'email' : 'text'}
               value={usuario}
               onChange={(ev) => setUsuario(ev.target.value)}
-              autoComplete="username"
+              autoComplete={nuevo ? 'email' : 'username'}
               autoCapitalize="none"
               autoCorrect="off"
               spellCheck="false"
