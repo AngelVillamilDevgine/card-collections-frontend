@@ -618,3 +618,27 @@ button { cursor: pointer; }
   text-underline-offset: 3px;
 }
 .pie .enlace:hover { color: var(--acento); text-decoration-color: currentColor; }
+
+/* Tercera fila del pie: de dónde es la app, y apoyar al que la hizo. Más callada que
+   las otras dos: es lo último que uno necesita. */
+.pie-marca {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  justify-content: space-between;
+  padding-top: 14px;
+  border-top: 1px solid var(--linea);
+  color: var(--tinta3);
+}
+.pie-sitio { font-weight: 600; color: var(--tinta2); }
+
+.pie .alias {
+  border: 1px dashed var(--linea2);
+  border-radius: 6px;
+  background: var(--papel);
+  padding: 3px 9px;
+  color: var(--tinta);
+  font-variant-numeric: tabular-nums;
+}
+.pie .alias:hover { border-color: var(--acento); color: var(--acento); }

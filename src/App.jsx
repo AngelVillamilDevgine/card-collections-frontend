@@ -119,6 +119,10 @@ function Pregunta({ numero, onElegir, onCerrar }) {
 
 const VACIA = { estados: {}, cantidades: {} }
 
+/* Para el pie: de dónde es la app y cómo apoyar al que la hizo. */
+const SITIO = 'www.cromeros.com.ar'
+const ALIAS = 'angel.villamil'
+
 /* Lo que tarda en mandarse una carta después del último toque. Existe por el orden:
    si tocás tres veces rápido y salen tres pedidos, pueden llegar desordenados y
    quedar guardado el 2 después del 3. Esperando, sale uno solo con el número final. */
@@ -144,6 +148,7 @@ export default function App() {
   const [fallo, setFallo] = useState(false)
   const [exportando, setExportando] = useState(false)
   const [plegadas, setPlegadas] = useState(leerPlegadas)
+  const [avisoAlias, setAvisoAlias] = useState(null)
 
   useEffect(() => {
     try { localStorage.setItem(CLAVE_PLEGADAS, JSON.stringify([...plegadas])) }
@@ -267,6 +272,30 @@ export default function App() {
   function responder(estado) {
     aplicar(preguntando.clave, 1, estado)
     setPreguntando(null)
+  }
+
+  /* El alias se copia de un toque: es para pegarlo en el homebanking, no para leerlo. */
+  async function copiarAlias() {
+    let listo = false
+    try {
+      await navigator.clipboard.writeText(ALIAS)
+      listo = true
+    } catch {
+      // El portapapeles moderno pide pestaña con foco y sitio seguro. Donde no se
+      // puede, el de toda la vida todavía anda.
+      const caja = document.createElement('textarea')
+      caja.value = ALIAS
+      caja.setAttribute('readonly', '')
+      caja.style.position = 'fixed'
+      caja.style.opacity = '0'
+      document.body.appendChild(caja)
+      caja.select()
+      listo = document.execCommand?.('copy') ?? false
+      caja.remove()
+    }
+    // Un botón que no hace nada es peor que uno que avisa que no pudo.
+    setAvisoAlias(listo ? 'copiado' : 'copialo a mano')
+    setTimeout(() => setAvisoAlias(null), 2500)
   }
 
   async function cerrar() {
@@ -468,6 +497,15 @@ export default function App() {
               }}
             />
             <button onClick={() => archivoRef.current.click()} className="enlace">Restaurar una copia</button>
+          </div>
+          <div className="pie-marca">
+            <span className="pie-sitio">{SITIO}</span>
+            <span className="pie-apoyo">
+              ¿Te sirve? Podés apoyar al que la hizo · alias{' '}
+              <button onClick={copiarAlias} className="alias" title="Tocá para copiarlo">
+                {avisoAlias ?? ALIAS}
+              </button>
+            </span>
           </div>
         </div>
       </footer>
