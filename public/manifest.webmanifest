@@ -1,0 +1,17 @@
+{
+  "name": "Mi colección de Dragon Ball Z",
+  "short_name": "Cromeros",
+  "description": "El seguimiento de tu colección de cartas Dragon Ball Z de Cromeros, 1936 cartas en 16 expansiones.",
+  "lang": "es-AR",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f4f2ee",
+  "theme_color": "#f4a11d",
+  "icons": [
+    { "src": "/icono-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icono-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icono-mascara-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

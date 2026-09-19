@@ -12,7 +12,14 @@ const CLAVE_TOKEN = 'dbz-cromeros-token'
 const API = import.meta.env.DEV ? '' : 'https://api.cromeros.com.ar'
 const RAIZ = (import.meta.env.VITE_API_URL ?? API).replace(/\/$/, '') + '/api'
 
+import { comoApp } from './Instalar'
+
 export class ErrorApi extends Error {}
+
+/* Si está corriendo como app instalada, se lo cuenta al servidor. Va como parámetro y
+   no como cabecera para que no haga falta un pedido de permiso previo (preflight), que
+   en un teléfono con datos es un viaje de ida y vuelta al pedo. */
+const marcaApp = () => (comoApp() ? '?app=1' : '')
 
 export function token() {
   try { return localStorage.getItem(CLAVE_TOKEN) } catch { return null }
@@ -57,7 +64,7 @@ async function pedir(ruta, opciones = {}) {
 // Devuelve la cuenta, no el nombre a secas: el front necesita saber además si es
 // administrador, para mostrarle el panel de números.
 async function entrarPor(ruta, usuario, clave) {
-  const dicho = await pedir(ruta, { method: 'POST', cuerpo: { usuario, clave } })
+  const dicho = await pedir(ruta + marcaApp(), { method: 'POST', cuerpo: { usuario, clave } })
   recordarToken(dicho.token)
   return { usuario: dicho.usuario, admin: !!dicho.admin }
 }
@@ -73,7 +80,7 @@ export async function salir() {
 // Al abrir: ¿el token guardado sigue sirviendo? Si no, se muestra la pantalla de entrada.
 export async function quienSoy() {
   if (!token()) return null
-  return pedir('/yo').then((d) => ({ usuario: d.usuario, admin: !!d.admin })).catch(() => null)
+  return pedir('/yo' + marcaApp()).then((d) => ({ usuario: d.usuario, admin: !!d.admin })).catch(() => null)
 }
 
 // Los números de toda la app. A quien no es administrador el servidor le contesta

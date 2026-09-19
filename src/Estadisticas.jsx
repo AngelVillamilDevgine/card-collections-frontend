@@ -62,6 +62,7 @@ function Cuerpo({ d }) {
         <Barra rotulo="Se anotaron" valor={u.total} techo={u.total} />
         <Barra rotulo="Cargaron cartas" valor={u.conCartas} techo={u.total} nota={`${parte(u.conCartas, u.total)}%`} />
         <Barra rotulo="Volvieron otro día" valor={u.volvieron} techo={u.total} nota={`${parte(u.volvieron, u.total)}%`} />
+        <Barra rotulo="La instalaron" valor={u.conApp} techo={u.total} nota={`${parte(u.conApp, u.total)}%`} />
       </div>
 
       <p className="nada">
@@ -106,7 +107,10 @@ function Cuerpo({ d }) {
           <tbody>
             {gente.map((g) => (
               <tr key={g.usuario} className={g.cartas ? undefined : 'apagada'}>
-                <td className="quien" title={g.usuario}>{g.usuario}</td>
+                <td className="quien" title={g.usuario}>
+                  {g.usuario}
+                  {g.app && <span className="chip" title="Entra desde la app instalada">app</span>}
+                </td>
                 <td>{dia(g.alta)}</td>
                 <td>{dia(g.ultima)}</td>
                 <td>{g.dias}</td>

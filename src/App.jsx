@@ -3,6 +3,7 @@ import { ESTADOS, FALTA, etiqueta } from './estados'
 import Entrar from './Entrar'
 import Exportar from './Exportar'
 import Estadisticas from './Estadisticas'
+import Instalar from './Instalar'
 import {
   descargar, restaurar, quienSoy, salir,
   leerColeccion, guardarCarta, reemplazarColeccion,
@@ -576,6 +577,9 @@ export default function App() {
           </div>
         </div>
       </footer>
+
+      {/* Fuera del pie: es una barra fija abajo, y sólo aparece en teléfono. */}
+      <Instalar />
     </>
   )
 }
