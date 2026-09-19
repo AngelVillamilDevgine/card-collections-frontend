@@ -64,10 +64,18 @@ function Cuerpo({ d }) {
         <Barra rotulo="Volvieron otro día" valor={u.volvieron} techo={u.total} nota={`${parte(u.volvieron, u.total)}%`} />
       </div>
 
+      <p className="nada">
+        «Volvieron» se cuenta por días de uso, no por veces que escribieron la clave —
+        la sesión dura 30 días, así que casi nadie vuelve a escribirla. Lo anterior al
+        18/09 queda corto: de antes sólo se sabe el día del alta y los días en que
+        alguien entró de nuevo.
+      </p>
+
       <div className="sueltos">
         <span><b>{u.altas7}</b> altas en 7 días</span>
         <span><b>{u.altasHoy}</b> hoy</span>
-        <span><b>{u.sesiones}</b> sesiones abiertas</span>
+        <span><b>{u.activosHoy}</b> la usaron hoy</span>
+        <span><b>{u.activos7}</b> en la semana</span>
         <span><b>{cartas.total.toLocaleString('es-AR')}</b> cartas marcadas</span>
         <span><b>{cartas.repetidas.toLocaleString('es-AR')}</b> repetidas</span>
       </div>
@@ -92,7 +100,7 @@ function Cuerpo({ d }) {
         <table className="gente">
           <thead>
             <tr>
-              <th>Cuenta</th><th>Alta</th><th>Última</th><th>Días</th><th>Cartas</th><th>Álbum</th><th>Repes</th>
+              <th>Cuenta</th><th>Alta</th><th>Última</th><th title="Días distintos en que usó la app">Días</th><th>Cartas</th><th>Álbum</th><th>Repes</th>
             </tr>
           </thead>
           <tbody>
