@@ -430,6 +430,7 @@ button { cursor: pointer; }
 /* Del mismo tipo que los filtros, para que la barra se lea como una sola cosa. */
 .compartir {
   display: grid;
+  transition: color 0.45s ease, border-color 0.45s ease;
   place-items: center;
   flex: none;
   width: 38px;
@@ -441,6 +442,28 @@ button { cursor: pointer; }
   color: var(--tinta2);
 }
 .compartir:hover { color: var(--acento); border-color: var(--acento); }
+
+/* El guiño: un zoom corto de ida y vuelta para que se note que el botón está ahí.
+   Sólo transform y color — no ocupa más lugar, así que no corre nada de alrededor.
+   Quién lo dispara y cuántas veces está en App.jsx; acá va la regla de accesibilidad,
+   repetida a propósito: si el sistema pide menos movimiento, no se mueve ni aunque
+   alguien se olvide de preguntarlo en el código. */
+@keyframes guiño {
+  0%, 60%, 100% { transform: scale(1); }
+  12%           { transform: scale(1.16); }
+  26%           { transform: scale(0.97); }
+  40%           { transform: scale(1.1); }
+}
+
+.compartir.guiña {
+  animation: guiño 1.5s ease-in-out;
+  border-color: var(--acento);
+  color: var(--acento);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .compartir.guiña { animation: none; }
+}
 
 
 /* Las expansiones del paso 2 se marcan y desmarcan: casilla a la izquierda, cuántas a

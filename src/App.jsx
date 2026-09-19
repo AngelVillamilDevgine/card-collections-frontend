@@ -134,6 +134,27 @@ const ESPERA = 250
    la compu y el celular se acuerdan cada uno de lo suyo. */
 const CLAVE_PLEGADAS = 'dbz-cromeros-plegadas'
 
+/* El botón de exportar vive en la barra fija y es un ícono solo: mucha gente no se
+   entera de que está. Cada tanto hace un movimiento corto, "tocame".
+
+   Lo que importa no es la animación, son las cuatro reglas que la apagan, para que sea
+   una ayuda y no un cartel:
+     · sólo si ya cargó cartas, porque si no no hay nada que exportar;
+     · sólo si nunca exportó, o si la última vez fue hace más de dos semanas;
+     · tres veces por visita y se termina;
+     · y nunca si el sistema pide menos movimiento, que para algunas personas no es un
+       gusto sino mareo o migraña.
+   En cuanto lo usa, se anota la fecha y no vuelve a moverse. */
+const CLAVE_EXPORTO = 'dbz-cromeros-exporto'
+const DESCANSO = 15 * 24 * 60 * 60 * 1000 // dos semanas largas
+const GUINOS = 3
+const PRIMERO = 20000
+const CADA = 70000
+
+function leerExporto() {
+  try { return Number(localStorage.getItem(CLAVE_EXPORTO) ?? 0) } catch { return 0 }
+}
+
 function leerPlegadas() {
   try { return new Set(JSON.parse(localStorage.getItem(CLAVE_PLEGADAS)) ?? []) }
   catch { return new Set() }
@@ -150,6 +171,11 @@ export default function App() {
   const [fallo, setFallo] = useState(false)
   const [exportando, setExportando] = useState(false)
   const [viendoNumeros, setViendoNumeros] = useState(false)
+  const [guiñando, setGuiñando] = useState(false)
+  /* Cuándo exportó por última vez vive en un estado y no sólo en localStorage: así,
+     al usarlo, el efecto de abajo se vuelve a correr y cancela los guiños que quedaban
+     programados. Guardándolo sólo en localStorage seguía guiñando después de usarlo. */
+  const [ultimoExporto, setUltimoExporto] = useState(leerExporto)
   const [plegadas, setPlegadas] = useState(leerPlegadas)
   const [avisoAlias, setAvisoAlias] = useState(null)
 
@@ -249,6 +275,32 @@ export default function App() {
     }
     return { total, tengo, sobrantes, porFiltro, ...cuenta }
   }, [catalogo, estados, cantidades])
+
+  const hayQueExportar = (resumen?.tengo ?? 0) > 0
+
+  useEffect(() => {
+    if (!hayQueExportar) return
+    if (Date.now() - ultimoExporto < DESCANSO) return
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
+    let quedan = GUINOS
+    let relojes = []
+    const guiñar = () => {
+      setGuiñando(true)
+      relojes.push(setTimeout(() => setGuiñando(false), 1500))
+      if (--quedan > 0) relojes.push(setTimeout(guiñar, CADA))
+    }
+    relojes.push(setTimeout(guiñar, PRIMERO))
+    return () => relojes.forEach(clearTimeout)
+  }, [hayQueExportar, ultimoExporto])
+
+  /* Se abrió el diálogo: ya sabe que el botón está. Se anota y no se mueve más. */
+  function exportar() {
+    const ahora = Date.now()
+    setGuiñando(false)
+    setUltimoExporto(ahora)
+    try { localStorage.setItem(CLAVE_EXPORTO, String(ahora)) } catch { /* modo privado */ }
+    setExportando(true)
+  }
 
   /* Contraer una expansión: deja de dibujarse su grilla y queda sólo la banda. Queda
      guardado: lo que dejaste cerrado sigue cerrado cuando volvés. */
@@ -375,7 +427,12 @@ export default function App() {
             </div>
 
             {/* A mano en la barra fija: el botón del pie queda abajo de las 1936 cartas. */}
-            <button className="compartir" onClick={() => setExportando(true)} aria-label="Exportar" title="Exportar">
+            <button
+              className={`compartir${guiñando ? ' guiña' : ''}`}
+              onClick={exportar}
+              aria-label="Exportar"
+              title="Exportar"
+            >
               <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M12 3v12" />
@@ -493,7 +550,7 @@ export default function App() {
           </div>
           <div className="pie-copias">
             <span className="pie-rotulo">Tu colección</span>
-            <button onClick={() => setExportando(true)} className="enlace">Exportar</button>
+            <button onClick={exportar} className="enlace">Exportar</button>
             <button onClick={() => descargar(datos)} className="enlace">Bajar una copia</button>
             <input
               ref={archivoRef}
