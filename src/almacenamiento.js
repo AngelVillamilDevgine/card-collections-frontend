@@ -54,10 +54,12 @@ async function pedir(ruta, opciones = {}) {
 
 /* ------------------------------------ sesión ----------------------------------- */
 
+// Devuelve la cuenta, no el nombre a secas: el front necesita saber además si es
+// administrador, para mostrarle el panel de números.
 async function entrarPor(ruta, usuario, clave) {
   const dicho = await pedir(ruta, { method: 'POST', cuerpo: { usuario, clave } })
   recordarToken(dicho.token)
-  return dicho.usuario
+  return { usuario: dicho.usuario, admin: !!dicho.admin }
 }
 
 export const registrarse = (usuario, clave) => entrarPor('/registro', usuario, clave)
@@ -71,8 +73,12 @@ export async function salir() {
 // Al abrir: ¿el token guardado sigue sirviendo? Si no, se muestra la pantalla de entrada.
 export async function quienSoy() {
   if (!token()) return null
-  return pedir('/yo').then((d) => d.usuario).catch(() => null)
+  return pedir('/yo').then((d) => ({ usuario: d.usuario, admin: !!d.admin })).catch(() => null)
 }
+
+// Los números de toda la app. A quien no es administrador el servidor le contesta
+// 404, así que el botón ni se dibuja.
+export const estadisticas = () => pedir('/admin/resumen')
 
 /* ---------------------------------- colección ---------------------------------- */
 

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { ESTADOS, FALTA, etiqueta } from './estados'
 import Entrar from './Entrar'
 import Exportar from './Exportar'
+import Estadisticas from './Estadisticas'
 import {
   descargar, restaurar, quienSoy, salir,
   leerColeccion, guardarCarta, reemplazarColeccion,
@@ -141,12 +142,14 @@ function leerPlegadas() {
 export default function App() {
   const [catalogo, setCatalogo] = useState(null)
   const [error, setError] = useState(null)
-  const [usuario, setUsuario] = useState(undefined) // undefined = todavía no sé
+  // La cuenta entera, no el nombre: trae además si es administrador.
+  const [cuenta, setCuenta] = useState(undefined) // undefined = todavía no sé
   const [datos, setDatos] = useState(VACIA)
   const [filtro, setFiltro] = useState('todas')
   const [preguntando, setPreguntando] = useState(null)
   const [fallo, setFallo] = useState(false)
   const [exportando, setExportando] = useState(false)
+  const [viendoNumeros, setViendoNumeros] = useState(false)
   const [plegadas, setPlegadas] = useState(leerPlegadas)
   const [avisoAlias, setAvisoAlias] = useState(null)
 
@@ -167,15 +170,15 @@ export default function App() {
   }, [])
 
   /* ¿El token guardado sigue sirviendo? Si no, se muestra la pantalla de entrada. */
-  useEffect(() => { quienSoy().then((u) => setUsuario(u)) }, [])
+  useEffect(() => { quienSoy().then((c) => setCuenta(c)) }, [])
 
   /* La colección es la del usuario: se pide al entrar y se olvida al salir. */
   useEffect(() => {
-    if (!usuario) return setDatos(VACIA)
+    if (!cuenta) return setDatos(VACIA)
     leerColeccion()
       .then(setDatos)
       .catch((e) => setError(e.message))
-  }, [usuario])
+  }, [cuenta])
 
   /* Manda una carta sola, esperando por si vienen más toques de la misma. */
   function mandar(clave, cantidad, estado) {
@@ -300,7 +303,7 @@ export default function App() {
 
   async function cerrar() {
     await salir()
-    setUsuario(null)
+    setCuenta(null)
     setError(null)
   }
 
@@ -311,8 +314,8 @@ export default function App() {
       .catch((e) => setError(e.message ?? 'No pude leer ese archivo.'))
   }
 
-  if (usuario === undefined) return <div className="hoja"><p className="cargando">Cargando…</p></div>
-  if (!usuario) return <Entrar onEntro={setUsuario} />
+  if (cuenta === undefined) return <div className="hoja"><p className="cargando">Cargando…</p></div>
+  if (!cuenta) return <Entrar onEntro={setCuenta} />
 
   if (error) return (
     <div className="hoja">
@@ -459,6 +462,8 @@ export default function App() {
           <Exportar catalogo={catalogo} datos={datos} onCerrar={() => setExportando(false)} />
         )}
 
+        {viendoNumeros && <Estadisticas onCerrar={() => setViendoNumeros(false)} />}
+
         {preguntando && (
           <Pregunta
             numero={preguntando.numero}
@@ -477,9 +482,14 @@ export default function App() {
             {fallo ? (
               <span className="aviso">No se pudo guardar el último cambio. Fijate la conexión.</span>
             ) : (
-              <span className="guardando">Guardando en tu cuenta, <b>{usuario}</b>, a cada cambio</span>
+              <span className="guardando">Guardando en tu cuenta, <b>{cuenta.usuario}</b>, a cada cambio</span>
             )}
-            <button onClick={cerrar} className="salir">Salir</button>
+            <span className="pie-acciones">
+              {cuenta.admin && (
+                <button onClick={() => setViendoNumeros(true)} className="enlace">Los números</button>
+              )}
+              <button onClick={cerrar} className="salir">Salir</button>
+            </span>
           </div>
           <div className="pie-copias">
             <span className="pie-rotulo">Tu colección</span>

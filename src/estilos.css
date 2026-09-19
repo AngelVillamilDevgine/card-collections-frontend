@@ -642,3 +642,83 @@ button { cursor: pointer; }
   font-variant-numeric: tabular-nums;
 }
 .pie .alias:hover { border-color: var(--acento); color: var(--acento); }
+
+/* ------------------------------ los números ------------------------------- */
+/* Todo cuelga de .numeros: son nombres comunes y .barra ya estaba tomada por la
+   barrita de progreso de cada expansión.
+   El panel del administrador. Sobrio a propósito: filas y barras, nada de
+   tarjetitas con sombras — la app no tiene ese aire en ningún otro lado. */
+
+.dialogo.numeros {
+  width: min(620px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+}
+
+.dialogo.numeros h4 {
+  margin: 22px 0 10px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tinta3);
+  border-bottom: 1px solid var(--linea);
+  padding-bottom: 6px;
+}
+
+.numeros .grupo { display: flex; flex-direction: column; gap: 7px; }
+
+.numeros .renglon {
+  display: grid;
+  grid-template-columns: 116px 1fr 44px 42px;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+.numeros .renglon.flaca { grid-template-columns: 46px 1fr 44px 0; font-size: 12px; }
+
+.numeros .renglon-rotulo { color: var(--tinta2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.numeros .riel { height: 12px; background: var(--papel); border-radius: 6px; overflow: hidden; }
+.numeros .relleno {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  border-radius: 6px;
+  background: var(--naranja);
+}
+.numeros .renglon b { text-align: right; font-variant-numeric: tabular-nums; }
+.numeros .renglon-nota { color: var(--tinta3); font-size: 12px; font-variant-numeric: tabular-nums; }
+
+.numeros .sueltos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--tinta2);
+}
+.numeros .sueltos b { color: var(--tinta); font-variant-numeric: tabular-nums; }
+
+.numeros .tablon { overflow-x: auto; }
+
+.numeros table.gente {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.numeros table.gente th {
+  text-align: right;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--tinta3);
+  padding: 0 0 6px 10px;
+}
+.numeros table.gente td { text-align: right; padding: 5px 0 5px 10px; border-top: 1px solid var(--linea); }
+.numeros table.gente th:first-child, .numeros table.gente td:first-child { text-align: left; padding-left: 0; }
+.numeros table.gente .quien { max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Quien no cargó ninguna carta se anotó y se fue: que se note de un vistazo. */
+.numeros table.gente .apagada { color: var(--tinta3); }
+
+.pie-acciones { display: flex; align-items: center; gap: 16px; }
