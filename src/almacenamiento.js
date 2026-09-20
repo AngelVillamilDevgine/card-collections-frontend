@@ -121,26 +121,83 @@ export const reemplazarColeccion = (datos) =>
 
 /* ------------------------------- copias en disco ------------------------------- */
 
-export function descargar(datos) {
+export function descargar(datos, nombre = 'mi-coleccion-dbz.json') {
   const blob = new Blob([JSON.stringify(datos, null, 2)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = 'mi-coleccion-dbz.json'
+  a.download = nombre
+  /* El <a> tiene que estar EN el documento, y la URL no se puede soltar en el mismo
+     instante del click: revocarla ahí es una carrera con el navegador, que todavía no
+     empezó a bajar nada. Antes andaba en Chrome por suerte y no por diseño — es el
+     patrón que falla en Firefox —, y en headless directamente no bajaba nada.
+
+     Ahora de esto depende la copia de seguridad que se baja antes de reemplazar la
+     colección, así que no puede andar por suerte. */
+  a.style.display = 'none'
+  document.body.appendChild(a)
   a.click()
-  URL.revokeObjectURL(url)
+  /* Un minuto, no un segundo. Se midió con el navegador: con un segundo, la descarga
+     empieza, recibe los bytes y el navegador la CANCELA — la URL se soltó antes de que
+     terminara de escribir el archivo. La memoria de un blob de dos kilobytes no es
+     problema; perder la copia de seguridad, sí. */
+  setTimeout(() => {
+    a.remove()
+    URL.revokeObjectURL(url)
+  }, 60000)
 }
 
-// Un respaldo puede ser viejo: sigue entendiendo las dos formas anteriores del archivo.
+/* Qué cuenta como una copia de la colección, y qué no.
+
+   Esto ANTES no fallaba nunca: cualquier cosa que no entendiera —un `null`, una lista,
+   un `{}`, el json de otra cosa— se convertía en una colección VACÍA perfectamente
+   válida, el servidor la aceptaba y te borraba todo contestando 200. Sin preguntar y sin
+   avisar. Era el único camino de la app que borraba en masa, y el que menos validaba.
+
+   Ahora, lo que no se reconoce se rechaza. Sigue entendiendo las dos formas anteriores
+   del archivo, porque un respaldo puede ser viejo. Devuelve `null` si no es una copia. */
+const esMapa = (v) => !!v && typeof v === 'object' && !Array.isArray(v)
+
+// La forma de una clave de carta, para reconocer la forma más vieja del archivo.
+const PARECE_CARTA = /^[a-z0-9-]{1,40}:\d{1,5}$/
+
 export function normalizar(datos) {
-  if (!datos || typeof datos !== 'object') return { estados: {}, cantidades: {} }
-  const estados = datos.estados ?? (datos.cantidades ? {} : datos)
-  if (datos.cantidades) return { estados, cantidades: datos.cantidades }
-  const cantidades = {}
-  for (const clave of Object.keys(estados)) cantidades[clave] = 1 + (datos.repetidas?.[clave] ?? 0)
-  return { estados, cantidades }
+  if (!esMapa(datos)) return null
+
+  // La forma de hoy: { estados, cantidades }.
+  if (esMapa(datos.cantidades))
+    return { estados: esMapa(datos.estados) ? datos.estados : {}, cantidades: datos.cantidades }
+
+  // Una anterior: { estados, repetidas }.
+  if (esMapa(datos.estados)) {
+    const cantidades = {}
+    for (const clave of Object.keys(datos.estados))
+      cantidades[clave] = 1 + (datos.repetidas?.[clave] ?? 0)
+    return { estados: datos.estados, cantidades }
+  }
+
+  // La más vieja: un mapa de estados suelto. Se reconoce porque TODAS sus claves tienen
+  // forma de carta; si alguna no, es otro archivo cualquiera y no se toca nada.
+  const claves = Object.keys(datos)
+  if (claves.length && claves.every((c) => PARECE_CARTA.test(c))) {
+    const cantidades = {}
+    for (const clave of claves) cantidades[clave] = 1
+    return { estados: datos, cantidades }
+  }
+
+  return null
 }
 
 export function restaurar(archivo) {
-  return archivo.text().then((t) => normalizar(JSON.parse(t)))
+  return archivo.text().then((t) => {
+    let crudo
+    try {
+      crudo = JSON.parse(t)
+    } catch {
+      throw new ErrorApi('Ese archivo no es un .json válido.')
+    }
+    const datos = normalizar(crudo)
+    if (!datos) throw new ErrorApi('Ese archivo no parece una copia de tu colección.')
+    return datos
+  })
 }

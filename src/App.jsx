@@ -187,6 +187,50 @@ function Pregunta({ numero, onElegir, onCerrar }) {
   )
 }
 
+/* Restaurar reemplaza TODA la colección, aunque el archivo esté bien. Es el único camino
+   de la app que borra en masa, y era el que menos avisaba: se hacía solo, sin preguntar y
+   sin decir qué se perdía — un archivo equivocado te dejaba en cero con el pie diciendo
+   "Guardando en tu cuenta, a cada cambio".
+
+   Ahora muestra los dos números antes de tocar nada. Los números importan más que el
+   cartel: "vas a perder 861 cartas" se entiende; "¿estás seguro?" no dice nada. */
+function Reemplazar({ tengo, trae, onConfirmar, onCerrar }) {
+  const caja = useRef(null)
+  const abrio = useRef(document.activeElement)
+
+  useEffect(() => {
+    const f = (e) => e.key === 'Escape' && onCerrar()
+    window.addEventListener('keydown', f)
+    return () => window.removeEventListener('keydown', f)
+  }, [onCerrar])
+
+  useEffect(() => atraparFoco(caja.current, abrio.current), [])
+
+  const pierde = tengo - trae
+
+  return (
+    <div className="telon" onClick={onCerrar}>
+      <div className="dialogo" role="dialog" aria-modal="true" aria-label="Restaurar una copia"
+           ref={caja} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
+        <h3>Restaurar una copia</h3>
+        <p>
+          Ahora tenés <b>{tengo}</b> carta{tengo === 1 ? '' : 's'} marcada{tengo === 1 ? '' : 's'}.
+          Esta copia trae <b>{trae}</b>.
+        </p>
+        <p className="ojo">
+          Se reemplaza <b>toda</b> tu colección por la del archivo.
+          {pierde > 0 && <> Vas a perder <b>{pierde}</b>.</>}{' '}
+          Antes se baja sola una copia de lo que tenés ahora, por las dudas.
+        </p>
+        <button className="opcion reemplazar" onClick={onConfirmar} autoFocus>
+          Reemplazar por la copia
+        </button>
+        <button className="cancelar" onClick={onCerrar}>Cancelar, dejar todo como está</button>
+      </div>
+    </div>
+  )
+}
+
 /* ----------------------------------- app ---------------------------------- */
 
 const VACIA = { estados: {}, cantidades: {} }
@@ -262,6 +306,8 @@ export default function App() {
   /* Un archivo de copia que no se puede leer no puede tirar abajo la app entera: ese
      aviso va al pie, al lado del botón que lo abrió. */
   const [avisoArchivo, setAvisoArchivo] = useState(null)
+  /* La copia leída del archivo, esperando que la confirmes. */
+  const [porRestaurar, setPorRestaurar] = useState(null)
   /* Se incrementa para volver a pedir el catálogo y la colección desde cero. */
   const [intento, setIntento] = useState(0)
   const [exportando, setExportando] = useState(false)
@@ -579,16 +625,17 @@ export default function App() {
   }
 
   /* Restaurar un respaldo: se manda entera y se pisa lo que había en la cuenta. */
+  /* Leer el archivo NO reemplaza nada: sólo abre la confirmación. */
   function restaurarCopia(archivo) {
     setAvisoArchivo(null)
     restaurar(archivo)
-      .then((d) => reemplazarColeccion(d).then(() => {
-        setDatos(d)
-        // Se reemplazó todo: lo que no se había podido guardar carta por carta ya no
-        // tiene sentido.
-        pendientes.current.clear()
-        setFallidas(new Set())
-      }))
+      .then((d) => {
+        // El servidor también lo rechaza, pero es mejor decirlo acá que dejar confirmar
+        // algo que va a fallar.
+        if (!Object.keys(d.cantidades).length)
+          return setAvisoArchivo('Esa copia no tiene ninguna carta. No se cambió nada.')
+        setPorRestaurar(d)
+      })
       .catch((e) => {
         if (e?.sesion) return sesionMuerta()
         /* Los errores del navegador al leer un archivo vienen en inglés y hablan de
@@ -597,6 +644,27 @@ export default function App() {
         setAvisoArchivo(e instanceof ErrorApi
           ? e.message
           : 'No pude leer ese archivo. ¿Es una copia de tu colección?')
+      })
+  }
+
+  /* Confirmado. Primero se baja sola una copia de lo que había —la red por si el archivo
+     elegido no era el que creías— y recién después se reemplaza. */
+  function confirmarReemplazo() {
+    const nueva = porRestaurar
+    setPorRestaurar(null)
+    if (!nueva) return
+    descargar(datos, 'mi-coleccion-dbz-antes-de-restaurar.json')
+    reemplazarColeccion(nueva)
+      .then(() => {
+        setDatos(nueva)
+        // Se reemplazó todo: lo que no se había podido guardar carta por carta ya no
+        // tiene sentido.
+        pendientes.current.clear()
+        setFallidas(new Set())
+      })
+      .catch((e) => {
+        if (e?.sesion) return sesionMuerta()
+        setAvisoArchivo(e.message ?? 'No se pudo reemplazar la colección.')
       })
   }
 
@@ -760,6 +828,15 @@ export default function App() {
 
         {exportando && (
           <Exportar catalogo={catalogo} datos={datos} onCerrar={() => setExportando(false)} />
+        )}
+
+        {porRestaurar && (
+          <Reemplazar
+            tengo={Object.keys(cantidades).length}
+            trae={Object.keys(porRestaurar.cantidades).length}
+            onConfirmar={confirmarReemplazo}
+            onCerrar={() => setPorRestaurar(null)}
+          />
         )}
 
         {viendoNumeros && (

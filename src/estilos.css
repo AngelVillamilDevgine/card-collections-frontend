@@ -250,6 +250,19 @@ button { cursor: pointer; }
 
 .dialogo p { margin: 2px 0 16px; color: var(--tinta2); font-size: 14px; }
 
+/* La advertencia del reemplazo: el mismo color que las cartas "para reemplazar", que en
+   esta app ya significa "ojo con esto". */
+.dialogo .ojo {
+  background: var(--reem-fondo);
+  border: 1px solid var(--reem-linea);
+  color: var(--reem-tinta);
+  border-radius: 6px;
+  padding: 9px 11px;
+  margin: 0 0 14px;
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+
 .dialogo .opcion {
   display: block;
   width: 100%;
