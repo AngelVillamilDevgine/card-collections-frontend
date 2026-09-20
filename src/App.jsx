@@ -629,7 +629,7 @@ export default function App() {
         <div className="columna">
           <div className="marca">
               <h1>
-                <img src="./logo.png" alt="Dragon Ball Z" width="1999" height="510" />
+                <img src="./logo.png" alt="Dragon Ball Z" width="660" height="168" />
               </h1>
               <p>Mi colección · Cartas Cromeros · 2007–2008</p>
           </div>
@@ -639,7 +639,7 @@ export default function App() {
                 <span className="de">de {resumen.total} cartas</span>
                 {resumen.sobrantes > 0 && (
                   <span className="sobrantes">
-                    {resumen.sobrantes} repetida{resumen.sobrantes > 1 ? 's' : ''} para cambiar
+                    {resumen.sobrantes} repetida{resumen.sobrantes > 1 ? 's' : ''}
                   </span>
                 )}
               </div>

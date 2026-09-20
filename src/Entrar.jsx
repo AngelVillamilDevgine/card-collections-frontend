@@ -29,7 +29,7 @@ export default function Entrar({ onEntro, aviso }) {
     <main className="entrada">
       <div className="entrada-caja">
         <img className="entrada-logo" src="./logo.png" alt="Dragon Ball Z"
-             width="1999" height="510" />
+             width="660" height="168" />
         <p className="entrada-bajada">Mi colección · Cartas Cromeros · 2007–2008</p>
 
         <form className="entrar" onSubmit={enviar}>

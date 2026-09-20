@@ -20,7 +20,7 @@ function repetidasDe(exp, cantidades) {
   const textos = []
   let total = 0
   for (const n of exp.lista) {
-    // Tener 3 es que me sobran 2. Es lo mismo que cuenta el "repetidas para cambiar"
+    // Tener 3 es que me sobran 2. Es lo mismo que cuenta el contador de "repetidas"
     // de arriba, así que los números coinciden.
     const sobran = (cantidades[`${exp.id}:${n}`] ?? 0) - 1
     if (sobran <= 0) continue
@@ -30,11 +30,20 @@ function repetidasDe(exp, cantidades) {
   return { textos, total }
 }
 
+/* Una estrella a cada lado del titulo de cada bloque. El texto se pega en un grupo de
+   WhatsApp o de Facebook, donde un muro de numeros sin nada que lo corte no se lee.
+
+   Es la estrella U+2B50 a proposito y no una mas moderna: esta en Unicode desde 2008 y
+   la dibujan todos los telefonos, incluidos los Android viejos, asi que no hay forma
+   de que le llegue a alguien como un cuadradito. Y va con el tema: las esferas del
+   dragon se cuentan por estrellas. */
+const ESTRELLA = '⭐'
+
 const SECCIONES = {
   falta:     [{ titulo: 'ME FALTAN', de: faltantesDe }],
-  repetidas: [{ titulo: 'REPETIDAS PARA CAMBIAR', de: repetidasDe }],
+  repetidas: [{ titulo: 'REPETIDAS', de: repetidasDe }],
   ambas:     [{ titulo: 'ME FALTAN', de: faltantesDe },
-              { titulo: 'REPETIDAS PARA CAMBIAR', de: repetidasDe }],
+              { titulo: 'REPETIDAS', de: repetidasDe }],
 }
 
 /* Para el paso 2: sólo las expansiones que tienen algo que listar, con cuántas. */
@@ -61,7 +70,8 @@ function armar(modo, elegidas, catalogo, cantidades) {
       total += suma
       lineas.push(`${exp.nombre}: ${textos.join(', ')}`)
     }
-    if (lineas.length) partes.push(`${s.titulo} (${total})\n${lineas.join('\n')}`)
+    if (lineas.length)
+      partes.push(`${ESTRELLA} ${s.titulo} (${total}) ${ESTRELLA}\n${lineas.join('\n')}`)
   }
   return partes.join('\n\n') || 'No hay nada para listar.'
 }
@@ -203,7 +213,10 @@ export default function Exportar({ catalogo, datos, onCerrar }) {
             ) : (
               <p className="nada">No hay ninguna para listar.</p>
             )}
-            <button className="cancelar" onClick={() => setModo(null)}>Elegir otra lista</button>
+            <div className="salidas">
+              <button className="cancelar" onClick={() => setModo(null)}>Elegir otra lista</button>
+              <button className="cancelar" onClick={onCerrar}>Cerrar</button>
+            </div>
           </>
         )}
 
@@ -220,7 +233,10 @@ export default function Exportar({ catalogo, datos, onCerrar }) {
             <button className="opcion copiar" onClick={copiar} autoFocus>
               {aviso ?? 'Copiar'}
             </button>
-            <button className="cancelar" onClick={() => setMostrando(false)}>Elegir otras expansiones</button>
+            <div className="salidas">
+              <button className="cancelar" onClick={() => setMostrando(false)}>Elegir otras expansiones</button>
+              <button className="cancelar" onClick={onCerrar}>Cerrar</button>
+            </div>
           </>
         )}
       </div>

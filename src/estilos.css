@@ -230,6 +230,13 @@ button { cursor: pointer; }
   padding: 22px;
   width: 300px;
   box-shadow: 0 18px 50px rgba(32, 29, 26, 0.3);
+  /* Sin techo, en apaisado el diálogo medía más que la pantalla y quedaba cortado
+     arriba y abajo —el título y el último botón no se podían alcanzar— porque el telón
+     no scrollea. dvh y no vh: en el teléfono, vh cuenta la barra del navegador como si
+     no estuviera. El vh de arriba queda de respaldo para los navegadores viejos. */
+  max-height: calc(100vh - 40px);
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
 }
 
 .dialogo h3 {
@@ -257,6 +264,11 @@ button { cursor: pointer; }
 .dialogo .opcion.perfecta   { background: var(--perf-fondo); border-color: var(--perf-linea); color: var(--perf-tinta); }
 .dialogo .opcion.reemplazar { background: var(--reem-fondo); border-color: var(--reem-linea); color: var(--reem-tinta); }
 .dialogo .opcion:hover { filter: brightness(0.96); }
+
+/* Dos salidas en una fila: volver un paso, y cerrar. En los pasos 2 y 3 sólo estaba la
+   de volver, así que salir era tocar el telón o Escape: en un teléfono, adivinar. */
+.dialogo .salidas { display: flex; gap: 14px; justify-content: center; }
+.dialogo .salidas .cancelar { margin-top: 12px; }
 
 .dialogo .cancelar {
   display: block;
@@ -844,6 +856,10 @@ button { cursor: pointer; }
 
 /* El ícono es papel sobre papel: sin el borde se funde con el blanco de la barra y
    parece un dibujo suelto en vez de un ícono de app. */
+/* El relleno que deja el pie alcanzable cuando la barra está puesta. El alto lo mide
+   Instalar.jsx sobre la barra de verdad; el valor de aquí es sólo el respaldo. */
+body.con-instalar { padding-bottom: var(--alto-instalar, 150px); }
+
 .instalar img {
   flex: none;
   width: 38px;

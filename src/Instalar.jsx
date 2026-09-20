@@ -13,7 +13,7 @@
 //
 // Es el único lugar del código donde se mira el user agent. No hay alternativa: no
 // existe una API que diga "estás adentro de Instagram".
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 const CLAVE = 'dbz-cromeros-instalar'
 const DESCANSO = 5 * 24 * 60 * 60 * 1000 // si lo cierra, se va cinco días
@@ -69,6 +69,7 @@ const Compartir = () => (
 export default function Instalar() {
   const [visible, setVisible] = useState(false)
   const [instalador, setInstalador] = useState(null)
+  const caja = useRef(null)
 
   useEffect(() => {
     if (comoApp()) return anotarSiEsApp()
@@ -86,6 +87,21 @@ export default function Instalar() {
     const reloj = setTimeout(() => setVisible(true), 4000)
     return () => { clearTimeout(reloj); window.removeEventListener('beforeinstallprompt', alPoder) }
   }, [])
+
+  /* La barra es fija abajo, así que tapaba el final del pie: a 320 px mide 134 px y se
+     comía "Restaurar una copia", la dirección del sitio y el botón del alias — con la
+     página ya en el fondo, o sea sin forma de alcanzarlos. Se le agrega al body ese
+     mismo alto de relleno, medido y no adivinado, para que el pie quede accesible. */
+  useEffect(() => {
+    if (!visible || !caja.current) return
+    const alto = caja.current.offsetHeight + 20
+    document.body.style.setProperty('--alto-instalar', alto + 'px')
+    document.body.classList.add('con-instalar')
+    return () => {
+      document.body.classList.remove('con-instalar')
+      document.body.style.removeProperty('--alto-instalar')
+    }
+  }, [visible, instalador])
 
   function cerrar() {
     const { veces = 0 } = leer()
@@ -112,7 +128,7 @@ export default function Instalar() {
   if (!visible || (!ios && !enOtra && !instalador)) return null
 
   return (
-    <aside className="instalar" role="note">
+    <aside className="instalar" role="note" ref={caja}>
       <img src="./icono-192.png" alt="" width="38" height="38" />
       <div className="instalar-texto">
         {enOtra ? (
