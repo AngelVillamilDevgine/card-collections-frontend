@@ -132,10 +132,13 @@ const Carta = memo(function Carta({ clave, numero, estado, cantidad, onTocar, on
     ? `${etiqueta(estado)} · tenés ${cantidad}`
     : 'Me falta'
 
+  /* Sin `title`: decía lo mismo que el aria-label, y varios lectores de pantalla leen la
+     etiqueta y después la descripción, o sea «Carta 5. Me falta. Me falta» — 1936 veces.
+     Lo que el title aportaba a la vista ya está pintado en la carta: el color es el
+     estado y el número chico de la esquina es la cantidad. */
   return (
     <button
       className={`carta ${cantidad ? estado : FALTA}`}
-      title={titulo}
       aria-label={`Carta ${numero}. ${titulo}`}
       onPointerDown={apretar}
       onPointerMove={mover}
@@ -315,6 +318,15 @@ export default function App() {
   const [porRestaurar, setPorRestaurar] = useState(null)
   /* Se incrementa para volver a pedir el catálogo y la colección desde cero. */
   const [intento, setIntento] = useState(0)
+  /* No se pudo ni averiguar quién sos. Es un estado aparte de `error` porque se decide
+     ANTES de saber si hay cuenta, y aparte de `cuenta = null` porque no es lo mismo:
+     mandar al formulario de entrada cuando el servidor está caído hace creer que se
+     venció la sesión y que hay que volver a escribir la clave. */
+  const [arranque, setArranque] = useState(null)
+  /* `navigator.onLine` miente en un sentido —dice que sí cuando estás colgado de un wifi
+     sin salida— pero nunca en el otro: si dice que no, no hay red. Alcanza para no
+     mandar a mirar la conexión cuando la conexión ya volvió. */
+  const [enLinea, setEnLinea] = useState(() => navigator.onLine !== false)
   const [exportando, setExportando] = useState(false)
   const [viendoNumeros, setViendoNumeros] = useState(false)
   const [guiñando, setGuiñando] = useState(false)
@@ -330,6 +342,9 @@ export default function App() {
     catch { /* modo privado o sin lugar: se pierde al recargar, nada más */ }
   }, [plegadas])
   const archivoRef = useRef(null)
+  /* El reloj del aviso del alias, para poder apagarlo al desmontar y no dejar un
+     setState apuntando a un componente que ya no está. */
+  const relojAlias = useRef(null)
   /* Lo tocado que todavía no salió, por carta: el valor final y el reloj de la espera. */
   const pendientes = useRef(new Map())
   /* El último envío en vuelo de cada carta. El siguiente se encadena atrás de ése en vez
@@ -337,10 +352,26 @@ export default function App() {
      quedaban dos PUT de la misma carta viajando juntos, y si llegaban al revés se
      guardaba el viejo después del nuevo. */
   const enVuelo = useRef(new Map())
+  /* El último valor conocido de cada carta, esperando que le toque salir. Es lo que hace
+     que cinco toques encolados no sean cinco viajes: el envío que llega a la línea de
+     largada lee acá el número final, y los que venían atrás con números ya viejos se
+     encuentran el casillero vacío y no salen a la red. */
+  const porSalir = useRef(new Map())
   /* Cuándo se leyó la colección por última vez, para el refresco de abajo. */
   const ultimaLectura = useRef(0)
 
   const { estados, cantidades } = datos
+
+  /* Espejo de `datos` que se actualiza en el mismo instante del toque y no en el próximo
+     render. `cantidades` sale del render anterior: dos toques en el mismo frame leen los
+     dos el mismo número y el segundo pisa al primero — un toque perdido. Se resincroniza
+     solo cuando los datos cambian por otro lado (la lectura del servidor, restaurar). */
+  const vivo = useRef(datos)
+  useEffect(() => { vivo.current = datos }, [datos])
+
+  /* Para leer las fallidas desde un efecto que no depende de ellas. */
+  const fallidasRef = useRef(fallidas)
+  fallidasRef.current = fallidas
 
   useEffect(() => {
     fetch(new URL('data/expansiones.json', document.baseURI))
@@ -349,8 +380,21 @@ export default function App() {
       .catch(() => setError('No se pudo cargar el catálogo de cartas.'))
   }, [intento])
 
-  /* ¿El token guardado sigue sirviendo? Si no, se muestra la pantalla de entrada. */
-  useEffect(() => { quienSoy().then((c) => setCuenta(c)) }, [])
+  /* ¿El token guardado sigue sirviendo? Si no, se muestra la pantalla de entrada.
+
+     Un 401 vuelve como `null` y va al formulario. Cualquier otra cosa —el servidor
+     caído, un deploy a medio terminar, el teléfono sin datos— NO es eso, y antes
+     terminaba en el mismo lugar: parecía que se te había vencido la sesión y que había
+     que volver a escribir la clave, cuando lo único que hacía falta era esperar. */
+  useEffect(() => {
+    setArranque(null)
+    quienSoy()
+      .then((c) => setCuenta(c))
+      /* Texto propio y no el del error: acá el mensaje de la API es genérico («No se
+         pudo completar la operación») y no dice lo único que el usuario necesita saber,
+         que es que el problema no es suyo y que su sesión sigue abierta. */
+      .catch(() => setArranque('No se pudo conectar con el servidor. Tu sesión sigue abierta: probá de nuevo en un momento.'))
+  }, [intento])
 
   /* La colección es la del usuario: se pide al entrar y se olvida al salir. */
   useEffect(() => {
@@ -362,6 +406,36 @@ export default function App() {
       // solo botón de Salir no le sirve a nadie.
       .catch((e) => (e?.sesion ? sesionMuerta() : setError(e.message)))
   }, [cuenta, intento])
+
+  /* Se mira la red para dos cosas: no mandar a revisar la conexión cuando ya volvió, y
+     reintentar solo lo que había quedado sin guardar. Lo segundo hace falta de verdad:
+     volver a tocar la carta NO reintenta, le suma una, así que sin esto el usuario no
+     tenía ninguna forma de recuperar esos cambios. Y reintentar solo es más fiel al
+     "cero ceremonia" que ponerle un botón. */
+  useEffect(() => {
+    const marcar = () => setEnLinea(navigator.onLine !== false)
+    addEventListener('online', marcar)
+    addEventListener('offline', marcar)
+    return () => { removeEventListener('online', marcar); removeEventListener('offline', marcar) }
+  }, [])
+
+  useEffect(() => {
+    if (!enLinea) return
+    for (const clave of fallidasRef.current)
+      mandar(clave, vivo.current.cantidades[clave] ?? 0, vivo.current.estados[clave] ?? null)
+  }, [enLinea])
+
+  /* #91: irse con cambios que no se pudieron guardar los pierde para siempre, y hasta
+     acá en silencio — al recargar volvía el número del servidor y el pie decía que todo
+     se estaba guardando. No hay dónde dejarlos (la colección no se guarda en el aparato,
+     y es a propósito), así que lo único honesto es avisar antes de que se vaya. Sólo se
+     engancha cuando hay algo perdido: en el camino normal no molesta nunca. */
+  useEffect(() => {
+    if (!fallidas.size) return
+    const preguntar = (e) => { e.preventDefault(); e.returnValue = '' }
+    addEventListener('beforeunload', preguntar)
+    return () => removeEventListener('beforeunload', preguntar)
+  }, [fallidas.size])
 
   function anotarFallo(clave, hubo) {
     setFallidas((antes) => {
@@ -417,13 +491,28 @@ export default function App() {
       return null
     }
 
+    /* El valor queda en el casillero y el envío lo lee recién cuando le toca salir. */
+    porSalir.current.set(clave, { cantidad: ultimo.cantidad, estado: ultimo.estado })
+
     const antes = enVuelo.current.get(clave) ?? Promise.resolve()
     const ahora = antes
       .catch(() => {})
-      .then(() => despachar(clave, ultimo.cantidad, ultimo.estado, seVa))
+      .then(() => {
+        /* Si otro envío encadenado ya se llevó el valor final, éste saldría con un
+           número viejo: no sale. Medido antes de esto: con el primer envío retenido,
+           cinco toques daban cinco viajes seguidos aunque sólo importara el último. */
+        const v = porSalir.current.get(clave)
+        if (!v) return null
+        porSalir.current.delete(clave)
+        return despachar(clave, v.cantidad, v.estado, seVa)
+      })
       .then((bien) => {
-        anotarFallo(clave, !bien)
+        // null es "no mandé nada", y entonces no puede apagar el aviso de un fallo ajeno.
+        if (bien !== null) anotarFallo(clave, !bien)
         if (enVuelo.current.get(clave) === ahora) enVuelo.current.delete(clave)
+        // Con la clave adentro, así quien espera el vaciado sabe QUÉ falló y no sólo
+        // cuántos: al salir hay que juntarlo con lo que ya venía fallado de antes.
+        return { clave, bien }
       })
     enVuelo.current.set(clave, ahora)
     return ahora
@@ -455,6 +544,7 @@ export default function App() {
   function matarCola() {
     for (const { reloj } of pendientes.current.values()) clearTimeout(reloj)
     pendientes.current.clear()
+    porSalir.current.clear()
     enVuelo.current.clear()
   }
 
@@ -491,6 +581,8 @@ export default function App() {
     return () => document.removeEventListener('visibilitychange', alVolver)
   }, [cuenta])
 
+  useEffect(() => () => clearTimeout(relojAlias.current), [])
+
   /* Si cerrás la pestaña justo después de un toque, eso todavía no salió. */
   useEffect(() => {
     const alIrse = () => vaciarRef.current(true)
@@ -500,19 +592,22 @@ export default function App() {
 
   /* Cambiar una carta: primero se ve en pantalla, después sale para el servidor. */
   function aplicar(clave, cantidad, estado) {
-    setDatos((d) => {
-      const cant = { ...d.cantidades }
-      const est = { ...d.estados }
-      if (cantidad > 0) {
-        cant[clave] = cantidad
-        if (estado) est[clave] = estado; else delete est[clave]
-      } else {
-        // Cantidad 0 es no tenerla, y entonces tampoco tiene condición.
-        delete cant[clave]
-        delete est[clave]
-      }
-      return { estados: est, cantidades: cant }
-    })
+    const d = vivo.current
+    const cant = { ...d.cantidades }
+    const est = { ...d.estados }
+    if (cantidad > 0) {
+      cant[clave] = cantidad
+      if (estado) est[clave] = estado; else delete est[clave]
+    } else {
+      // Cantidad 0 es no tenerla, y entonces tampoco tiene condición.
+      delete cant[clave]
+      delete est[clave]
+    }
+    /* Se escribe el espejo ANTES del setDatos, así el toque siguiente —aunque caiga en
+       el mismo frame, antes de que React vuelva a dibujar— calcula sobre este número y
+       no sobre el del render viejo. */
+    vivo.current = { estados: est, cantidades: cant }
+    setDatos(vivo.current)
     mandar(clave, cantidad, cantidad > 0 ? estado : null)
   }
 
@@ -578,8 +673,9 @@ export default function App() {
 
   /* Un toque: si no la tenés, pregunta la condición. Si ya la tenés, suma una. */
   function tocar(clave, numero) {
-    if (!cantidades[clave]) return setPreguntando({ clave, numero })
-    aplicar(clave, cantidades[clave] + 1, estados[clave])
+    const tiene = vivo.current.cantidades[clave] ?? 0
+    if (!tiene) return setPreguntando({ clave, numero })
+    aplicar(clave, tiene + 1, vivo.current.estados[clave])
   }
 
   /* Mantener apretado: resta una. Al llegar a cero se olvida también la condición. */
@@ -589,8 +685,9 @@ export default function App() {
        cambio. Fijate la conexión." por un gesto que la propia app sugiere —y sobre
        1597 de las 1936 cartas, que es el estado más común. Una falsa alarma de pérdida
        de datos hace que el usuario desconfíe de todo lo demás. */
-    if (!cantidades[clave]) return
-    aplicar(clave, cantidades[clave] - 1, estados[clave])
+    const tiene = vivo.current.cantidades[clave] ?? 0
+    if (!tiene) return
+    aplicar(clave, tiene - 1, vivo.current.estados[clave])
   }
 
   /* Las dos de arriba son distintas en cada render, porque leen `cantidades`. Estas dos
@@ -628,7 +725,8 @@ export default function App() {
     }
     // Un botón que no hace nada es peor que uno que avisa que no pudo.
     setAvisoAlias(listo ? 'copiado' : 'copialo a mano')
-    setTimeout(() => setAvisoAlias(null), 2500)
+    clearTimeout(relojAlias.current)
+    relojAlias.current = setTimeout(() => setAvisoAlias(null), 2500)
   }
 
   async function cerrar() {
@@ -644,12 +742,36 @@ export default function App() {
        Pero con techo. Un pedido que se cuelga no puede dejarte atrapado adentro de la
        app: se midió a Salir bloqueando quince segundos sin decir nada. Si no llega a
        tiempo se pierde ese cambio, que es mejor que un botón que no sale nunca. */
-    await Promise.race([
-      vaciar(false).catch(() => {}),
-      new Promise((r) => setTimeout(r, TECHO_SALIR)),
-    ])
+    /* Lo que se pierde al salir no es sólo lo que falle en este último vaciado: lo que
+       YA había fallado —y que el pie viene mostrando— también se va sin dejar rastro.
+       Por eso se parte del mismo conjunto que mira el pie y se le aplica lo de ahora.
+       Mirar sólo el resultado del vaciado daba cero, y se comprobó: para cuando tocás
+       Salir, aquel envío ya falló hace rato y su promesa no está más en la cola. */
+    const perdidas = new Set(fallidasRef.current)
+    let termino = false
+    const vaciando = vaciar(false)
+      .then((r) => {
+        termino = true
+        for (const x of r ?? []) {
+          if (!x || x.bien === null || x.bien === undefined) continue
+          if (x.bien) perdidas.delete(x.clave); else perdidas.add(x.clave)
+        }
+      })
+      .catch(() => { termino = true })
+    await Promise.race([vaciando, new Promise((r) => setTimeout(r, TECHO_SALIR))])
     await salir()
     matarCola()
+    const perdidos = perdidas.size
+    /* Sin red, Salir se llevaba el toque y no lo decía en ningún lado: el aviso del pie
+       se iba junto con la pantalla. Se cuenta lo que no llegó a entrar y se dice en la
+       pantalla de entrada, que es la única que el usuario va a estar mirando. Si venció
+       el techo no sabemos cuántos fueron, y decirlo así es más honesto que callarlo. */
+    if (perdidos)
+      setAvisoSesion(perdidos === 1
+        ? 'Saliste, pero un cambio no se pudo guardar: quedó sin registrar en tu cuenta.'
+        : `Saliste, pero ${perdidos} cambios no se pudieron guardar: quedaron sin registrar en tu cuenta.`)
+    else if (!termino)
+      setAvisoSesion('Saliste sin que terminara de guardarse el último cambio. Fijate la conexión.')
     setCuenta(null)
     setError(null)
     setSaliendo(false)
@@ -686,11 +808,20 @@ export default function App() {
     if (!nueva) return
     descargar(datos, 'mi-coleccion-dbz-antes-de-restaurar.json')
     reemplazarColeccion(nueva)
-      .then(() => {
-        setDatos(nueva)
+      /* Se relee del servidor en vez de pintar lo que venía en el archivo. El servidor
+         es la única fuente y puede haber descartado claves que no reconoce: antes la
+         pantalla te mostraba cartas que en tu cuenta no habían quedado, y no había forma
+         de darse cuenta hasta la próxima visita. Si la relectura falla, se muestra lo
+         del archivo, que es lo que se hacía siempre. */
+      .then(() => leerColeccion().catch(() => nueva))
+      .then((d) => {
+        ultimaLectura.current = Date.now()
+        vivo.current = d
+        setDatos(d)
         // Se reemplazó todo: lo que no se había podido guardar carta por carta ya no
         // tiene sentido.
         pendientes.current.clear()
+        porSalir.current.clear()
         setFallidas(new Set())
       })
       .catch((e) => {
@@ -699,6 +830,17 @@ export default function App() {
       })
   }
 
+  /* Va ANTES del formulario de entrada a propósito: si el servidor no contesta, mandar
+     a alguien a escribir usuario y clave es mentirle sobre lo que pasó y encima no le
+     sirve de nada, porque tampoco va a poder entrar. */
+  if (arranque) return (
+    <div className="hoja">
+      <p className="cargando">{arranque}</p>
+      <p className="acciones-error">
+        <button className="reintentar" onClick={() => setIntento((n) => n + 1)}>Reintentar</button>
+      </p>
+    </div>
+  )
   if (cuenta === undefined) return <div className="hoja"><p className="cargando">Cargando…</p></div>
   if (!cuenta) return <Entrar aviso={avisoSesion} onEntro={(c) => { setAvisoSesion(null); setCuenta(c) }} />
 
@@ -722,6 +864,12 @@ export default function App() {
 
   return (
     <>
+      {/* Antes de todo: entre el encabezado y la primera carta hay un logo, el progreso
+          y cinco botones de la barra. Con teclado o lector de pantalla eso son varios
+          tabuladores en CADA visita antes de llegar a lo único que importa. La pantalla
+          de entrada ya tenía su <main>; la app, que es donde se pasa el tiempo, no. */}
+      <a className="saltar" href="#cartas">Saltar a las cartas</a>
+
       {/* Header, barra y footer van fuera de la columna de las cartas: así el fondo
           de cada franja llega de lado a lado y lo de adentro sigue alineado. */}
       <header className="encabezado">
@@ -784,7 +932,7 @@ export default function App() {
         </div>
       </div>
 
-      <div className="hoja">
+      <main className="hoja" id="cartas" tabIndex={-1}>
         {/* Fuera de la barra fija: son instrucciones, se leen una vez y pueden irse con
             el scroll. Adentro ocupaban dos renglones fijos en el celular. */}
           <p className="ayuda">
@@ -881,7 +1029,7 @@ export default function App() {
             onCerrar={() => setPreguntando(null)}
           />
         )}
-      </div>
+      </main>
 
       {/* Una franja al final, no una línea suelta sobre el papel. Arriba la cuenta y
           Salir, que es la acción de la cuenta; abajo, más callado, lo que se hace con
@@ -892,12 +1040,16 @@ export default function App() {
             {/* El role va en un envoltorio que está siempre: si el que apareciera y
                 desapareciera fuera el propio role, el lector de pantalla no anunciaría
                 nada. Así lo que cambia es el texto de adentro, que sí se lee. */}
+            {/* "Fijate la conexión" sólo mientras NO hay conexión. Con la red de vuelta
+                el dato seguía siendo cierto —los cambios siguen perdidos— pero como
+                instrucción mandaba a mirar donde ya no estaba el problema. */}
             <span className="pie-estado" role="status">
               {fallidas.size ? (
                 <span className="aviso">
                   {fallidas.size === 1
-                    ? 'No se pudo guardar un cambio. Fijate la conexión.'
-                    : `No se pudieron guardar ${fallidas.size} cambios. Fijate la conexión.`}
+                    ? 'No se pudo guardar un cambio.'
+                    : `No se pudieron guardar ${fallidas.size} cambios.`}
+                  {!enLinea && ' Fijate la conexión: se reintentan solos cuando vuelva.'}
                 </span>
               ) : (
                 <span className="guardando">Guardando en tu cuenta, <b>{cuenta.usuario}</b>, a cada cambio</span>

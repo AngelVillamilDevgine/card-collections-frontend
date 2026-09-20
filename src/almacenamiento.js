@@ -95,7 +95,15 @@ export async function salir() {
 // Al abrir: ¿el token guardado sigue sirviendo? Si no, se muestra la pantalla de entrada.
 export async function quienSoy() {
   if (!token()) return null
-  return pedir('/yo' + marcaApp()).then((d) => ({ usuario: d.usuario, admin: !!d.admin })).catch(() => null)
+  return pedir('/yo' + marcaApp())
+    .then((d) => ({ usuario: d.usuario, admin: !!d.admin }))
+    /* `null` quiere decir UNA sola cosa: no hay sesión, andá al formulario. Antes se
+       tragaba cualquier error y devolvía null igual, así que el servidor caído, un
+       deploy a medio terminar o el teléfono sin datos te mandaban al mismo lugar que
+       una sesión vencida: parecía que había que volver a escribir la clave, cuando lo
+       único que hacía falta era esperar. Lo demás sube, y la app lo muestra como lo
+       que es, con un botón de reintentar. */
+    .catch((e) => { if (e?.sesion) return null; throw e })
 }
 
 // Los números de toda la app. A quien no es administrador el servidor le contesta

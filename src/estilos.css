@@ -415,6 +415,21 @@ button { cursor: pointer; }
 }
 .entrar .secundario:hover { color: var(--acento); }
 
+/* Un enlace y no un botón: lleva a otro lado (WhatsApp), no hace algo acá. Discreto a
+   propósito — es el camino de excepción, no una de las dos acciones de la pantalla. */
+.entrar .olvide {
+  display: block;
+  min-height: 44px;
+  padding: 12px 8px 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--tinta3);
+  text-decoration: underline;
+  text-decoration-color: var(--linea2);
+  text-underline-offset: 3px;
+}
+.entrar .olvide:hover { color: var(--acento); text-decoration-color: currentColor; }
+
 /* Por qué estás en la pantalla de entrada. No es un error de lo que acabás de hacer,
    así que no usa el rojo del .error: es el celeste informativo. */
 .entrar .aviso-sesion {
@@ -494,7 +509,15 @@ button { cursor: pointer; }
   overflow-y: auto;
   margin-bottom: 4px;
 }
-.dialogo .opcion b { float: right; font-variant-numeric: tabular-nums; opacity: 0.65; }
+.dialogo .opcion b { float: right; font-variant-numeric: tabular-nums; color: var(--tinta2); }
+/* Color propio y no `opacity: .65`: era la última opacity sobre texto que quedaba viva,
+   y es exactamente el mecanismo que se sacó de los otros tres lugares — deshace por
+   encima el cálculo de contraste del color de abajo.
+
+   Va `--tinta2` y no `--tinta3`, que era lo primero que se probó: medido sobre el fondo
+   pintado de verdad, tinta3 da 4.58 y la opacity daba 4.99. Pasaba igual, pero arreglar
+   el mecanismo no puede dejar el resultado peor que antes. tinta2 da 4.84 y sigue siendo
+   más callado que el nombre de la expansión, que es lo que el número tiene que ser. */
 .dialogo .nada { color: var(--tinta3); font-size: 13px; margin-bottom: 10px; }
 
 /* Del mismo tipo que los filtros, para que la barra se lea como una sola cosa. */
@@ -762,6 +785,61 @@ button { cursor: pointer; }
   font-variant-numeric: tabular-nums;
 }
 .pie .alias:hover { border-color: var(--acento); color: var(--acento); }
+
+
+/* Salto al contenido. Fuera de la pantalla hasta que lo enfocan con el tabulador: es
+   para quien navega con teclado o lector, y no tiene por qué verlo nadie más.
+   `left` y no `display:none` ni `visibility:hidden`, que lo sacarían del orden de
+   tabulación y lo volverían inalcanzable, que es justo lo contrario de lo que hace. */
+.saltar {
+  position: fixed;
+  top: 0;
+  left: -9999px;
+  z-index: 60;
+  padding: 11px 18px;
+  border-radius: 0 0 8px 0;
+  background: var(--acento);
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+}
+.saltar:focus { left: 0; }
+/* El destino tiene que quedar DEBAJO de la barra pegajosa, o el salto lo deja tapado. */
+.hoja[id] { scroll-margin-top: 76px; }
+
+/* ------------------------- blancos de toque -------------------------------- */
+/* Medido: la flecha de plegar daba 32x32, el alias 94x28, los enlaces del pie 73x32 y
+   los filtros 97x33. La recomendación son 44x44. Las cartas ya estaban bien (64x64).
+
+   Se agranda con un ::after estirado y no con padding a propósito: el padding movería
+   el layout, y dos de estos viven en sitios donde eso se paga caro — la barra de
+   filtros es pegajosa y ya mide 171px de alto (agrandarla empeora el salto del
+   scroll-margin-top), y la flecha de plegar tiene márgenes negativos calculados para
+   no agrandar la banda. El ::after no participa del layout: no mueve un pixel.
+
+   Sólo se estira a lo alto donde el ancho ya alcanza, para no pisarle el blanco al
+   botón de al lado. La flecha, que es angosta, se estira también a los costados: lo
+   que queda debajo es el título de la expansión, que no es clickeable. */
+.banda .plegar,
+.pie .enlace,
+.pie .alias,
+.filtro { position: relative; }
+
+.banda .plegar::after,
+.pie .enlace::after,
+.pie .alias::after,
+.filtro::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 100%;
+  min-height: 44px;
+}
+/* 44 - 32 = 12, seis de cada lado. */
+.banda .plegar::after { left: -6px; right: -6px; min-width: 44px; }
 
 /* ------------------------------ los números ------------------------------- */
 /* Todo cuelga de .numeros: son nombres comunes y .barra ya estaba tomada por la

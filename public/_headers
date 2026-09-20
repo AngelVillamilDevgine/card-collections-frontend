@@ -1,0 +1,38 @@
+# Cabeceras que pone Cloudflare Pages. No hay nada equivalente en desarrollo: con
+# `npm run dev` este archivo no se lee, así que lo que se rompa acá se ve recién en
+# producción. Por eso las reglas son las mínimas que la app necesita, y cada una dice
+# contra qué protege.
+#
+# Lo que hace que esto importe: el token de sesión vive en localStorage treinta días y
+# no se puede revocar desde la app. Cualquier XSS —propio o de una dependencia que se
+# comprometa mañana— se lleva la cuenta entera, no una pantalla.
+
+/*
+  # De dónde puede salir cada cosa. 'self' es cromeros.com.ar.
+  #
+  #  script-src sin 'unsafe-inline' ni 'unsafe-eval': se verificó sobre el build que
+  #    Vite no deja ningún <script> inline, sólo el módulo con hash. Si algún día lo
+  #    dejara, la app deja de arrancar en producción y anda en dev — ojo con eso.
+  #  style-src necesita 'unsafe-inline' y no se puede evitar: las bandas de cada
+  #    expansión se pintan con style={{ background: exp.color }}, que es un atributo
+  #    de estilo en línea. Es la concesión conocida de React, y es mucho menos grave
+  #    que la de script.
+  #  connect-src tiene que nombrar la API: vive en api.cromeros.com.ar, que es otro
+  #    origen, así que 'self' no la cubre.
+  #  frame-ancestors 'none' es lo que impide que alguien la meta en un iframe y te
+  #    robe los clicks.
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://api.cromeros.com.ar; manifest-src 'self'; worker-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'
+
+  # Para los navegadores que no miran frame-ancestors. Las dos conviven a propósito.
+  X-Frame-Options: DENY
+
+  # Que no adivine el tipo de un archivo por su contenido. Sin esto, algo servido como
+  # texto puede terminar ejecutándose como script.
+  X-Content-Type-Options: nosniff
+
+  # A otros sitios se les cuenta el origen y nada más: nunca la dirección completa.
+  Referrer-Policy: strict-origin-when-cross-origin
+
+  # La app no usa nada de esto. Apagarlo de entrada vale para el día en que una
+  # dependencia lo intente.
+  Permissions-Policy: geolocation=(), camera=(), microphone=(), payment=(), usb=(), magnetometer=(), gyroscope=()

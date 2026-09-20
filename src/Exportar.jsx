@@ -93,6 +93,10 @@ export default function Exportar({ catalogo, datos, onCerrar }) {
   const [mostrando, setMostrando] = useState(false)
   const [aviso, setAviso] = useState(null)
   const areaRef = useRef(null)
+  /* El reloj del aviso de Copiar. Este diálogo se cierra con Escape, con el botón y
+     tocando afuera, así que el timeout puede quedar corriendo con el diálogo ya
+     desmontado — y entonces el setState no va a ninguna parte. */
+  const relojAviso = useRef(null)
   const caja = useRef(null)
   /* Quién tenía el foco antes de abrir, leído en el render: para cuando corren los
      efectos, el autoFocus del diálogo ya se lo llevó. */
@@ -107,6 +111,7 @@ export default function Exportar({ catalogo, datos, onCerrar }) {
   /* Una sola vez, al abrir: si colgara de `onCerrar` —una flecha nueva en cada render—
      volvería a capturar el foco de antes y al cerrar lo devolvería acá adentro. */
   useEffect(() => atraparFoco(caja.current, abrio.current), [])
+  useEffect(() => () => clearTimeout(relojAviso.current), [])
 
   const { cantidades } = datos
   const expansiones = modo ? expansionesCon(modo, catalogo, cantidades) : []
@@ -147,7 +152,8 @@ export default function Exportar({ catalogo, datos, onCerrar }) {
       // puede, el de toda la vida todavía anda.
       setAviso(document.execCommand?.('copy') ? 'Copiado' : 'Apretá Ctrl+C')
     }
-    setTimeout(() => setAviso(null), 2000)
+    clearTimeout(relojAviso.current)
+    relojAviso.current = setTimeout(() => setAviso(null), 2000)
   }
 
   return (
