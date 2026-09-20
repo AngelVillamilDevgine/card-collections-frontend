@@ -10,6 +10,57 @@ import { estadisticas } from './almacenamiento'
 const parte = (n, total) => (total ? Math.round((n / total) * 100) : 0)
 const dia = (f) => (f ? f.slice(8, 10) + '/' + f.slice(5, 7) : '—')
 
+/* Hace cuánto, en palabras. El panel no tiene que hacer cuentas con husos: el servidor
+   manda los minutos. */
+function cuando(minutos) {
+  if (minutos == null) return 'nunca'
+  if (minutos < 90) return `hace ${Math.max(1, Math.round(minutos))} min`
+  if (minutos < 60 * 36) return `hace ${Math.round(minutos / 60)} h`
+  return `hace ${Math.round(minutos / 60 / 24)} días`
+}
+
+/* Cómo anda lo que corre FUERA de la app: el respaldo diario y el despliegue.
+
+   Va arriba de todo y en silencio cuando está bien, porque sólo importa cuando está
+   mal. Existe porque cuando esas dos cosas fallan no se entera nadie: el correo del
+   servidor no sale —rebota antes de llegar a Gmail— y nadie mira los logs del VPS. La
+   base es el único canal que ven los dos lados, así que ellos anotan ahí y esto lo lee.
+
+   Si algo deja de correr, la fecha se pone vieja sola. Esa fecha vieja ES el aviso. */
+function Salud({ salud }) {
+  if (!salud) return null
+  const dias = (m) => (m == null ? Infinity : m / 60 / 24)
+  const r = salud.respaldo
+  const d = salud.despliegue
+
+  const cosas = [
+    {
+      que: 'Copia de la base',
+      mal: !r || dias(r.hace) > 2,
+      dice: r
+        ? `${cuando(r.hace)} · ${Math.round((r.valor?.bytes ?? 0) / 1024)} KB · ${r.valor?.copias ?? '?'} guardadas`
+        : 'nunca se anotó ninguna',
+    },
+    {
+      que: 'Último despliegue',
+      mal: !!d && d.valor?.estado === 'descartado',
+      dice: d
+        ? `${cuando(d.hace)} · ${d.valor?.estado === 'descartado' ? `DESCARTÓ ${d.valor?.commit}` : d.valor?.commit ?? 'ok'}`
+        : 'todavía no se anotó ninguno',
+    },
+  ]
+
+  return (
+    <div className={`salud${cosas.some((c) => c.mal) ? ' atencion' : ''}`}>
+      {cosas.map((c) => (
+        <span key={c.que} className={c.mal ? 'mal' : undefined}>
+          <b>{c.que}:</b> {c.dice}
+        </span>
+      ))}
+    </div>
+  )
+}
+
 function Barra({ rotulo, valor, techo, nota, flaca }) {
   return (
     <div className={`renglon${flaca ? ' flaca' : ''}`}>
@@ -69,6 +120,8 @@ function Cuerpo({ d }) {
 
   return (
     <>
+      <Salud salud={d.salud} />
+
       {/* El embudo: de arriba a abajo se va cayendo gente. Donde más cae es el problema. */}
       <p>De cada persona que se anota, cuántas llegan hasta el final.</p>
       <div className="grupo">
