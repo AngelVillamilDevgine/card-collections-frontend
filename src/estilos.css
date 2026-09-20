@@ -371,6 +371,18 @@ button { cursor: pointer; }
 }
 .entrar .secundario:hover { color: var(--acento); }
 
+/* Por qué estás en la pantalla de entrada. No es un error de lo que acabás de hacer,
+   así que no usa el rojo del .error: es el celeste informativo. */
+.entrar .aviso-sesion {
+  margin: 0;
+  padding: 9px 12px;
+  border-radius: 6px;
+  background: var(--bien-fondo);
+  border: 1px solid var(--bien-linea);
+  color: var(--bien-tinta);
+  font-size: 13.5px;
+}
+
 .entrar .error {
   margin: 0;
   font-size: 13px;
@@ -643,7 +655,9 @@ button { cursor: pointer; }
   padding: 6px 18px;
   color: var(--tinta2);
 }
-.pie .salir:hover { border-color: var(--reem-linea); color: var(--reem-tinta); }
+.pie .salir:hover:not(:disabled) { border-color: var(--reem-linea); color: var(--reem-tinta); }
+/* Inactivo con colores, no con opacity (ver la nota de contraste del CLAUDE.md). */
+.pie .salir:disabled { border-color: var(--linea); color: var(--tinta3); cursor: default; }
 
 .pie-copias { padding-top: 14px; border-top: 1px solid var(--linea); }
 .pie-rotulo {

@@ -161,6 +161,16 @@ const VACIA = { estados: {}, cantidades: {} }
 const SITIO = 'www.cromeros.com.ar'
 const ALIAS = 'angel.villamil'
 
+/* Cuántas veces se reintenta un guardado que falló, y cuánto se espera entre intentos
+   (crece: 900 ms, 1800 ms). Dos alcanzan para tapar un bache de red sin que el usuario
+   note nada; más que eso ya es que no hay internet, y ahí sí conviene avisar. */
+const REINTENTOS = 2
+const ESPERA_REINTENTO = 900
+
+/* Lo máximo que Salir espera a que salga lo pendiente. Un pedido colgado no puede
+   dejarte atrapado adentro de la app. */
+const TECHO_SALIR = 4000
+
 /* Lo que tarda en mandarse una carta después del último toque. Existe por el orden:
    si tocás tres veces rápido y salen tres pedidos, pueden llegar desordenados y
    quedar guardado el 2 después del 3. Esperando, sale uno solo con el número final. */
@@ -205,7 +215,16 @@ export default function App() {
   const [datos, setDatos] = useState(VACIA)
   const [filtro, setFiltro] = useState('todas')
   const [preguntando, setPreguntando] = useState(null)
-  const [fallo, setFallo] = useState(false)
+  /* Las cartas que no se pudieron guardar, no un sí/no. Era un booleano, y entonces el
+     primer guardado bueno de CUALQUIER carta lo apagaba: marcabas cuarenta sin señal,
+     volvía la señal, tocabas una más, salía bien y el cartel desaparecía diciendo que
+     todo se estaba guardando. Con un conjunto, el aviso se va cuando de verdad no queda
+     ninguna, y de paso puede decir cuántas son. */
+  const [fallidas, setFallidas] = useState(() => new Set())
+  const [saliendo, setSaliendo] = useState(false)
+  /* Por qué estás en la pantalla de entrada. Sin esto, la colección desaparecía de golpe
+     y sin explicación cuando se vencía la sesión. */
+  const [avisoSesion, setAvisoSesion] = useState(null)
   const [exportando, setExportando] = useState(false)
   const [viendoNumeros, setViendoNumeros] = useState(false)
   const [guiñando, setGuiñando] = useState(false)
@@ -221,7 +240,13 @@ export default function App() {
     catch { /* modo privado o sin lugar: se pierde al recargar, nada más */ }
   }, [plegadas])
   const archivoRef = useRef(null)
+  /* Lo tocado que todavía no salió, por carta: el valor final y el reloj de la espera. */
   const pendientes = useRef(new Map())
+  /* El último envío en vuelo de cada carta. El siguiente se encadena atrás de ése en vez
+     de salir suelto: cuando el viaje tarda más que la espera —un celular con datos—
+     quedaban dos PUT de la misma carta viajando juntos, y si llegaban al revés se
+     guardaba el viejo después del nuevo. */
+  const enVuelo = useRef(new Map())
 
   const { estados, cantidades } = datos
 
@@ -237,39 +262,124 @@ export default function App() {
 
   /* La colección es la del usuario: se pide al entrar y se olvida al salir. */
   useEffect(() => {
+    setFallidas(new Set())
     if (!cuenta) return setDatos(VACIA)
     leerColeccion()
       .then(setDatos)
-      .catch((e) => setError(e.message))
+      // Si el token ya no sirve, a la pantalla de entrada: un cartel de error con un
+      // solo botón de Salir no le sirve a nadie.
+      .catch((e) => (e?.sesion ? sesionMuerta() : setError(e.message)))
   }, [cuenta])
+
+  function anotarFallo(clave, hubo) {
+    setFallidas((antes) => {
+      if (hubo === antes.has(clave)) return antes
+      const ahora = new Set(antes)
+      if (hubo) ahora.add(clave); else ahora.delete(clave)
+      return ahora
+    })
+  }
+
+  /* Un guardado que falla se reintenta un par de veces antes de darse por perdido. Es
+     más fiel al "cero ceremonia" que un cartel: casi todos los fallos son un bache de
+     red de un segundo, y de eso el usuario no tiene por qué enterarse.
+
+     `seVa` es la página yéndose: ahí no se reintenta nada, no hay tiempo. */
+  async function despachar(clave, cantidad, estado, seVa) {
+    for (let intento = 0; ; intento++) {
+      try {
+        // keepalive también acá, no sólo al cerrar: lo que hay que proteger no son los
+        // 250 ms de espera —eso ya lo cubría el vaciado— sino el viaje entero, que en un
+        // teléfono con datos son entre 300 y 3000 ms. Si la pestaña se cierra en el
+        // medio, sin esto el navegador aborta el pedido y ese toque se pierde.
+        await guardarCarta(clave, cantidad, estado, { keepalive: true })
+        return true
+      } catch (e) {
+        // La sesión murió: no hay nada que reintentar, hay que volver a entrar. Antes
+        // esto pintaba el cartel de "fijate la conexión" y la app seguía andando: podías
+        // marcar media hora al vacío y perder todo sin enterarte.
+        if (e?.sesion) { sesionMuerta(); return false }
+        if (seVa || intento >= REINTENTOS) return false
+        await new Promise((r) => setTimeout(r, ESPERA_REINTENTO * (intento + 1)))
+      }
+    }
+  }
+
+  /* Saca de la cola lo último que se sabe de esa carta y lo manda, encadenado atrás del
+     envío anterior de la MISMA carta, para que dos no se pisen. */
+  function enviar(clave, seVa) {
+    const ultimo = pendientes.current.get(clave)
+    if (!ultimo) return null
+    clearTimeout(ultimo.reloj)
+    pendientes.current.delete(clave)
+
+    /* Yéndose la página no se encadena ni se espera nada: el fetch tiene que salir
+       DENTRO del manejador de pagehide, o el navegador descarta el documento antes de
+       que corra ningún .then(). Si esperáramos al envío anterior de esta carta —que
+       puede no volver nunca— el valor nuevo no saldría jamás, y es justo el que hay que
+       salvar. Se acepta el riesgo chico de que el anterior llegue último: mucho mejor
+       que perderlo seguro. Medido: sin esto, irse con un PUT en vuelo hacía que el
+       último toque ni siquiera saliera a la red. */
+    if (seVa) {
+      guardarCarta(clave, ultimo.cantidad, ultimo.estado, { keepalive: true }).catch(() => {})
+      return null
+    }
+
+    const antes = enVuelo.current.get(clave) ?? Promise.resolve()
+    const ahora = antes
+      .catch(() => {})
+      .then(() => despachar(clave, ultimo.cantidad, ultimo.estado, seVa))
+      .then((bien) => {
+        anotarFallo(clave, !bien)
+        if (enVuelo.current.get(clave) === ahora) enVuelo.current.delete(clave)
+      })
+    enVuelo.current.set(clave, ahora)
+    return ahora
+  }
 
   /* Manda una carta sola, esperando por si vienen más toques de la misma. */
   function mandar(clave, cantidad, estado) {
     const previo = pendientes.current.get(clave)
     if (previo) clearTimeout(previo.reloj)
-
-    const reloj = setTimeout(() => {
-      const ultimo = pendientes.current.get(clave)
-      pendientes.current.delete(clave)
-      guardarCarta(clave, ultimo.cantidad, ultimo.estado)
-        .then(() => setFallo(false))
-        .catch(() => setFallo(true))
-    }, ESPERA)
-
+    const reloj = setTimeout(() => enviar(clave, false), ESPERA)
     pendientes.current.set(clave, { cantidad, estado, reloj })
   }
 
+  /* Vaciar todo lo pendiente de una. Sólo toca refs y setters de React, así que no se
+     queda vieja aunque la capture un efecto con dependencias vacías.
+
+     Espera también lo que YA salió y sigue viajando (`enVuelo`), no sólo la cola: si no,
+     tocar una carta, mirarla medio segundo y recién ahí salir dejaba el PUT en el aire y
+     el DELETE de la sesión le ganaba de mano. Ese caso es más probable que el que se
+     cubría antes. */
+  function vaciar(seVa) {
+    for (const clave of [...pendientes.current.keys()]) enviar(clave, seVa)
+    if (seVa) return Promise.resolve() // la página se va: no hay nada que esperar
+    return Promise.all([...enVuelo.current.values()].map((p) => p.catch(() => {})))
+  }
+
+  /* La sesión murió: lo encolado ya no se puede mandar, y si se mandara podría salir con
+     el token de OTRA cuenta que entre en esta misma pestaña. Se tira. */
+  function matarCola() {
+    for (const { reloj } of pendientes.current.values()) clearTimeout(reloj)
+    pendientes.current.clear()
+    enVuelo.current.clear()
+  }
+
+  function sesionMuerta() {
+    matarCola()
+    setAvisoSesion('Se venció tu sesión. Entrá de nuevo para seguir.')
+    setCuenta(null)
+  }
+
+  const vaciarRef = useRef(null)
+  vaciarRef.current = vaciar
+
   /* Si cerrás la pestaña justo después de un toque, eso todavía no salió. */
   useEffect(() => {
-    function vaciar() {
-      for (const [clave, { cantidad, estado, reloj }] of pendientes.current) {
-        clearTimeout(reloj)
-        guardarCarta(clave, cantidad, estado, { keepalive: true }).catch(() => {})
-      }
-      pendientes.current.clear()
-    }
-    addEventListener('pagehide', vaciar)
-    return () => { removeEventListener('pagehide', vaciar); vaciar() }
+    const alIrse = () => vaciarRef.current(true)
+    addEventListener('pagehide', alIrse)
+    return () => { removeEventListener('pagehide', alIrse); alIrse() }
   }, [])
 
   /* Cambiar una carta: primero se ve en pantalla, después sale para el servidor. */
@@ -400,20 +510,44 @@ export default function App() {
   }
 
   async function cerrar() {
+    /* Guarda de reentrada: sin esto, dos clicks seguidos reproducían el bug original
+       entero y en silencio — el segundo encontraba la cola ya vacía, resolvía al toque y
+       mandaba el DELETE con el PUT todavía viajando. */
+    if (saliendo) return
+    setSaliendo(true)
+    /* Primero lo pendiente, y esperándolo: después de salir el token ya no sirve, así
+       que el último toque salía con una sesión muerta y se perdía siempre. Y como App no
+       se desmonta al salir, la limpieza del efecto tampoco corría.
+
+       Pero con techo. Un pedido que se cuelga no puede dejarte atrapado adentro de la
+       app: se midió a Salir bloqueando quince segundos sin decir nada. Si no llega a
+       tiempo se pierde ese cambio, que es mejor que un botón que no sale nunca. */
+    await Promise.race([
+      vaciar(false).catch(() => {}),
+      new Promise((r) => setTimeout(r, TECHO_SALIR)),
+    ])
     await salir()
+    matarCola()
     setCuenta(null)
     setError(null)
+    setSaliendo(false)
   }
 
   /* Restaurar un respaldo: se manda entera y se pisa lo que había en la cuenta. */
   function restaurarCopia(archivo) {
     restaurar(archivo)
-      .then((d) => reemplazarColeccion(d).then(() => { setDatos(d); setFallo(false) }))
-      .catch((e) => setError(e.message ?? 'No pude leer ese archivo.'))
+      .then((d) => reemplazarColeccion(d).then(() => {
+        setDatos(d)
+        // Se reemplazó todo: lo que no se había podido guardar carta por carta ya no
+        // tiene sentido.
+        pendientes.current.clear()
+        setFallidas(new Set())
+      }))
+      .catch((e) => (e?.sesion ? sesionMuerta() : setError(e.message ?? 'No pude leer ese archivo.')))
   }
 
   if (cuenta === undefined) return <div className="hoja"><p className="cargando">Cargando…</p></div>
-  if (!cuenta) return <Entrar onEntro={setCuenta} />
+  if (!cuenta) return <Entrar aviso={avisoSesion} onEntro={(c) => { setAvisoSesion(null); setCuenta(c) }} />
 
   if (error) return (
     <div className="hoja">
@@ -566,7 +700,9 @@ export default function App() {
           <Exportar catalogo={catalogo} datos={datos} onCerrar={() => setExportando(false)} />
         )}
 
-        {viendoNumeros && <Estadisticas onCerrar={() => setViendoNumeros(false)} />}
+        {viendoNumeros && (
+          <Estadisticas onCerrar={() => setViendoNumeros(false)} onSesionMuerta={sesionMuerta} />
+        )}
 
         {preguntando && (
           <Pregunta
@@ -587,8 +723,12 @@ export default function App() {
                 desapareciera fuera el propio role, el lector de pantalla no anunciaría
                 nada. Así lo que cambia es el texto de adentro, que sí se lee. */}
             <span className="pie-estado" role="status">
-              {fallo ? (
-                <span className="aviso">No se pudo guardar el último cambio. Fijate la conexión.</span>
+              {fallidas.size ? (
+                <span className="aviso">
+                  {fallidas.size === 1
+                    ? 'No se pudo guardar un cambio. Fijate la conexión.'
+                    : `No se pudieron guardar ${fallidas.size} cambios. Fijate la conexión.`}
+                </span>
               ) : (
                 <span className="guardando">Guardando en tu cuenta, <b>{cuenta.usuario}</b>, a cada cambio</span>
               )}
@@ -597,7 +737,9 @@ export default function App() {
               {cuenta.admin && (
                 <button onClick={() => setViendoNumeros(true)} className="enlace">Los números</button>
               )}
-              <button onClick={cerrar} className="salir">Salir</button>
+              <button onClick={cerrar} className="salir" disabled={saliendo}>
+                {saliendo ? 'Saliendo…' : 'Salir'}
+              </button>
             </span>
           </div>
           <div className="pie-copias">

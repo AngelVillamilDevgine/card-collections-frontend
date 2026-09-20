@@ -30,11 +30,20 @@ function recordarToken(t) {
   catch { /* modo privado: la sesión dura lo que dure la pestaña */ }
 }
 
+/* Corte para un pedido que queda COLGADO — que no es lo mismo que uno que falla. Sin
+   esto, una conexión que se queda esperando deja el guardado de esa carta en el aire
+   para siempre y, como los envíos de una misma carta van encadenados, congela en
+   silencio todos los guardados siguientes de esa carta. */
+const CORTE = 15000
+
 async function pedir(ruta, opciones = {}) {
   const t = token()
   let r
+  const corte = new AbortController()
+  const reloj = setTimeout(() => corte.abort(), CORTE)
   try {
     r = await fetch(RAIZ + ruta, {
+      signal: corte.signal,
       ...opciones,
       headers: {
         ...(opciones.cuerpo !== undefined && { 'Content-Type': 'application/json' }),
@@ -45,12 +54,18 @@ async function pedir(ruta, opciones = {}) {
     })
   } catch {
     throw new ErrorApi('Sin conexión con el servidor.')
+  } finally {
+    clearTimeout(reloj)
   }
 
   if (r.status === 401) {
     // El token venció o lo revocaron: no sirve de nada guardarlo.
     recordarToken(null)
-    throw new ErrorApi('Tenés que entrar de nuevo.')
+    // Marcado, porque quien lo reciba tiene que hacer algo muy distinto que con un
+    // error de red: no hay nada que reintentar, hay que volver a entrar.
+    const muerta = new ErrorApi('Tenés que entrar de nuevo.')
+    muerta.sesion = true
+    throw muerta
   }
   if (!r.ok) {
     const dicho = await r.json().catch(() => null)

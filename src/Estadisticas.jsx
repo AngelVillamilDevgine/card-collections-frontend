@@ -23,7 +23,7 @@ function Barra({ rotulo, valor, techo, nota, flaca }) {
   )
 }
 
-export default function Estadisticas({ onCerrar }) {
+export default function Estadisticas({ onCerrar, onSesionMuerta }) {
   const [datos, setDatos] = useState(null)
   const [error, setError] = useState(null)
   const caja = useRef(null)
@@ -32,7 +32,11 @@ export default function Estadisticas({ onCerrar }) {
   const abrio = useRef(document.activeElement)
 
   useEffect(() => {
-    estadisticas().then(setDatos).catch((e) => setError(e.message))
+    // Un 401 acá tiene que mandar a entrar de nuevo, igual que en el resto de la app,
+    // y no pintar el error adentro del panel.
+    estadisticas()
+      .then(setDatos)
+      .catch((e) => (e?.sesion ? onSesionMuerta?.() : setError(e.message)))
   }, [])
 
   useEffect(() => {

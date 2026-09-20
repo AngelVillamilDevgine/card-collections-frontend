@@ -6,7 +6,7 @@
 import { useState } from 'react'
 import { entrar, registrarse } from './almacenamiento'
 
-export default function Entrar({ onEntro }) {
+export default function Entrar({ onEntro, aviso }) {
   const [usuario, setUsuario] = useState('')
   const [clave, setClave] = useState('')
   const [nuevo, setNuevo] = useState(false)
@@ -61,6 +61,9 @@ export default function Entrar({ onEntro }) {
             />
           </label>
 
+          {/* Si llegaste acá porque se venció la sesión, que se diga: si no, la
+              colección entera desaparece de golpe y sin ninguna explicación. */}
+          {aviso && !error && <p className="aviso-sesion">{aviso}</p>}
           {error && <p className="error" role="alert">{error}</p>}
 
           <button type="submit" className="principal" disabled={yendo}>
