@@ -3,6 +3,7 @@
 // Tres pasos, con el mismo diálogo que ya pregunta la condición de la carta:
 // qué lista, de qué expansiones (se marcan varias), y el texto con el botón de copiar.
 import { useEffect, useRef, useState } from 'react'
+import { atraparFoco } from './foco'
 
 const OPCIONES = [
   { id: 'falta',     label: 'Las que me faltan' },
@@ -82,12 +83,20 @@ export default function Exportar({ catalogo, datos, onCerrar }) {
   const [mostrando, setMostrando] = useState(false)
   const [aviso, setAviso] = useState(null)
   const areaRef = useRef(null)
+  const caja = useRef(null)
+  /* Quién tenía el foco antes de abrir, leído en el render: para cuando corren los
+     efectos, el autoFocus del diálogo ya se lo llevó. */
+  const abrio = useRef(document.activeElement)
 
   useEffect(() => {
     const f = (e) => e.key === 'Escape' && onCerrar()
     window.addEventListener('keydown', f)
     return () => window.removeEventListener('keydown', f)
   }, [onCerrar])
+
+  /* Una sola vez, al abrir: si colgara de `onCerrar` —una flecha nueva en cada render—
+     volvería a capturar el foco de antes y al cerrar lo devolvería acá adentro. */
+  useEffect(() => atraparFoco(caja.current, abrio.current), [])
 
   const { cantidades } = datos
   const expansiones = modo ? expansionesCon(modo, catalogo, cantidades) : []
@@ -136,7 +145,10 @@ export default function Exportar({ catalogo, datos, onCerrar }) {
       <div
         className={`dialogo${mostrando ? ' ancho' : ''}`}
         role="dialog"
+        aria-modal="true"
         aria-label="Exportar"
+        ref={caja}
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
       >
         <h3>Exportar</h3>

@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ESTADOS, FALTA, etiqueta } from './estados'
+import { atraparFoco } from './foco'
 import Entrar from './Entrar'
 import Exportar from './Exportar'
 import Estadisticas from './Estadisticas'
@@ -52,7 +53,15 @@ function textoSobre(fondo) {
 
 const MANTENIDO = 420 // ms a partir de los cuales deja de ser un toque
 
-function Carta({ numero, estado, cantidad, onTocar, onMantener }) {
+/* memo: sin esto, cada toque volvía a renderizar las 1936 cartas — 10 ms en la compu y
+   125 ms en un teléfono de gama baja, cuando lo que el DOM necesita de verdad son tres
+   mutaciones sobre un solo elemento.
+
+   Para que el memo sirva, `onTocar` y `onMantener` tienen que ser los mismos objetos en
+   cada render. Por eso la carta les pasa su clave al llamarlos, en vez de recibir dos
+   flechas que ya la tengan adentro: una flecha nueva por carta es una prop nueva por
+   carta, y el memo no ahorraría nada. */
+const Carta = memo(function Carta({ clave, numero, estado, cantidad, onTocar, onMantener }) {
   const reloj = useRef(null)
   const fueLargo = useRef(false)
 
@@ -60,7 +69,7 @@ function Carta({ numero, estado, cantidad, onTocar, onMantener }) {
     fueLargo.current = false
     reloj.current = setTimeout(() => {
       fueLargo.current = true
-      onMantener()
+      onMantener(clave)
     }, MANTENIDO)
   }
 
@@ -69,6 +78,22 @@ function Carta({ numero, estado, cantidad, onTocar, onMantener }) {
   }
 
   useEffect(() => () => clearTimeout(reloj.current), [])
+
+  /* Con el teclado, Enter y Espacio suman. Para restar no había ningún camino — el
+     único era mantener apretado con el dedo o el mouse —, y como cambiar el estado
+     exige bajar hasta cero, quien se equivocaba de estado quedaba encerrado. */
+  function alTeclado(e) {
+    if (e.key !== 'Backspace' && e.key !== 'Delete') return
+    // Con Ctrl, Alt o Meta son atajos del sistema —borrar palabra, volver atrás—, y no
+    // tienen que sacar una carta.
+    if (e.ctrlKey || e.altKey || e.metaKey || e.shiftKey) return
+    e.preventDefault()
+    // Si no la tenés no hay nada que restar. La guarda es acá y no en `restar` porque
+    // ese camino —mantener apretado con el dedo sobre una carta gris, que manda un -1
+    // y pinta el cartel de error— es un problema aparte que sigue abierto.
+    if (!cantidad) return
+    onMantener(clave)
+  }
 
   const titulo = cantidad
     ? `${etiqueta(estado)} · tenés ${cantidad}`
@@ -84,26 +109,37 @@ function Carta({ numero, estado, cantidad, onTocar, onMantener }) {
       onPointerLeave={soltar}
       onPointerCancel={soltar}
       onContextMenu={(e) => e.preventDefault()}
-      onClick={() => { if (!fueLargo.current) onTocar() }}
+      onKeyDown={alTeclado}
+      onClick={() => { if (!fueLargo.current) onTocar(clave, numero) }}
     >
       {numero}
       {cantidad > 1 && <b className="repes">{cantidad}</b>}
     </button>
   )
-}
+})
 
 /* -------------------------------- diálogo --------------------------------- */
 
 function Pregunta({ numero, onElegir, onCerrar }) {
+  const caja = useRef(null)
+  /* Quién tenía el foco antes de abrir, leído en el render: para cuando corren los
+     efectos, el autoFocus del diálogo ya se lo llevó. */
+  const abrio = useRef(document.activeElement)
+
   useEffect(() => {
     const f = (e) => e.key === 'Escape' && onCerrar()
     window.addEventListener('keydown', f)
     return () => window.removeEventListener('keydown', f)
   }, [onCerrar])
 
+  /* Una sola vez, al abrir. Si dependiera de `onCerrar` —que es una flecha nueva en
+     cada render— volvería a capturar el "foco de antes" en cada vuelta, y al cerrar lo
+     devolvería a un botón de este mismo diálogo, que para entonces ya no existe. */
+  useEffect(() => atraparFoco(caja.current, abrio.current), [])
+
   return (
     <div className="telon" onClick={onCerrar}>
-      <div className="dialogo" role="dialog" aria-label={`Carta ${numero}`} onClick={(e) => e.stopPropagation()}>
+      <div className="dialogo" role="dialog" aria-modal="true" aria-label={`Carta ${numero}`} ref={caja} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
         <h3>Carta {numero}</h3>
         <p>¿En qué estado está?</p>
         {ESTADOS.map((e) => (
@@ -325,6 +361,15 @@ export default function App() {
     aplicar(clave, (cantidades[clave] ?? 0) - 1, estados[clave])
   }
 
+  /* Las dos de arriba son distintas en cada render, porque leen `cantidades`. Estas dos
+     no cambian nunca, y son las que reciben las 1936 cartas: si a cada una le pasáramos
+     una flecha nueva, el memo de Carta no serviría de nada. El ref guarda siempre la
+     versión fresca, y estas la leen recién cuando el dedo toca. */
+  const ultimo = useRef(null)
+  ultimo.current = { tocar, restar }
+  const alTocar = useCallback((clave, numero) => ultimo.current.tocar(clave, numero), [])
+  const alMantener = useCallback((clave) => ultimo.current.restar(clave), [])
+
   function responder(estado) {
     aplicar(preguntando.clave, 1, estado)
     setPreguntando(null)
@@ -498,11 +543,12 @@ export default function App() {
                   return (
                     <Carta
                       key={clave}
+                      clave={clave}
                       numero={n}
                       estado={estados[clave]}
                       cantidad={cantidades[clave] ?? 0}
-                      onTocar={() => tocar(clave, n)}
-                      onMantener={() => restar(clave)}
+                      onTocar={alTocar}
+                      onMantener={alMantener}
                     />
                   )
                 })}
@@ -537,11 +583,16 @@ export default function App() {
       <footer className="pie">
         <div className="columna">
           <div className="pie-cuenta">
-            {fallo ? (
-              <span className="aviso">No se pudo guardar el último cambio. Fijate la conexión.</span>
-            ) : (
-              <span className="guardando">Guardando en tu cuenta, <b>{cuenta.usuario}</b>, a cada cambio</span>
-            )}
+            {/* El role va en un envoltorio que está siempre: si el que apareciera y
+                desapareciera fuera el propio role, el lector de pantalla no anunciaría
+                nada. Así lo que cambia es el texto de adentro, que sí se lee. */}
+            <span className="pie-estado" role="status">
+              {fallo ? (
+                <span className="aviso">No se pudo guardar el último cambio. Fijate la conexión.</span>
+              ) : (
+                <span className="guardando">Guardando en tu cuenta, <b>{cuenta.usuario}</b>, a cada cambio</span>
+              )}
+            </span>
             <span className="pie-acciones">
               {cuenta.admin && (
                 <button onClick={() => setViendoNumeros(true)} className="enlace">Los números</button>

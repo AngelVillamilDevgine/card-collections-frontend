@@ -3,7 +3,8 @@
 // Está ordenado por la pregunta que importa, que no es cuánta gente entró sino cuánta
 // vuelve: arriba el embudo de "se anotó" a "volvió otro día", y recién después el
 // detalle. Si alguna vez se cobra algo, se le cobra a los que vuelven.
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { atraparFoco } from './foco'
 import { estadisticas } from './almacenamiento'
 
 const parte = (n, total) => (total ? Math.round((n / total) * 100) : 0)
@@ -25,6 +26,10 @@ function Barra({ rotulo, valor, techo, nota, flaca }) {
 export default function Estadisticas({ onCerrar }) {
   const [datos, setDatos] = useState(null)
   const [error, setError] = useState(null)
+  const caja = useRef(null)
+  /* Quién tenía el foco antes de abrir, leído en el render: para cuando corren los
+     efectos, el autoFocus del diálogo ya se lo llevó. */
+  const abrio = useRef(document.activeElement)
 
   useEffect(() => {
     estadisticas().then(setDatos).catch((e) => setError(e.message))
@@ -36,9 +41,13 @@ export default function Estadisticas({ onCerrar }) {
     return () => window.removeEventListener('keydown', f)
   }, [onCerrar])
 
+  /* Una sola vez, al abrir: si colgara de `onCerrar` —una flecha nueva en cada render—
+     volvería a capturar el foco de antes y al cerrar lo devolvería acá adentro. */
+  useEffect(() => atraparFoco(caja.current, abrio.current), [])
+
   return (
     <div className="telon" onClick={onCerrar}>
-      <div className="dialogo numeros" role="dialog" aria-label="Estadísticas" onClick={(e) => e.stopPropagation()}>
+      <div className="dialogo numeros" role="dialog" aria-modal="true" aria-label="Estadísticas" ref={caja} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
         <h3>Los números</h3>
         {error && <p className="nada">{error}</p>}
         {!datos && !error && <p className="nada">Buscando…</p>}

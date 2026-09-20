@@ -3,14 +3,21 @@
   --blanco: #ffffff;
   --tinta:  #201d1a;
   --tinta2: #6f6963;
-  --tinta3: #9a938b;
+  /* Medidos contra el papel, que es el fondo más exigente de los dos (el otro es
+     blanco). Los de antes daban 2.71 y 3.59: AA pide 4.5 para texto normal. */
+  --tinta3: #736d65;
   --linea:  #e2ded6;
   --linea2: #d3cec4;
-  --acento:  #e07b14;
+  /* Naranja de texto y de relleno-con-texto-blanco. El de antes, #e07b14, daba 2.99
+     contra blanco: fallaba como texto y también abajo del blanco del filtro elegido.
+     El naranja vivo sigue estando en --naranja, que no lleva texto encima. */
+  --acento:  #a8590d;
   --azul:    #1b3a7a;
   --naranja: #f4a11d;
 
-  --falta-fondo: #ffffff;  --falta-linea: #ddd8d0;  --falta-tinta: #857e75;
+  /* #767068 daba 4.90 sobre blanco, pero el hover del filtro tiñe ese blanco y lo
+     bajaba a 4.44. Este llega a 4.92 con el hover puesto. */
+  --falta-fondo: #ffffff;  --falta-linea: #ddd8d0;  --falta-tinta: #6f6963;
   --bien-fondo:  #e8eef6;  --bien-linea:  #9db8d4;  --bien-tinta:  #2f5a80;
   --perf-fondo:  #e3efe5;  --perf-linea:  #98c0a1;  --perf-tinta:  #2b6135;
   --reem-fondo:  #fbe9e1;  --reem-linea:  #dfa184;  --reem-tinta:  #96431c;
@@ -95,11 +102,14 @@ button { cursor: pointer; }
 }
 .filtro:hover { background: rgba(32, 29, 26, 0.05); }
 
+/* El contador hereda el color del filtro, que ya se elige por contraste. Antes tenía
+   color propio acá y opacity más abajo, y las dos cosas se anulaban entre sí sólo por
+   el orden del archivo: mover un bloque deshacía el arreglo sin que nada avisara. */
 .filtro b {
   font-size: 12px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: var(--tinta3);
+  color: currentColor;
 }
 
 .filtro.activo {
@@ -108,7 +118,6 @@ button { cursor: pointer; }
   color: #fff;
   font-weight: 600;
 }
-.filtro.activo b { color: rgba(255, 255, 255, 0.75); }
 
 .vacio { color: var(--tinta2); padding: 40px 0; text-align: center; }
 
@@ -133,13 +142,15 @@ button { cursor: pointer; }
   letter-spacing: 0.01em;
   margin: 0;
 }
-.banda .rango { font-size: 13px; opacity: 0.7; font-variant-numeric: tabular-nums; }
+/* Sin opacity: el color de la banda se elige midiendo contraste (textoSobre), y bajarle
+   la opacidad encima deshacía ese cálculo — el rango fallaba en 10 de las 16 bandas y la
+   cuenta en 3. La jerarquía la hace el tamaño, que ya es menor. */
+.banda .rango { font-size: 13px; font-variant-numeric: tabular-nums; }
 .banda .cuenta {
   margin-left: auto;
   font-size: 13px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  opacity: 0.85;
 }
 
 .grilla {
@@ -326,7 +337,7 @@ button { cursor: pointer; }
 .entrar input:focus {
   outline: none;
   border-color: var(--acento);
-  box-shadow: 0 0 0 3px rgb(224 123 20 / 0.15);
+  box-shadow: 0 0 0 3px rgb(168 89 13 / 0.15); /* el mismo naranja que --acento */
 }
 
 .entrar .principal {
@@ -342,7 +353,13 @@ button { cursor: pointer; }
   font-size: 16px;
 }
 .entrar .principal:hover { filter: brightness(1.06); }
-.entrar .principal:disabled { opacity: 0.6; filter: none; cursor: default; }
+.entrar .principal:disabled {
+  background: var(--papel);
+  border-color: var(--linea2);
+  color: var(--tinta3);
+  filter: none;
+  cursor: default;
+}
 
 .entrar .secundario {
   min-height: 44px;
@@ -381,10 +398,7 @@ button { cursor: pointer; }
 .filtro.f-falta      { border-color: var(--falta-tinta); color: var(--falta-tinta); }
 .filtro.f-repetidas  { border-color: var(--acento);      color: var(--acento); }   /* el del globito */
 .filtro.f-reemplazar { border-color: var(--reem-linea);  color: var(--reem-tinta); }
-.filtro b { color: currentColor; opacity: 0.6; }
-
 /* Elegido gana el relleno naranja: el contorno de color es para los otros. */
-.filtro.activo, .filtro.activo b { color: #fff; opacity: 1; }
 .filtro.activo { background: var(--acento); border-color: var(--acento); }
 
 /* --------------------------------- exportar -------------------------------- */
@@ -504,7 +518,15 @@ button { cursor: pointer; }
   font-weight: 600;
   font-size: 15px;
 }
-.dialogo .ver:disabled { opacity: 0.45; cursor: default; }
+/* Inactivo NO se hace con opacity: sobre el naranja con texto blanco, la frase que te
+   dice qué hacer para destrabarlo ("Marcá al menos una") quedaba en 1.37:1, ilegible.
+   Se apaga cambiando los colores, que se siguen leyendo. */
+.dialogo .ver:disabled {
+  background: var(--papel);
+  border-color: var(--linea2);
+  color: var(--tinta3);
+  cursor: default;
+}
 
 /* --------------------------------- plegar --------------------------------- */
 
@@ -605,6 +627,7 @@ button { cursor: pointer; }
 }
 .pie .columna { display: flex; flex-direction: column; gap: 14px; }
 .pie-cuenta, .pie-copias { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 20px; }
+.pie-estado { min-width: 0; }
 .pie-cuenta { justify-content: space-between; }
 
 .pie .aviso { color: #9a5518; }
