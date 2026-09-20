@@ -1019,7 +1019,8 @@ export default function App() {
         )}
 
         {viendoNumeros && (
-          <Estadisticas onCerrar={() => setViendoNumeros(false)} onSesionMuerta={sesionMuerta} />
+          <Estadisticas onCerrar={() => setViendoNumeros(false)} onSesionMuerta={sesionMuerta}
+                        totalCartas={resumen.total} />
         )}
 
         {preguntando && (

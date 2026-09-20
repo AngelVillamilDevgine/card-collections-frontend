@@ -74,7 +74,11 @@ function Barra({ rotulo, valor, techo, nota, flaca }) {
   )
 }
 
-export default function Estadisticas({ onCerrar, onSesionMuerta }) {
+/* `totalCartas` llega del catálogo que la app ya tiene cargado, no del servidor. Antes
+   venía en la respuesta como un 1936 escrito a mano en `estadisticas.js`: el catálogo se
+   edita sin recompilar nada, así que el día que cambiara, la columna «Álbum» iba a
+   calcular los porcentajes contra un número viejo sin que nada avisara. */
+export default function Estadisticas({ onCerrar, onSesionMuerta, totalCartas }) {
   const [datos, setDatos] = useState(null)
   const [error, setError] = useState(null)
   const caja = useRef(null)
@@ -106,14 +110,14 @@ export default function Estadisticas({ onCerrar, onSesionMuerta }) {
         <h3>Los números</h3>
         {error && <p className="nada">{error}</p>}
         {!datos && !error && <p className="nada">Buscando…</p>}
-        {datos && <Cuerpo d={datos} />}
+        {datos && <Cuerpo d={datos} totalCartas={totalCartas} />}
         <button className="cancelar" onClick={onCerrar}>Cerrar</button>
       </div>
     </div>
   )
 }
 
-function Cuerpo({ d }) {
+function Cuerpo({ d, totalCartas }) {
   const { usuarios: u, cartas, porDia, tramos, gente } = d
   const pico = Math.max(1, ...porDia.map((x) => x.cuantos))
   const picoTramo = Math.max(1, ...tramos.map((x) => x.cuantos))
@@ -181,7 +185,7 @@ function Cuerpo({ d }) {
                 <td>{dia(g.ultima)}</td>
                 <td>{g.dias}</td>
                 <td>{g.cartas}</td>
-                <td>{parte(g.cartas, d.total)}%</td>
+                <td>{parte(g.cartas, totalCartas)}%</td>
                 <td>{g.repetidas}</td>
               </tr>
             ))}
