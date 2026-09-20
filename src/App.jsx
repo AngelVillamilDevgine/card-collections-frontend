@@ -249,6 +249,11 @@ const ESPERA_REINTENTO = 900
    dejarte atrapado adentro de la app. */
 const TECHO_SALIR = 4000
 
+/* Cuánto tiene que haber pasado para que, al volver a la pestaña, se vuelva a pedir la
+   colección. Cambiar de app un rato en el teléfono es lo normal; lo que hay que atrapar
+   es la pestaña abierta desde ayer. */
+const REFRESCO = 60 * 1000
+
 /* Lo que tarda en mandarse una carta después del último toque. Existe por el orden:
    si tocás tres veces rápido y salen tres pedidos, pueden llegar desordenados y
    quedar guardado el 2 después del 3. Esperando, sale uno solo con el número final. */
@@ -332,6 +337,8 @@ export default function App() {
      quedaban dos PUT de la misma carta viajando juntos, y si llegaban al revés se
      guardaba el viejo después del nuevo. */
   const enVuelo = useRef(new Map())
+  /* Cuándo se leyó la colección por última vez, para el refresco de abajo. */
+  const ultimaLectura = useRef(0)
 
   const { estados, cantidades } = datos
 
@@ -350,7 +357,7 @@ export default function App() {
     setFallidas(new Set())
     if (!cuenta) return setDatos(VACIA)
     leerColeccion()
-      .then(setDatos)
+      .then((d) => { ultimaLectura.current = Date.now(); setDatos(d) })
       // Si el token ya no sirve, a la pantalla de entrada: un cartel de error con un
       // solo botón de Salir no le sirve a nadie.
       .catch((e) => (e?.sesion ? sesionMuerta() : setError(e.message)))
@@ -459,6 +466,30 @@ export default function App() {
 
   const vaciarRef = useRef(null)
   vaciarRef.current = vaciar
+
+  /* Volver a pedir la colección al volver a la pestaña, si pasó un rato.
+
+     Antes se pedía UNA sola vez y nunca más. El teléfono con la pestaña abierta desde
+     hace una semana mostraba la carta 700 en 0; si mientras tanto la pusiste en 2 desde
+     la compu, el próximo toque en el teléfono calculaba sobre ESA instantánea vieja y
+     mandaba 1: la base retrocedía, y no había ningún error que lo delatara.
+
+     Lo pendiente se manda ANTES de releer, o la respuesta del servidor lo pisaría. */
+  useEffect(() => {
+    if (!cuenta) return
+    const alVolver = () => {
+      if (document.visibilityState !== 'visible') return
+      if (Date.now() - ultimaLectura.current < REFRESCO) return
+      ultimaLectura.current = Date.now()
+      Promise.resolve(vaciarRef.current(false))
+        .catch(() => {})
+        .then(() => leerColeccion())
+        .then((d) => setDatos(d))
+        .catch(() => { /* si falla, se sigue con lo que ya había en pantalla */ })
+    }
+    document.addEventListener('visibilitychange', alVolver)
+    return () => document.removeEventListener('visibilitychange', alVolver)
+  }, [cuenta])
 
   /* Si cerrás la pestaña justo después de un toque, eso todavía no salió. */
   useEffect(() => {

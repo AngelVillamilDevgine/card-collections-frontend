@@ -89,6 +89,25 @@ button { cursor: pointer; }
 
 .filtros { display: flex; gap: 6px; flex-wrap: wrap; }
 
+/* En un teléfono angosto los cuatro filtros no entran en una línea y se apilaban en
+   cuatro: la barra medía 171 px, y como es pegajosa te seguía los 28.710 px de scroll.
+   Se comía el 30% de la pantalla — quedaban 24 cartas a la vista en vez de 34.
+
+   En un renglón que se arrastra de costado baja a ~58 px. Es el único lugar de la app
+   donde se mete scroll horizontal a propósito, y es preferible a perder un tercio de la
+   pantalla en la parte que más se mira. */
+@media (max-width: 460px) {
+  .filtros {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    /* Que el último chip no quede pegado al borde al llegar al final. */
+    padding-right: 4px;
+  }
+  .filtros::-webkit-scrollbar { display: none; }
+  .filtro { flex: none; }
+}
+
 .filtro {
   display: flex;
   align-items: center;
