@@ -6,6 +6,7 @@ import Exportar from './Exportar'
 import Estadisticas from './Estadisticas'
 import Instalar from './Instalar'
 import {
+  ErrorApi,
   descargar, restaurar, quienSoy, salir,
   leerColeccion, guardarCarta, reemplazarColeccion,
 } from './almacenamiento'
@@ -53,6 +54,11 @@ function textoSobre(fondo) {
 
 const MANTENIDO = 420 // ms a partir de los cuales deja de ser un toque
 
+/* Píxeles de movimiento a partir de los cuales el gesto deja de ser un mantenido y pasa
+   a ser el arranque de un scroll. Diez es poco a propósito: el dedo tiembla, pero si se
+   desplaza ya no está "apretando ahí". */
+const DESLIZ = 10
+
 /* memo: sin esto, cada toque volvía a renderizar las 1936 cartas — 10 ms en la compu y
    125 ms en un teléfono de gama baja, cuando lo que el DOM necesita de verdad son tres
    mutaciones sobre un solo elemento.
@@ -63,18 +69,49 @@ const MANTENIDO = 420 // ms a partir de los cuales deja de ser un toque
    carta, y el memo no ahorraría nada. */
 const Carta = memo(function Carta({ clave, numero, estado, cantidad, onTocar, onMantener }) {
   const reloj = useRef(null)
-  const fueLargo = useRef(false)
+  const fueLargo = useRef(false)  // ya pasaron los 420 ms: el click que venga no cuenta
+  const cobrable = useRef(false)  // ...y además todavía se puede cobrar al soltar
+  const origen = useRef(null)
 
-  function apretar() {
+  function apretar(e) {
     fueLargo.current = false
+    cobrable.current = false
+    origen.current = { x: e.clientX, y: e.clientY }
     reloj.current = setTimeout(() => {
       fueLargo.current = true
-      onMantener(clave)
+      cobrable.current = true
     }, MANTENIDO)
   }
 
+  /* Si el dedo se corre, no era un mantenido: era el arranque de un scroll. */
+  function mover(e) {
+    if (!origen.current) return
+    const corrido = Math.abs(e.clientX - origen.current.x) + Math.abs(e.clientY - origen.current.y)
+    if (corrido > DESLIZ) cancelar()
+  }
+
+  /* El mantenido se cobra al SOLTAR, no al cumplirse los 420 ms.
+
+     Medido con toques reales: apoyar el dedo sobre la grilla mientras mirás el álbum y
+     después arrastrar para seguir bajando restaba una carta —de 7 a 6— y se guardaba.
+     El navegador avisa que se quedó con el gesto (`pointercancel`) recién DESPUÉS del
+     disparo, así que cancelar por movimiento llega tarde: a los 420 ms ya estaba hecho.
+
+     Cobrando al soltar, un scroll no resta nunca, porque termina en `pointercancel` y
+     no en `pointerup`. El gesto sigue siendo el mismo para quien lo hace a propósito. */
   function soltar() {
     clearTimeout(reloj.current)
+    origen.current = null
+    if (!cobrable.current) return
+    cobrable.current = false
+    onMantener(clave)
+  }
+
+  /* El gesto se fue a otro lado: ni resta ni cuenta como toque. */
+  function cancelar() {
+    clearTimeout(reloj.current)
+    origen.current = null
+    cobrable.current = false
   }
 
   useEffect(() => () => clearTimeout(reloj.current), [])
@@ -88,11 +125,7 @@ const Carta = memo(function Carta({ clave, numero, estado, cantidad, onTocar, on
     // tienen que sacar una carta.
     if (e.ctrlKey || e.altKey || e.metaKey || e.shiftKey) return
     e.preventDefault()
-    // Si no la tenés no hay nada que restar. La guarda es acá y no en `restar` porque
-    // ese camino —mantener apretado con el dedo sobre una carta gris, que manda un -1
-    // y pinta el cartel de error— es un problema aparte que sigue abierto.
-    if (!cantidad) return
-    onMantener(clave)
+    onMantener(clave) // si está en cero, `restar` no hace nada
   }
 
   const titulo = cantidad
@@ -105,9 +138,10 @@ const Carta = memo(function Carta({ clave, numero, estado, cantidad, onTocar, on
       title={titulo}
       aria-label={`Carta ${numero}. ${titulo}`}
       onPointerDown={apretar}
+      onPointerMove={mover}
       onPointerUp={soltar}
-      onPointerLeave={soltar}
-      onPointerCancel={soltar}
+      onPointerLeave={cancelar}
+      onPointerCancel={cancelar}
       onContextMenu={(e) => e.preventDefault()}
       onKeyDown={alTeclado}
       onClick={() => { if (!fueLargo.current) onTocar(clave, numero) }}
@@ -225,6 +259,11 @@ export default function App() {
   /* Por qué estás en la pantalla de entrada. Sin esto, la colección desaparecía de golpe
      y sin explicación cuando se vencía la sesión. */
   const [avisoSesion, setAvisoSesion] = useState(null)
+  /* Un archivo de copia que no se puede leer no puede tirar abajo la app entera: ese
+     aviso va al pie, al lado del botón que lo abrió. */
+  const [avisoArchivo, setAvisoArchivo] = useState(null)
+  /* Se incrementa para volver a pedir el catálogo y la colección desde cero. */
+  const [intento, setIntento] = useState(0)
   const [exportando, setExportando] = useState(false)
   const [viendoNumeros, setViendoNumeros] = useState(false)
   const [guiñando, setGuiñando] = useState(false)
@@ -255,7 +294,7 @@ export default function App() {
       .then((r) => r.json())
       .then((raw) => setCatalogo(raw.expansiones.map((e) => ({ ...e, lista: numerosDe(e) }))))
       .catch(() => setError('No se pudo cargar el catálogo de cartas.'))
-  }, [])
+  }, [intento])
 
   /* ¿El token guardado sigue sirviendo? Si no, se muestra la pantalla de entrada. */
   useEffect(() => { quienSoy().then((c) => setCuenta(c)) }, [])
@@ -269,7 +308,7 @@ export default function App() {
       // Si el token ya no sirve, a la pantalla de entrada: un cartel de error con un
       // solo botón de Salir no le sirve a nadie.
       .catch((e) => (e?.sesion ? sesionMuerta() : setError(e.message)))
-  }, [cuenta])
+  }, [cuenta, intento])
 
   function anotarFallo(clave, hubo) {
     setFallidas((antes) => {
@@ -468,7 +507,13 @@ export default function App() {
 
   /* Mantener apretado: resta una. Al llegar a cero se olvida también la condición. */
   function restar(clave) {
-    aplicar(clave, (cantidades[clave] ?? 0) - 1, estados[clave])
+    /* Si no la tenés no hay nada que restar. Sin esto salía un PUT con cantidad -1, el
+       servidor lo rechazaba con un 400 y el pie pintaba "No se pudo guardar el último
+       cambio. Fijate la conexión." por un gesto que la propia app sugiere —y sobre
+       1597 de las 1936 cartas, que es el estado más común. Una falsa alarma de pérdida
+       de datos hace que el usuario desconfíe de todo lo demás. */
+    if (!cantidades[clave]) return
+    aplicar(clave, cantidades[clave] - 1, estados[clave])
   }
 
   /* Las dos de arriba son distintas en cada render, porque leen `cantidades`. Estas dos
@@ -535,6 +580,7 @@ export default function App() {
 
   /* Restaurar un respaldo: se manda entera y se pisa lo que había en la cuenta. */
   function restaurarCopia(archivo) {
+    setAvisoArchivo(null)
     restaurar(archivo)
       .then((d) => reemplazarColeccion(d).then(() => {
         setDatos(d)
@@ -543,16 +589,32 @@ export default function App() {
         pendientes.current.clear()
         setFallidas(new Set())
       }))
-      .catch((e) => (e?.sesion ? sesionMuerta() : setError(e.message ?? 'No pude leer ese archivo.')))
+      .catch((e) => {
+        if (e?.sesion) return sesionMuerta()
+        /* Los errores del navegador al leer un archivo vienen en inglés y hablan de
+           permisos del sistema: no le dicen nada a nadie. Sólo se muestran los nuestros,
+           que están escritos para leerse. */
+        setAvisoArchivo(e instanceof ErrorApi
+          ? e.message
+          : 'No pude leer ese archivo. ¿Es una copia de tu colección?')
+      })
   }
 
   if (cuenta === undefined) return <div className="hoja"><p className="cargando">Cargando…</p></div>
   if (!cuenta) return <Entrar aviso={avisoSesion} onEntro={(c) => { setAvisoSesion(null); setCuenta(c) }} />
 
+  /* Un corte de dos segundos al abrir, o el servidor reiniciándose durante un deploy,
+     dejaban una pantalla con un texto y un único botón de Salir: la única salida era
+     desloguearse. Ahora se puede volver a intentar sin perder la sesión. */
   if (error) return (
     <div className="hoja">
       <p className="cargando">{error}</p>
-      <p><button className="secundario" onClick={cerrar}>Salir</button></p>
+      <p className="acciones-error">
+        <button className="reintentar" onClick={() => { setError(null); setIntento((n) => n + 1) }}>
+          Reintentar
+        </button>
+        <button className="secundario" onClick={cerrar}>Salir</button>
+      </p>
     </div>
   )
   if (!catalogo) return <div className="hoja"><p className="cargando">Cargando…</p></div>
@@ -758,6 +820,7 @@ export default function App() {
               }}
             />
             <button onClick={() => archivoRef.current.click()} className="enlace">Restaurar una copia</button>
+            {avisoArchivo && <span className="aviso-archivo" role="status">{avisoArchivo}</span>}
           </div>
           <div className="pie-marca">
             <span className="pie-sitio">{SITIO}</span>

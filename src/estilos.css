@@ -655,6 +655,22 @@ button { cursor: pointer; }
   padding: 6px 18px;
   color: var(--tinta2);
 }
+/* Los dos botones de la pantalla de error, uno al lado del otro. */
+.acciones-error { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.reintentar {
+  min-height: 40px;
+  padding: 9px 16px;
+  border-radius: 6px;
+  border: 1px solid var(--acento);
+  background: var(--acento);
+  color: #fff;
+  font-weight: 600;
+  font-size: 15px;
+}
+.reintentar:hover { filter: brightness(1.06); }
+
+.pie .aviso-archivo { color: var(--reem-tinta); font-size: 13px; }
+
 .pie .salir:hover:not(:disabled) { border-color: var(--reem-linea); color: var(--reem-tinta); }
 /* Inactivo con colores, no con opacity (ver la nota de contraste del CLAUDE.md). */
 .pie .salir:disabled { border-color: var(--linea); color: var(--tinta3); cursor: default; }
