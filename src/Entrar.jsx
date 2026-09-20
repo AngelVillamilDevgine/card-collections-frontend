@@ -6,6 +6,15 @@
 import { useState } from 'react'
 import { entrar, registrarse } from './almacenamiento'
 
+/* Quien se olvida la clave no tiene ningún camino solo: no hay mail de recupero ni
+   cambio de clave (la app no manda correo, y el servidor tampoco puede: rebota antes de
+   llegar a Gmail). Así que el camino es hablar con Angel, y que sea de un toque.
+   El texto ya viene escrito y dice de qué sitio se trata: él atiende varios. */
+const WSP = '5493516710050'
+const pedido = (quien) =>
+  'Hola Angel, me olvide la clave de cromeros.com.ar (la app de las cartas de Dragon Ball) ' +
+  'y no puedo entrar.' + (quien ? ` Mi usuario es: ${quien}` : '')
+
 export default function Entrar({ onEntro, aviso }) {
   const [usuario, setUsuario] = useState('')
   const [clave, setClave] = useState('')
@@ -77,6 +86,20 @@ export default function Entrar({ onEntro, aviso }) {
           >
             {nuevo ? 'Ya tengo cuenta' : 'No tengo cuenta todavía'}
           </button>
+
+          {/* Sólo al entrar: a quien está creando la cuenta no se le perdió ninguna
+              clave todavía. Se manda lo que haya escrito en el campo de usuario, así
+              Angel no tiene que preguntar quién es. */}
+          {!nuevo && (
+            <a
+              className="olvide"
+              href={`https://wa.me/${WSP}?text=${encodeURIComponent(pedido(usuario.trim()))}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Me olvidé la clave
+            </a>
+          )}
         </form>
       </div>
     </main>
