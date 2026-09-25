@@ -87,6 +87,11 @@ async function entrarPor(ruta, usuario, clave) {
 export const registrarse = (usuario, clave) => entrarPor('/registro', usuario, clave)
 export const entrar = (usuario, clave) => entrarPor('/sesion', usuario, clave)
 
+/* Cambiar la clave. Devuelve cuántas OTRAS sesiones se cerraron, que es lo que el
+   diálogo le dice al usuario: sin ese número, «listo» no cuenta si echó a alguien. */
+export const cambiarClave = (actual, nueva) =>
+  pedir('/clave', { method: 'PUT', cuerpo: { actual, nueva } })
+
 export async function salir() {
   await pedir('/sesion', { method: 'DELETE' }).catch(() => {})
   recordarToken(null)

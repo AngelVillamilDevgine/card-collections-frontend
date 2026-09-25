@@ -4,7 +4,7 @@
 // vuelve: arriba el embudo de "se anotó" a "volvió otro día", y recién después el
 // detalle. Si alguna vez se cobra algo, se le cobra a los que vuelven.
 import { useEffect, useRef, useState } from 'react'
-import { atraparFoco } from './foco'
+import { atraparFoco, usarEscape } from './foco'
 import { estadisticas } from './almacenamiento'
 
 const parte = (n, total) => (total ? Math.round((n / total) * 100) : 0)
@@ -94,11 +94,7 @@ export default function Estadisticas({ onCerrar, onSesionMuerta, totalCartas }) 
       .catch((e) => (e?.sesion ? onSesionMuerta?.() : setError(e.message)))
   }, [])
 
-  useEffect(() => {
-    const f = (e) => e.key === 'Escape' && onCerrar()
-    window.addEventListener('keydown', f)
-    return () => window.removeEventListener('keydown', f)
-  }, [onCerrar])
+  usarEscape(onCerrar)
 
   /* Una sola vez, al abrir: si colgara de `onCerrar` —una flecha nueva en cada render—
      volvería a capturar el foco de antes y al cerrar lo devolvería acá adentro. */
@@ -167,6 +163,18 @@ function Cuerpo({ d, totalCartas }) {
       </div>
 
       <h4>Uno por uno</h4>
+      {/* La tabla va ordenada por cantidad de cartas, que es lo que sirve para decidir.
+          Pero eso hunde al fondo a quien instaló la app y no cargó nada: con cuatro
+          instalaciones, tres caían en las filas 2, 5 y 6 y la cuarta en la 25 de 28, así
+          que mirando la tabla parecían tres y el embudo decía cuatro. Los números del
+          embudo estaban bien —se comprobaron contra la base—; lo que engañaba era el
+          orden. Este renglón dice de entrada cuántos son, así que la tabla ya no puede
+          contradecir al embudo, y las filas de los que la instalaron van marcadas para
+          poder encontrarlas sin recorrer las veintiocho. */}
+      <p className="resumen-tabla">
+        {gente.length} cuentas · {gente.filter((g) => g.cartas).length} con cartas ·{' '}
+        <b>{gente.filter((g) => g.app).length} entran desde la app</b>, marcadas abajo
+      </p>
       <div className="tablon">
         <table className="gente">
           <thead>
@@ -176,7 +184,8 @@ function Cuerpo({ d, totalCartas }) {
           </thead>
           <tbody>
             {gente.map((g) => (
-              <tr key={g.usuario} className={g.cartas ? undefined : 'apagada'}>
+              <tr key={g.usuario}
+                  className={[g.cartas ? '' : 'apagada', g.app ? 'con-app' : ''].filter(Boolean).join(' ') || undefined}>
                 <td className="quien" title={g.usuario}>
                   {g.usuario}
                   {g.app && <span className="chip" title="Entra desde la app instalada">app</span>}

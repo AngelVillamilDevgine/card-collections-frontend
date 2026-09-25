@@ -15,6 +15,13 @@
   --azul:    #1b3a7a;
   --naranja: #f4a11d;
 
+  /* Cuánto mide la barra pegajosa de arriba (.herramientas), para que los anclajes no
+     dejen la banda tapada debajo de ella. MEDIDO, no estimado: 59 px normalmente y 93
+     cuando los filtros se parten en dos filas, alrededor de los 480 px. Van 100 para
+     tener margen. Estaba en 76, que no alcanzaba justo en el ancho de un teléfono
+     apaisado — y en las notas figuraba como 171, que era de un layout anterior. */
+  --barra-pegajosa: 100px;
+
   /* #767068 daba 4.90 sobre blanco, pero el hover del filtro tiñe ese blanco y lo
      bajaba a 4.44. Este llega a 4.92 con el hover puesto. */
   --falta-fondo: #ffffff;  --falta-linea: #ddd8d0;  --falta-tinta: #6f6963;
@@ -75,9 +82,22 @@ button { cursor: pointer; }
   margin-top: 12px;
 }
 .barra span { display: block; height: 100%; }
-.barra .s-bien       { background: #6f9fd0; }
-.barra .s-perfecta   { background: #5aa86a; }
-.barra .s-reemplazar { background: var(--naranja); }
+/* Contra el riel (--linea #e2ded6) los tres colores de antes daban 2.07, 2.16 y 1.57, y
+   el mínimo para un elemento no textual que informa algo es 3:1 (WCAG 1.4.11). Los de
+   ahora dan 3.13, 3.22 y 3.82, medidos.
+
+   El naranja vivo no llega de ninguna manera: es demasiado claro, y oscurecerlo hasta
+   pasar lo vuelve marrón. Así que el tramo usa `--acento`, que es el naranja oscuro que
+   ya existe en la paleta para el texto — queda coherente en vez de ser un color nuevo
+   inventado para este lugar. `--naranja` sigue definido: lo usa el botón activo.
+
+   El `inset` separa un tramo del siguiente sin mover el layout: entre ellos el contraste
+   es bajo (se parecen en luminosidad aunque cambien de tono) y sin la línea a 320px los
+   tres se leen como una sola mancha. */
+.barra .s-bien       { background: #3f7fc0; }
+.barra .s-perfecta   { background: #478754; }
+.barra .s-reemplazar { background: var(--acento); }
+.barra span + span   { box-shadow: inset 1px 0 0 var(--linea); }
 
 /* -------------------------------- barra fija ------------------------------ */
 
@@ -142,7 +162,9 @@ button { cursor: pointer; }
 
 /* -------------------------------- expansión ------------------------------- */
 
-.expansion { margin-bottom: 40px; scroll-margin-top: 76px; }
+/* scroll-margin-top tiene que ser al menos lo que mide la barra pegajosa, o el anclaje
+   deja la banda tapada abajo de ella. Ver la nota de --barra-pegajosa más arriba. */
+.expansion { margin-bottom: 40px; scroll-margin-top: var(--barra-pegajosa); }
 
 .banda {
   display: flex;
@@ -160,6 +182,28 @@ button { cursor: pointer; }
   font-size: 15px;
   letter-spacing: 0.01em;
   margin: 0;
+}
+
+/* A 320 px la banda se partía fea: «EXPANSIÓN 1» en dos renglones, el rango «1–129»
+   cortado en «1–» y «129», y «64 de 129» también en dos. El ancho alcanzaba de sobra —
+   lo que faltaba era prohibir el corte donde no tiene sentido cortar.
+
+   El nombre SÍ puede cortarse (hay expansiones de nombre largo y ahí el corte es
+   razonable), pero nunca por la mitad de una palabra. El rango y la cuenta no se cortan
+   nunca: son una unidad, y partir un número en dos renglones no se lee. */
+.banda h2 { overflow-wrap: break-word; text-wrap: balance; }
+.banda .rango,
+.banda .cuenta { white-space: nowrap; }
+
+/* A 320 px los tres no entran juntos ni prohibiendo los cortes: hacen falta unos 311 px
+   de texto en un ancho útil de 292. En vez de dejar que se parta el nombre, se achica
+   todo un punto — la banda es un rótulo, no el contenido, y a 13 px se sigue leyendo
+   igual. Medido: con esto «Expansión 1» vuelve a un solo renglón. */
+@media (max-width: 360px) {
+  .banda { gap: 8px; padding: 7px 10px; }
+  .banda h2 { font-size: 13px; }
+  .banda .rango,
+  .banda .cuenta { font-size: 11px; }
 }
 /* Sin opacity: el color de la banda se elige midiendo contraste (textoSobre), y bajarle
    la opacidad encima deshacía ese cálculo — el rango fallaba en 10 de las 16 bandas y la
@@ -805,7 +849,7 @@ button { cursor: pointer; }
 }
 .saltar:focus { left: 0; }
 /* El destino tiene que quedar DEBAJO de la barra pegajosa, o el salto lo deja tapado. */
-.hoja[id] { scroll-margin-top: 76px; }
+.hoja[id] { scroll-margin-top: var(--barra-pegajosa); }
 
 /* ------------------------- blancos de toque -------------------------------- */
 /* Medido: la flecha de plegar daba 32x32, el alias 94x28, los enlaces del pie 73x32 y
@@ -840,6 +884,32 @@ button { cursor: pointer; }
 }
 /* 44 - 32 = 12, seis de cada lado. */
 .banda .plegar::after { left: -6px; right: -6px; min-width: 44px; }
+
+/* La carta cuyo último cambio no se pudo guardar. Un contorno y nada más: el color de
+   la carta ya dice el estado y no se lo puede pisar. Antes el pie decía «no se pudieron
+   guardar 3 cambios» y encontrarlos entre 1936 cartas era problema del usuario. */
+.carta.sin-guardar {
+  outline: 2px solid var(--acento);
+  outline-offset: -2px;
+}
+
+/* Los números de las cartas que quedaron sin guardar, en el pie. */
+.pie-estado .cuales { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* El atajo de teclado se dice sólo donde hay teclado. En un teléfono es ruido: no hay
+   Backspace, y el gesto que sirve ahí ya está explicado en la misma frase. */
+.solo-teclado { display: none; }
+@media (hover: hover) and (pointer: fine) {
+  .solo-teclado { display: inline; }
+}
+
+/* La nota de arriba de un diálogo: explica qué va a pasar antes de que pase. */
+.nota-dialogo {
+  margin: 0 0 4px;
+  color: var(--tinta2);
+  font-size: 13.5px;
+  line-height: 1.45;
+}
 
 /* ------------------------------ los números ------------------------------- */
 /* Todo cuelga de .numeros: son nombres comunes y .barra ya estaba tomada por la
@@ -917,6 +987,16 @@ button { cursor: pointer; }
 .numeros table.gente th:first-child, .numeros table.gente td:first-child { text-align: left; padding-left: 0; }
 .numeros table.gente .quien { max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Callada cuando está bien; sólo se hace ver cuando hay algo que mirar. */
+.numeros .resumen-tabla {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--tinta2);
+}
+.numeros .resumen-tabla b { color: var(--tinta); }
+/* La fila de quien entra desde la app, para poder encontrarla sin recorrer la tabla. */
+.numeros .gente tr.con-app > td { background: #eef4ec; }
+.numeros .gente tr.con-app.apagada > td { background: #f2f5f0; }
+
 .numeros .salud {
   display: flex;
   flex-direction: column;

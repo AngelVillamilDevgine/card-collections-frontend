@@ -3,7 +3,7 @@
 // Tres pasos, con el mismo diálogo que ya pregunta la condición de la carta:
 // qué lista, de qué expansiones (se marcan varias), y el texto con el botón de copiar.
 import { useEffect, useRef, useState } from 'react'
-import { atraparFoco } from './foco'
+import { atraparFoco, usarEscape } from './foco'
 
 const OPCIONES = [
   { id: 'falta',     label: 'Las que me faltan' },
@@ -102,11 +102,7 @@ export default function Exportar({ catalogo, datos, onCerrar }) {
      efectos, el autoFocus del diálogo ya se lo llevó. */
   const abrio = useRef(document.activeElement)
 
-  useEffect(() => {
-    const f = (e) => e.key === 'Escape' && onCerrar()
-    window.addEventListener('keydown', f)
-    return () => window.removeEventListener('keydown', f)
-  }, [onCerrar])
+  usarEscape(onCerrar)
 
   /* Una sola vez, al abrir: si colgara de `onCerrar` —una flecha nueva en cada render—
      volvería a capturar el foco de antes y al cerrar lo devolvería acá adentro. */

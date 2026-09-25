@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ESTADOS, FALTA, etiqueta } from './estados'
-import { atraparFoco } from './foco'
+import { atraparFoco, usarEscape } from './foco'
 import Entrar from './Entrar'
 import Exportar from './Exportar'
 import Estadisticas from './Estadisticas'
@@ -9,6 +9,7 @@ import {
   ErrorApi,
   descargar, restaurar, quienSoy, salir,
   leerColeccion, guardarCarta, reemplazarColeccion,
+  cambiarClave,
 } from './almacenamiento'
 
 function numerosDe(exp) {
@@ -67,7 +68,7 @@ const DESLIZ = 10
    cada render. Por eso la carta les pasa su clave al llamarlos, en vez de recibir dos
    flechas que ya la tengan adentro: una flecha nueva por carta es una prop nueva por
    carta, y el memo no ahorraría nada. */
-const Carta = memo(function Carta({ clave, numero, estado, cantidad, onTocar, onMantener }) {
+const Carta = memo(function Carta({ clave, numero, estado, cantidad, sinGuardar, onTocar, onMantener }) {
   const reloj = useRef(null)
   const fueLargo = useRef(false)  // ya pasaron los 420 ms: el click que venga no cuenta
   const cobrable = useRef(false)  // ...y además todavía se puede cobrar al soltar
@@ -125,7 +126,21 @@ const Carta = memo(function Carta({ clave, numero, estado, cantidad, onTocar, on
     // tienen que sacar una carta.
     if (e.ctrlKey || e.altKey || e.metaKey || e.shiftKey) return
     e.preventDefault()
+    const grilla = e.currentTarget.parentElement
     onMantener(clave) // si está en cero, `restar` no hace nada
+
+    /* Si la carta sale del filtro puesto —restar la última repetida con «Repetidas»
+       elegido— el botón se desmonta y el foco cae en `body`, así que el Backspace
+       siguiente no hace nada y parece que la app se colgó. Se mueve el foco a la carta
+       que ocupó su lugar, o a la barra de filtros si la grilla entera desapareció.
+
+       setTimeout y no rAF: tiene que correr DESPUÉS de que React aplique el cambio. */
+    setTimeout(() => {
+      if (document.activeElement && document.activeElement !== document.body) return
+      const vecina = grilla?.isConnected && grilla.querySelector('.carta')
+      if (vecina) vecina.focus()
+      else document.querySelector('.filtro.activo')?.focus()
+    }, 0)
   }
 
   const titulo = cantidad
@@ -138,8 +153,12 @@ const Carta = memo(function Carta({ clave, numero, estado, cantidad, onTocar, on
      estado y el número chico de la esquina es la cantidad. */
   return (
     <button
-      className={`carta ${cantidad ? estado : FALTA}`}
-      aria-label={`Carta ${numero}. ${titulo}`}
+      className={`carta ${cantidad ? estado : FALTA}${sinGuardar ? ' sin-guardar' : ''}`}
+      aria-label={`Carta ${numero}. ${titulo}${sinGuardar ? '. Sin guardar' : ''}`}
+      /* La forma estándar de anunciar un atajo de teclado. Restar con Backspace no
+         estaba dicho en ningún lado: ni en la ayuda, ni en la etiqueta. Para quien usa
+         el teclado, el camino era invisible. */
+      aria-keyshortcuts="Backspace" 
       onPointerDown={apretar}
       onPointerMove={mover}
       onPointerUp={soltar}
@@ -163,11 +182,7 @@ function Pregunta({ numero, onElegir, onCerrar }) {
      efectos, el autoFocus del diálogo ya se lo llevó. */
   const abrio = useRef(document.activeElement)
 
-  useEffect(() => {
-    const f = (e) => e.key === 'Escape' && onCerrar()
-    window.addEventListener('keydown', f)
-    return () => window.removeEventListener('keydown', f)
-  }, [onCerrar])
+  usarEscape(onCerrar)
 
   /* Una sola vez, al abrir. Si dependiera de `onCerrar` —que es una flecha nueva en
      cada render— volvería a capturar el "foco de antes" en cada vuelta, y al cerrar lo
@@ -201,11 +216,7 @@ function Reemplazar({ tengo, trae, onConfirmar, onCerrar }) {
   const caja = useRef(null)
   const abrio = useRef(document.activeElement)
 
-  useEffect(() => {
-    const f = (e) => e.key === 'Escape' && onCerrar()
-    window.addEventListener('keydown', f)
-    return () => window.removeEventListener('keydown', f)
-  }, [onCerrar])
+  usarEscape(onCerrar)
 
   useEffect(() => atraparFoco(caja.current, abrio.current), [])
 
@@ -235,6 +246,83 @@ function Reemplazar({ tengo, trae, onConfirmar, onCerrar }) {
 }
 
 /* ----------------------------------- app ---------------------------------- */
+
+/* Cambiar la clave, que además echa a todas las otras sesiones de la cuenta.
+
+   Las dos cosas van juntas y no son dos botones: cambiar la clave dejando vivas las
+   sesiones abiertas no echa a nadie —el token no sabe nada de la clave— y cerrar
+   sesiones sin cambiarla deja entrar de nuevo al que la sabe. Por separado, cada mitad
+   da una falsa sensación de haber resuelto algo. */
+function CambiarClave({ onCerrar, onSesionMuerta }) {
+  const [actual, setActual] = useState('')
+  const [nueva, setNueva] = useState('')
+  const [error, setError] = useState(null)
+  const [listo, setListo] = useState(null)
+  const [yendo, setYendo] = useState(false)
+  const caja = useRef(null)
+  const abrio = useRef(document.activeElement)
+
+  usarEscape(onCerrar)
+  useEffect(() => atraparFoco(caja.current, abrio.current), [])
+
+  async function enviar(ev) {
+    ev.preventDefault()
+    setError(null)
+    setYendo(true)
+    try {
+      const { echadas } = await cambiarClave(actual, nueva)
+      setListo(echadas)
+    } catch (e) {
+      if (e?.sesion) return onSesionMuerta()
+      setError(e.message)
+    } finally {
+      setYendo(false)
+    }
+  }
+
+  return (
+    <div className="telon" onClick={onCerrar}>
+      <div className="dialogo" role="dialog" aria-modal="true" aria-label="Cambiar mi clave"
+           ref={caja} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
+        <h3>Cambiar mi clave</h3>
+        {listo === null ? (
+          <form className="entrar" onSubmit={enviar}>
+            <p className="nota-dialogo">
+              Al cambiarla se cierran las sesiones abiertas en otros aparatos. En éste seguís adentro.
+            </p>
+            <label>
+              Tu clave de ahora
+              <input type="password" value={actual} onChange={(e) => setActual(e.target.value)}
+                     autoComplete="current-password" autoFocus required />
+            </label>
+            <label>
+              La nueva
+              <input type="password" value={nueva} onChange={(e) => setNueva(e.target.value)}
+                     autoComplete="new-password" required />
+            </label>
+            {error && <p className="error" role="alert">{error}</p>}
+            <button type="submit" className="principal" disabled={yendo}>
+              {yendo ? 'Un segundo…' : 'Cambiarla'}
+            </button>
+            <button type="button" className="secundario" onClick={onCerrar}>Mejor no</button>
+          </form>
+        ) : (
+          <>
+            <p className="nota-dialogo" role="status">
+              Listo, ya es la nueva.{' '}
+              {listo === 0
+                ? 'No había ninguna otra sesión abierta.'
+                : listo === 1
+                  ? 'Se cerró la sesión que había en otro aparato.'
+                  : `Se cerraron las ${listo} sesiones que había en otros aparatos.`}
+            </p>
+            <button className="principal" onClick={onCerrar} autoFocus>Listo</button>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
 
 const VACIA = { estados: {}, cantidades: {} }
 
@@ -336,6 +424,7 @@ export default function App() {
   const [ultimoExporto, setUltimoExporto] = useState(leerExporto)
   const [plegadas, setPlegadas] = useState(leerPlegadas)
   const [avisoAlias, setAvisoAlias] = useState(null)
+  const [cambiandoClave, setCambiandoClave] = useState(false)
 
   useEffect(() => {
     try { localStorage.setItem(CLAVE_PLEGADAS, JSON.stringify([...plegadas])) }
@@ -635,6 +724,17 @@ export default function App() {
   }, [catalogo, estados, cantidades])
 
   const hayQueExportar = (resumen?.tengo ?? 0) > 0
+
+  /* Los números de las cartas que no se pudieron guardar. La clave es «expansión:número»,
+     así que el número sale de ahí sin tener que buscar en el catálogo. Se nombran hasta
+     seis: más que eso no se lee, y con esa cantidad el problema ya no es encontrarlas. */
+  const listaFallidas = useMemo(() => {
+    if (!fallidas.size) return ''
+    const numeros = [...fallidas].map((c) => Number(c.split(':')[1])).filter(Number.isFinite).sort((a, b) => a - b)
+    if (!numeros.length) return ''
+    if (numeros.length <= 6) return `Son la ${numeros.join(', la ')}.`
+    return `Son la ${numeros.slice(0, 6).join(', la ')} y ${numeros.length - 6} más.`
+  }, [fallidas])
 
   useEffect(() => {
     if (!hayQueExportar) return
@@ -937,6 +1037,10 @@ export default function App() {
             el scroll. Adentro ocupaban dos renglones fijos en el celular. */}
           <p className="ayuda">
             Tocá para marcar · de nuevo si tenés otra igual · mantené apretado para restar
+            {/* Con el teclado no hay «mantener apretado», así que si el atajo no se dice
+                acá no se entera nadie. Se muestra sólo cuando hay teclado de verdad: en
+                un teléfono es ruido. */}
+            <span className="solo-teclado"> · con el teclado, Backspace</span>
           </p>
 
         {catalogo.map((exp) => {
@@ -990,7 +1094,8 @@ export default function App() {
                       numero={n}
                       estado={estados[clave]}
                       cantidad={cantidades[clave] ?? 0}
-                      onTocar={alTocar}
+                      sinGuardar={fallidas.has(clave)}
+                    onTocar={alTocar}
                       onMantener={alMantener}
                     />
                   )
@@ -1050,6 +1155,11 @@ export default function App() {
                   {fallidas.size === 1
                     ? 'No se pudo guardar un cambio.'
                     : `No se pudieron guardar ${fallidas.size} cambios.`}
+                  {' '}
+                  {/* CUÁLES, no sólo cuántos. Con diez falladas entre 1936 cartas, la
+                      única forma de encontrarlas era acordarse de cuáles tocaste. Ahora
+                      se nombran acá y además quedan marcadas en la grilla. */}
+                  <b className="cuales">{listaFallidas}</b>
                   {!enLinea && ' Fijate la conexión: se reintentan solos cuando vuelva.'}
                 </span>
               ) : (
@@ -1060,6 +1170,7 @@ export default function App() {
               {cuenta.admin && (
                 <button onClick={() => setViendoNumeros(true)} className="enlace">Los números</button>
               )}
+              <button onClick={() => setCambiandoClave(true)} className="enlace">Cambiar mi clave</button>
               <button onClick={cerrar} className="salir" disabled={saliendo}>
                 {saliendo ? 'Saliendo…' : 'Salir'}
               </button>
@@ -1094,6 +1205,10 @@ export default function App() {
           </div>
         </div>
       </footer>
+
+      {cambiandoClave && (
+        <CambiarClave onCerrar={() => setCambiandoClave(false)} onSesionMuerta={sesionMuerta} />
+      )}
 
       {/* Fuera del pie: es una barra fija abajo, y sólo aparece en teléfono. */}
       <Instalar />

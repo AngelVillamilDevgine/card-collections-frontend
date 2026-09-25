@@ -1,3 +1,5 @@
+import { useEffect, useRef } from 'react'
+
 // Atrapar el foco adentro de un diálogo, y devolverlo al cerrar.
 //
 // Sin esto pasaban dos cosas: con un diálogo abierto, los 1936 botones de atrás seguían
@@ -44,4 +46,20 @@ export function atraparFoco(caja, antes) {
     // isConnected: el botón desde el que se abrió puede haberse ido del DOM mientras tanto.
     if (antes instanceof HTMLElement && antes.isConnected) antes.focus()
   }
+}
+
+/* Escape cierra. Va acá y no copiado en cada diálogo por dos razones: eran cuatro copias
+   iguales, y las cuatro colgaban de `onCerrar`, que es una flecha inline recreada en cada
+   render — o sea un removeEventListener más un addEventListener por render, para siempre,
+   en una app que vuelve a dibujar con cada toque de carta.
+
+   El ref guarda la versión fresca y el efecto se registra UNA vez. */
+export function usarEscape(alCerrar) {
+  const ultimo = useRef(alCerrar)
+  ultimo.current = alCerrar
+  useEffect(() => {
+    const f = (e) => { if (e.key === 'Escape') ultimo.current() }
+    window.addEventListener('keydown', f)
+    return () => window.removeEventListener('keydown', f)
+  }, [])
 }
