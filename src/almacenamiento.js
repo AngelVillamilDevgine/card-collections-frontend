@@ -9,10 +9,14 @@ const CLAVE_TOKEN = 'dbz-cromeros-token'
 // En desarrollo se usa el proxy de Vite, así el navegador ve un solo origen y no hay
 // CORS que arreglar. En producción se le pega directo a la API, que vive en el mismo
 // dominio que la app. Si algún día cambia, se cambia acá (o se pisa con VITE_API_URL).
-const API = import.meta.env.DEV ? '' : 'https://api.cromeros.com.ar'
-const RAIZ = (import.meta.env.VITE_API_URL ?? API).replace(/\/$/, '') + '/api'
+/* `?? {}` para que el módulo se pueda CARGAR fuera de Vite. Sin eso, `import.meta.env`
+   es undefined en Node y leerle `.DEV` revienta al importar — o sea que la función que
+   decide si un archivo te borra la colección no se podía ni probar. */
+const ENTORNO = import.meta.env ?? {}
+const API = ENTORNO.DEV ? '' : 'https://api.cromeros.com.ar'
+const RAIZ = (ENTORNO.VITE_API_URL ?? API).replace(/\/$/, '') + '/api'
 
-import { comoApp } from './Instalar'
+import { comoApp } from './donde-corre.js'
 
 export class ErrorApi extends Error {}
 

@@ -1,0 +1,37 @@
+# El front no tenía ningún chequeo automático: se desplegaba a Cloudflare Pages con cada
+# push a main sin que nada mirara si compilaba ni si la lógica seguía andando.
+#
+# Dos cosas, y las dos importan por la misma razón —acá nadie revisa un PR antes de que
+# esto salga a producción—:
+#
+#   · que COMPILE. Un error de sintaxis o un import roto se ve recién cuando Pages falla
+#     el build, y mientras tanto queda servida la versión anterior sin que nadie avise.
+#   · que pasen los tests. Sobre todo el de `normalizar`, que es la función que decide si
+#     un archivo te borra la colección entera.
+#
+# A diferencia del backend, acá el nombre del job no lo mira nadie: Pages despliega por su
+# cuenta y no consulta este check. O sea que esto AVISA, pero no frena el deploy. Para que
+# lo frenara habría que apagar el despliegue automático de Pages y publicar desde acá, que
+# es un cambio de cómo se despliega el front y no de un archivo.
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  probar:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      # El build es media prueba en sí mismo: si algo no resuelve, se cae acá.
+      - run: npm run build

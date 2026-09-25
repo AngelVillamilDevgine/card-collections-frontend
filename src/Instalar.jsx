@@ -14,26 +14,12 @@
 // Es el único lugar del código donde se mira el user agent. No hay alternativa: no
 // existe una API que diga "estás adentro de Instagram".
 import { useEffect, useRef, useState } from 'react'
+import { comoApp, esTelefono, esIOS, enOtraApp } from './donde-corre.js'
 
 const CLAVE = 'dbz-cromeros-instalar'
 const DESCANSO = 5 * 24 * 60 * 60 * 1000 // si lo cierra, se va cinco días
 const VECES = 4                          // y después no molesta más
 
-const ua = () => navigator.userAgent ?? ''
-
-export const comoApp = () =>
-  window.matchMedia?.('(display-mode: standalone)').matches || navigator.standalone === true
-
-const esTelefono = () =>
-  navigator.userAgentData?.mobile ??
-  (window.matchMedia?.('(pointer: coarse)').matches && window.innerWidth <= 900)
-
-const esIOS = () =>
-  /iPad|iPhone|iPod/.test(ua()) ||
-  // El iPad hace años se declara Mac; lo delata que la pantalla sea táctil.
-  (/Macintosh/.test(ua()) && navigator.maxTouchPoints > 1)
-
-const enOtraApp = () => /FBAN|FBAV|FB_IAB|Instagram|Line\/|MicroMessenger|; wv\)/i.test(ua())
 
 function leer() {
   try { return JSON.parse(localStorage.getItem(CLAVE)) ?? {} } catch { return {} }
