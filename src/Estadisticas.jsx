@@ -171,9 +171,16 @@ function Cuerpo({ d, totalCartas }) {
           orden. Este renglón dice de entrada cuántos son, así que la tabla ya no puede
           contradecir al embudo, y las filas de los que la instalaron van marcadas para
           poder encontrarlas sin recorrer las veintiocho. */}
+      {/* Los tres números salen de los totales del servidor, NO de contar las filas de
+          la tabla: la tabla puede venir cortada y entonces contarla mentiría. Es la
+          misma lección del #97 al revés — una tabla que muestra una parte no puede ser
+          la fuente de un total. */}
       <p className="resumen-tabla">
-        {gente.length} cuentas · {gente.filter((g) => g.cartas).length} con cartas ·{' '}
-        <b>{gente.filter((g) => g.app).length} entran desde la app</b>, marcadas abajo
+        {u.total} cuentas · {u.conCartas} con cartas ·{' '}
+        <b>{u.conApp} entran desde la app</b>, marcadas abajo
+        {u.total > gente.length && (
+          <> · <i>se listan las {gente.length} con más cartas</i></>
+        )}
       </p>
       <div className="tablon">
         <table className="gente">

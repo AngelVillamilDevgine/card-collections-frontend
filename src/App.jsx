@@ -700,6 +700,33 @@ export default function App() {
     mandar(clave, cantidad, cantidad > 0 ? estado : null)
   }
 
+  /* Cartas que están en tu cuenta pero NO en el catálogo.
+
+     El servidor valida la FORMA de la clave, no que exista: «exp-9:1» tiene forma de
+     carta y entra igual. Hoy no hay ninguna, pero el catálogo se edita sin recompilar
+     nada, así que el día que una expansión cambie de id o se recorte un rango, las filas
+     viejas quedan huérfanas: no se pueden tocar —no hay carta que tocar—, sobreviven a
+     bajar y restaurar una copia, y ocupan lugar contra el tope de 2200.
+
+     La tentación es que el servidor valide contra el catálogo. NO sirve para esto, y es
+     lo que hace que este arreglo esté de este lado: cuando el catálogo cambia, esas
+     filas YA están guardadas y eran válidas cuando se escribieron. Ninguna validación de
+     entrada las saca. Lo que hace falta es poder verlas y borrarlas, y el único lado que
+     conoce el catálogo es éste. */
+  const huerfanas = useMemo(() => {
+    if (!catalogo) return []
+    const delCatalogo = new Set()
+    for (const exp of catalogo) for (const n of exp.lista) delCatalogo.add(`${exp.id}:${n}`)
+    return Object.keys(cantidades).filter((c) => !delCatalogo.has(c))
+  }, [catalogo, cantidades])
+
+  /* Se borran de a una, con el mismo camino que usa cada toque (cantidad 0 = no tener
+     fila). A propósito NO va por el reemplazo masivo: ése es el único camino que borra
+     en masa y no hace falta abrirlo para esto. */
+  function sacarHuerfanas() {
+    for (const clave of huerfanas) aplicar(clave, 0, null)
+  }
+
   const resumen = useMemo(() => {
     if (!catalogo) return null
     let total = 0, tengo = 0, sobrantes = 0
@@ -1193,6 +1220,17 @@ export default function App() {
             />
             <button onClick={() => archivoRef.current.click()} className="enlace">Restaurar una copia</button>
             {avisoArchivo && <span className="aviso-archivo" role="status">{avisoArchivo}</span>}
+            {/* Sólo aparece si de verdad hay huérfanas, que hoy es nunca. No es un botón
+                más de la app: es la única forma de sacar algo que quedó sin carta a la
+                que tocarle. */}
+            {huerfanas.length > 0 && (
+              <span className="aviso-archivo" role="status">
+                {huerfanas.length === 1
+                  ? 'Tenés 1 carta que ya no está en el catálogo.'
+                  : `Tenés ${huerfanas.length} cartas que ya no están en el catálogo.`}{' '}
+                <button onClick={sacarHuerfanas} className="enlace">Sacarlas</button>
+              </span>
+            )}
           </div>
           <div className="pie-marca">
             <span className="pie-sitio">{SITIO}</span>
