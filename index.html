@@ -2,6 +2,13 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
+
+    <!-- LO PRIMERO, y clásico a propósito (sin type="module", que se difiere). Chrome
+         dispara `beforeinstallprompt` a los ~180 ms y lo hace una sola vez; el bundle
+         recién se pide a los ~690. Cualquier cosa que escuche ese evento desde el
+         JavaScript de la app llega tarde siempre. Ver el archivo, que explica la
+         medición entera. -->
+    <script src="./instalar-temprano.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#f4a11d" />
     <link rel="icon" type="image/svg+xml" href="./bola.svg" />

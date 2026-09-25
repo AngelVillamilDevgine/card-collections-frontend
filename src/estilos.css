@@ -359,7 +359,27 @@ button { cursor: pointer; }
 .dialogo .cancelar:hover { color: var(--acento); }
 
 /* Al mantener apretado, la carta se hunde: avisa que algo está pasando. */
-.carta { touch-action: manipulation; user-select: none; }
+/* Los tres hacen falta y hacen cosas distintas, porque el gesto de la app es mantener
+   apretado — que es justo el gesto que los dos navegadores usan para lo suyo:
+
+     touch-action: manipulation   saca el retardo de 300 ms del doble toque.
+     user-select: none            evita que el mantenido seleccione el número.
+     -webkit-touch-callout: none  apaga el menú de iOS (copiar/compartir), que aparece
+                                  al mantener apretado y tapa la carta. En Android eso
+                                  lo resuelve el onContextMenu con preventDefault del
+                                  componente; iOS no dispara contextmenu, usa el callout,
+                                  y es la única forma de apagarlo.
+
+   Lo de iOS NO está probado en un iPhone de verdad: no hay ninguno acá. Es la propiedad
+   que documenta Apple para esto y no tiene efecto en ningún otro navegador, así que el
+   riesgo de ponerla es cero; pero hasta que alguien lo pruebe en un teléfono, sigue
+   siendo una corazonada bien fundada y no un hecho. */
+.carta {
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
 .carta:active { transform: scale(0.9); }
 
 /* --------------------------------- entrada -------------------------------- */

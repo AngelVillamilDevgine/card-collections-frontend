@@ -78,14 +78,25 @@ export default function Instalar() {
     const { tiene, visto = 0, veces = 0 } = leer()
     if (tiene || veces >= VECES || Date.now() - visto < DESCANSO) return
 
-    // Chrome avisa que se puede instalar; se le pide que no muestre su propio cartel
-    // para ofrecerlo acá, con una frase que diga para qué sirve.
-    const alPoder = (e) => { e.preventDefault(); setInstalador(e) }
-    window.addEventListener('beforeinstallprompt', alPoder)
+    /* El evento de instalación NO se escucha desde acá: para cuando este efecto corre
+       —después de que quienSoy() resolvió y la app se dibujó— hace más de un segundo
+       que pasó. Lo agarra `public/instalar-temprano.js`, que corre antes que todo, y
+       acá se recoge lo que haya guardado.
+
+       Medido contra producción con un Android emulado: el evento a los 182 ms, este
+       efecto a los 1510. Chrome lo dispara una sola vez, así que el cartel de Android
+       no aparecía nunca.
+
+       De paso esto deja sin efecto al doble montaje de StrictMode: el listener de
+       verdad se registra una vez, en el otro archivo, y el evento queda guardado —
+       antes, si caía justo en el desmontaje y montaje del modo estricto, se perdía. */
+    if (window.__dbzInstalador) setInstalador(window.__dbzInstalador)
+    const alPoder = () => setInstalador(window.__dbzInstalador)
+    window.addEventListener('dbz-instalable', alPoder)
 
     // Un rato después de entrar, no encima de la carga.
     const reloj = setTimeout(() => setVisible(true), 4000)
-    return () => { clearTimeout(reloj); window.removeEventListener('beforeinstallprompt', alPoder) }
+    return () => { clearTimeout(reloj); window.removeEventListener('dbz-instalable', alPoder) }
   }, [])
 
   /* La barra es fija abajo, así que tapaba el final del pie: a 320 px mide 134 px y se
