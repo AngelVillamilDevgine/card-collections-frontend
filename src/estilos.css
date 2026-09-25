@@ -141,6 +141,12 @@ button { cursor: pointer; }
 }
 .filtro:hover { background: rgba(32, 29, 26, 0.05); }
 
+/* En escritorio la barra sigue siendo la fila de chips de siempre: ni íconos ni rótulo
+   corto. Los dos están en el DOM y los enciende la media query del teléfono. */
+.filtro .icono,
+.filtro .corto,
+.compartir .corto { display: none; }
+
 /* El contador hereda el color del filtro, que ya se elige por contraste. Antes tenía
    color propio acá y opacity más abajo, y las dos cosas se anulaban entre sí sólo por
    el orden del archivo: mover un bloque deshacía el arreglo sin que nada avisara. */
@@ -871,6 +877,149 @@ button { cursor: pointer; }
 /* El destino tiene que quedar DEBAJO de la barra pegajosa, o el salto lo deja tapado. */
 .hoja[id] { scroll-margin-top: var(--barra-pegajosa); }
 
+/* ------------------------ la barra del teléfono ---------------------------- */
+/* En un teléfono la barra de filtros pasa de arriba a abajo, y de fila de chips que se
+   arrastra de costado a cinco lugares fijos.
+
+   El problema que resuelve, medido en un Pixel 7 (412 px): de los cuatro filtros sólo
+   entraban dos y medio. «Repetidas 73» quedaba cortado contra el borde derecho y «Para
+   reemplazar» estaba directamente fuera de pantalla — había que descubrir que la barra
+   se arrastra de costado para llegar a un filtro que la app ofrece. Abajo entran los
+   cinco enteros, con sus contadores.
+
+   Y de paso queda donde llega el pulgar. Marcar cartas es un gesto de una mano: la
+   barra de arriba obligaba a estirarse hasta el borde superior de una pantalla de 915 px.
+
+   Todo por `@media` y no detectando el aparato: no parpadea al cargar, se acomoda solo
+   al rotar, y no toca el user agent, que en este proyecto se mira en un solo lugar. */
+@media (max-width: 560px) {
+  .herramientas {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 20;
+    padding: 0;
+    border-top: 1px solid var(--linea);
+    border-bottom: none;
+    /* La sombra va para arriba, que es de donde viene el contenido. */
+    box-shadow: 0 -8px 16px -14px rgba(32, 29, 26, 0.5);
+    /* El pico del iPhone: sin esto, el último renglón queda abajo de la barra de gestos. */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .herramientas .columna {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    padding: 0;
+    max-width: none;
+  }
+  .herramientas .filtros {
+    display: flex;
+    /* 4 contra 1: los cuatro filtros van adentro de este contenedor y exportar es
+       hermano, así que sin esto los filtros quedaban de 75 px y exportar de 112. */
+    flex: 4 1 0;
+    flex-wrap: nowrap;
+    overflow: visible;      /* ya no se arrastra: entran los cuatro */
+    gap: 0;
+    padding: 0;
+    background: none;
+    border: none;
+  }
+  .herramientas .compartir { margin: 0; }
+
+  /* Los cinco lugares miden lo mismo, pasa lo que pase con el texto. */
+  /* El botón de exportar en escritorio es un círculo de 38x38 con borde. Acá tiene que
+     ser un lugar más de la barra, así que se le sacan el ancho, el alto, el borde y el
+     redondeo: si no, queda de otro tamaño que los demás y se nota. */
+  .herramientas .compartir {
+    width: auto;
+    height: auto;
+    border: none;
+    border-radius: 0;
+  }
+  .filtro,
+  .herramientas .compartir {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    /* 56 más el pico; con el ícono y el rótulo da de sobra los 44 de blanco de toque. */
+    min-height: 56px;
+    padding: 7px 2px 8px;
+    border: none;
+    border-radius: 0;
+    background: none;
+    color: var(--tinta2);
+    font-size: 10.5px;
+    font-weight: 600;
+    line-height: 1.1;
+  }
+  .filtro .icono,
+  .compartir .icono { display: block; flex: none; }
+  .filtro .largo { display: none; }
+  .filtro .corto,
+  .compartir .corto {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* El contador va DEBAJO del rótulo, no como globito encima del ícono. Se probó así y
+     no entra: «1936» mide más que el ícono de 21 px y lo tapa entero. Apilado se lee, y
+     además no se rompe cuando el número crece. No se esconde: es la mitad de para qué
+     sirve el filtro. */
+  .filtro { position: relative; }
+  .filtro b {
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.1;
+    opacity: 1;
+  }
+
+  /* Cada filtro conserva SU color —el del estado de las cartas que muestra, que es
+     deliberado— y el elegido se marca con la línea de arriba y el fondo tenue, no
+     pintándolo todo de naranja. Si el elegido tomara el acento, «Me faltan» dejaría de
+     ser gris al elegirlo y se perdería el código de color. */
+  .filtro.activo {
+    background: rgba(32, 29, 26, 0.045);
+    font-weight: 700;
+  }
+  /* Y hay que devolverle el color: en escritorio el elegido es una píldora naranja
+     RELLENA con texto blanco, así que `.filtro.activo { color: #fff }` gana por
+     especificidad y acá dejaba el rótulo en blanco sobre gris claro — ilegible.
+     Se repiten los cuatro a propósito: es explícito y se lee de un vistazo cuál es
+     cuál, que es más barato que un `inherit` que hay que ir a buscar. */
+  .filtro.activo.f-todas      { color: var(--tinta2); }
+  .filtro.activo.f-falta      { color: var(--falta-tinta); }
+  .filtro.activo.f-repetidas  { color: var(--acento); }
+  .filtro.activo.f-reemplazar { color: var(--reem-tinta); }
+  .filtro.activo::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 16%;
+    right: 16%;
+    height: 2.5px;
+    border-radius: 0 0 3px 3px;
+    background: currentColor;
+  }
+  .filtro:hover { background: none; }
+  .filtro.activo:hover { background: rgba(32, 29, 26, 0.045); }
+
+  /* El pie tiene que seguir siendo alcanzable con la barra encima. */
+  body { padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)); }
+
+  /* Ya no hay barra pegajosa arriba, así que el anclaje no tiene nada que esquivar. */
+  :root { --barra-pegajosa: 8px; }
+}
+
 /* ------------------------- blancos de toque -------------------------------- */
 /* Medido: la flecha de plegar daba 32x32, el alias 94x28, los enlaces del pie 73x32 y
    los filtros 97x33. La recomendación son 44x44. Las cartas ya estaban bien (64x64).
@@ -1086,6 +1235,19 @@ button { cursor: pointer; }
 /* El relleno que deja el pie alcanzable cuando la barra está puesta. El alto lo mide
    Instalar.jsx sobre la barra de verdad; el valor de aquí es sólo el respaldo. */
 body.con-instalar { padding-bottom: var(--alto-instalar, 150px); }
+
+/* Las dos barras fijas del teléfono no pueden pisarse: la de instalar se apoya arriba de
+   la de filtros, y el relleno del body suma las dos.
+ 
+   Este bloque va ACÁ y no con el resto de la barra de abajo, aunque quede lejos: las
+   reglas de `.instalar` se definen unas líneas más arriba y, con la misma especificidad,
+   gana la última del archivo. Puesto antes, el `bottom: 10px` de acá arriba lo pisaba y
+   las dos barras quedaban montadas — medido: se superponían 56 px. Es la misma trampa que
+   ya había pasado con `.filtro b`. */
+@media (max-width: 560px) {
+  .instalar { bottom: calc(66px + env(safe-area-inset-bottom, 0px)); }
+  body.con-instalar { padding-bottom: calc(var(--alto-instalar, 150px) + 64px); }
+}
 
 .instalar img {
   flex: none;

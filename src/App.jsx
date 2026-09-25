@@ -20,12 +20,35 @@ function numerosDe(exp) {
 
 /* Los tres listados que un coleccionista realmente necesita: qué buscar,
    qué puede cambiar y qué le conviene reemplazar. */
+/* `corto` es el rótulo para la barra de abajo del teléfono, donde cada lugar mide unos
+   82 px y «Para reemplazar» no entra. Los dos textos se dibujan siempre y el CSS muestra
+   el que corresponde: así el layout lo decide una media query y no un `if` sobre el
+   ancho, que parpadearía al cargar y habría que volver a calcular al rotar. */
 export const FILTROS = [
-  { id: 'todas',      label: 'Todas',           pasa: () => true },
-  { id: 'falta',      label: 'Me faltan',       pasa: (cant) => cant === 0 },
-  { id: 'repetidas',  label: 'Repetidas',       pasa: (cant) => cant > 1 },
-  { id: 'reemplazar', label: 'Para reemplazar', pasa: (cant, est) => cant > 0 && est === 'reemplazar' },
+  { id: 'todas',      label: 'Todas',           corto: 'Colección',  pasa: () => true },
+  { id: 'falta',      label: 'Me faltan',       corto: 'Faltan',     pasa: (cant) => cant === 0 },
+  { id: 'repetidas',  label: 'Repetidas',       corto: 'Repetidas',  pasa: (cant) => cant > 1 },
+  { id: 'reemplazar', label: 'Para reemplazar', corto: 'Reemplazar', pasa: (cant, est) => cant > 0 && est === 'reemplazar' },
 ]
+
+/* Los íconos de esa barra. Trazo de 2, sin relleno y con `currentColor`, igual que los
+   tres que ya había (exportar, plegar, completa): así heredan solos el color del filtro
+   elegido y no hace falta ninguna regla aparte. Son líneas, no emojis — un emoji se ve
+   distinto en cada teléfono y encima es justo lo que hacía que la primera versión de la
+   app gritara «hecho con IA».
+
+   En un teléfono el ícono no es decoración: con cinco lugares de 82 px, es lo que se
+   reconoce de un vistazo antes de leer. */
+const ICONOS = {
+  // Cuatro cartas: la colección entera.
+  todas: <><rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.5" /><rect x="13" y="3.5" width="7.5" height="7.5" rx="1.5" /><rect x="3.5" y="13" width="7.5" height="7.5" rx="1.5" /><rect x="13" y="13" width="7.5" height="7.5" rx="1.5" /></>,
+  // Un hueco: el lugar vacío del álbum.
+  falta: <rect x="4.5" y="3.5" width="15" height="17" rx="2" strokeDasharray="3.2 3" />,
+  // Una carta encima de otra.
+  repetidas: <><rect x="8.5" y="3.5" width="12" height="14" rx="2" /><path d="M15.5 20.5H5.5a2 2 0 0 1-2-2v-11" /></>,
+  // Dos flechas que se cruzan: cambiarla por otra.
+  reemplazar: <><path d="M3.5 8.5h13l-3.5-3.5" /><path d="M20.5 15.5h-13l3.5 3.5" /></>,
+}
 
 const CLARO = '#ffffff'
 const OSCURO = '#1f1c19'
@@ -1036,25 +1059,38 @@ export default function App() {
                   onClick={() => setFiltro(f.id)}
                   aria-pressed={filtro === f.id}
                 >
-                  {f.label}
+                  <svg className="icono" width="21" height="21" viewBox="0 0 24 24" fill="none"
+                       stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+                       strokeLinejoin="round" aria-hidden="true">
+                    {ICONOS[f.id]}
+                  </svg>
+                  {/* Los dos rótulos van siempre en el DOM y el CSS elige. Ver la nota
+                      de FILTROS: así no hay un `if` sobre el ancho de la pantalla. */}
+                  <span className="largo">{f.label}</span>
+                  <span className="corto">{f.corto}</span>
                   <b>{resumen.porFiltro[f.id]}</b>
                 </button>
               ))}
             </div>
 
-            {/* A mano en la barra fija: el botón del pie queda abajo de las 1936 cartas. */}
+            {/* A mano en la barra fija: el botón del pie queda abajo de las 1936 cartas.
+                En el teléfono es el quinto lugar de la barra de abajo, con su rótulo;
+                en escritorio sigue siendo el ícono solo. El `title` va sólo cuando NO
+                hay rótulo visible: si hubiera los dos, el lector de pantalla leería
+                «Exportar. Exportar», que es el mismo problema que tenían las cartas. */}
             <button
               className={`compartir${guiñando ? ' guiña' : ''}`}
               onClick={exportar}
               aria-label="Exportar"
-              title="Exportar"
             >
-              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                   strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <svg className="icono" width="21" height="21" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+                   strokeLinejoin="round" aria-hidden="true">
                 <path d="M12 3v12" />
                 <path d="M7 8l5-5 5 5" />
                 <path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" />
               </svg>
+              <span className="corto">Exportar</span>
             </button>
         </div>
       </div>
