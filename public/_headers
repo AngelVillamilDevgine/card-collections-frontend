@@ -33,6 +33,25 @@
   # A otros sitios se les cuenta el origen y nada más: nunca la dirección completa.
   Referrer-Policy: strict-origin-when-cross-origin
 
+  # La primera visita es la única ventana que HSTS cierra: alguien escribe
+  # cromeros.com.ar en el navegador, eso sale como http:// y recién ahí lo redirigen a
+  # https. Quien esté en el medio de ese primer viaje —un wifi público, un router
+  # comprometido— se queda con todo, y en esta app «todo» incluye la clave de la cuenta.
+  # Con esta cabecera, el navegador se acuerda por un año y ya nunca intenta el http.
+  #
+  # Tres decisiones, las tres a propósito:
+  #
+  #  · Sin `preload`. Eso mete el dominio en una lista que viene cocinada adentro del
+  #    navegador, y sacarlo después lleva meses: es una puerta de una sola dirección y
+  #    no hace falta cruzarla para tener el beneficio.
+  #  · Sin `includeSubDomains`. Comprometería a TODO subdominio futuro de
+  #    cromeros.com.ar a ser https por un año, incluso a uno que todavía no existe y que
+  #    algún día apunte a otra cosa. Los tres que existen hoy (el dominio, www y api)
+  #    mandan la cabecera cada uno por su cuenta, que da lo mismo y no compromete nada.
+  #  · Un año, que es el valor estándar. Para dar marcha atrás se pone max-age=0 y se
+  #    espera a que los navegadores que ya la vieron la vuelvan a pedir.
+  Strict-Transport-Security: max-age=31536000
+
   # La app no usa nada de esto. Apagarlo de entrada vale para el día en que una
   # dependencia lo intente.
   Permissions-Policy: geolocation=(), camera=(), microphone=(), payment=(), usb=(), magnetometer=(), gyroscope=()
