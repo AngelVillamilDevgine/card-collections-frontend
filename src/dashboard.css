@@ -1,0 +1,131 @@
+/* El CSS del panel del administrador, aparte de estilos.css a propósito.
+
+   El panel entra por `lazy()`, así que su JavaScript ya viaja en un chunk propio. Pero
+   el CSS importado desde `main.jsx` NO se parte por eso: Vite lo emite igual en la hoja
+   principal, y estas 26 reglas las bajaban las 39 personas que no son administradoras
+   para no usarlas nunca. Importándolo desde el componente perezoso, Vite le da su propia
+   hoja y la carga recién cuando alguien abre el panel.
+
+   La otra mitad de por qué está separado es de mantenimiento: `estilos.css` es un archivo
+   solo, sin convención de nombres, donde ya pasó que `.barra` del panel pisara a `.barra`
+   de la barrita de progreso. El panel va a crecer; que crezca en su propio archivo.
+
+   Sigue colgando todo de `.numeros`, que es la clase que ya usan estas reglas. */
+
+/* ------------------------------ los números ------------------------------- */
+/* Todo cuelga de .numeros: son nombres comunes y .barra ya estaba tomada por la
+   barrita de progreso de cada expansión.
+   El panel del administrador. Sobrio a propósito: filas y barras, nada de
+   tarjetitas con sombras — la app no tiene ese aire en ningún otro lado. */
+
+.dialogo.numeros {
+  width: min(620px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+}
+
+.dialogo.numeros h4 {
+  margin: 22px 0 10px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tinta3);
+  border-bottom: 1px solid var(--linea);
+  padding-bottom: 6px;
+}
+
+.numeros .grupo { display: flex; flex-direction: column; gap: 7px; }
+
+.numeros .renglon {
+  display: grid;
+  grid-template-columns: 116px 1fr 44px 42px;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+.numeros .renglon.flaca { grid-template-columns: 46px 1fr 44px 0; font-size: 12px; }
+
+.numeros .renglon-rotulo { color: var(--tinta2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.numeros .riel { height: 12px; background: var(--papel); border-radius: 6px; overflow: hidden; }
+.numeros .relleno {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  border-radius: 6px;
+  background: var(--naranja);
+}
+.numeros .renglon b { text-align: right; font-variant-numeric: tabular-nums; }
+.numeros .renglon-nota { color: var(--tinta3); font-size: 12px; font-variant-numeric: tabular-nums; }
+
+.numeros .sueltos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--tinta2);
+}
+.numeros .sueltos b { color: var(--tinta); font-variant-numeric: tabular-nums; }
+
+.numeros .tablon { overflow-x: auto; }
+
+.numeros table.gente {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.numeros table.gente th {
+  text-align: right;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--tinta3);
+  padding: 0 0 6px 10px;
+}
+.numeros table.gente td { text-align: right; padding: 5px 0 5px 10px; border-top: 1px solid var(--linea); }
+.numeros table.gente th:first-child, .numeros table.gente td:first-child { text-align: left; padding-left: 0; }
+.numeros table.gente .quien { max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Callada cuando está bien; sólo se hace ver cuando hay algo que mirar. */
+.numeros .resumen-tabla {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--tinta2);
+}
+.numeros .resumen-tabla b { color: var(--tinta); }
+/* La fila de quien entra desde la app, para poder encontrarla sin recorrer la tabla. */
+.numeros .gente tr.con-app > td { background: #eef4ec; }
+.numeros .gente tr.con-app.apagada > td { background: #f2f5f0; }
+
+.numeros .salud {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--linea);
+  background: var(--papel);
+  font-size: 13px;
+  color: var(--tinta2);
+}
+.numeros .salud.atencion { border-color: var(--reem-linea); background: var(--reem-fondo); }
+.numeros .salud b { color: var(--tinta); font-weight: 600; }
+.numeros .salud .mal, .numeros .salud .mal b { color: var(--reem-tinta); font-weight: 700; }
+
+.numeros .chip {
+  margin-left: 6px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--perf-fondo);
+  border: 1px solid var(--perf-linea);
+  color: var(--perf-tinta);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+/* Quien no cargó ninguna carta se anotó y se fue: que se note de un vistazo. */
+.numeros table.gente .apagada { color: var(--tinta3); }

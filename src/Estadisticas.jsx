@@ -6,6 +6,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { atraparFoco, usarEscape } from './foco'
 import { estadisticas } from './almacenamiento'
+import './dashboard.css'
 
 const parte = (n, total) => (total ? Math.round((n / total) * 100) : 0)
 const dia = (f) => (f ? f.slice(8, 10) + '/' + f.slice(5, 7) : '—')

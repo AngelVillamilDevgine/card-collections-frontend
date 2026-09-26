@@ -1,9 +1,16 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, memo, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ESTADOS, FALTA, etiqueta } from './estados'
 import { atraparFoco, usarEscape } from './foco'
 import Entrar from './Entrar'
 import Exportar from './Exportar'
-import Estadisticas from './Estadisticas'
+/* El panel del administrador se baja aparte y recién cuando se abre.
+
+   Lo ven 1 de 40 cuentas, y estaba en el chunk principal: las otras 39 se bajaban el
+   componente y sus 26 reglas de CSS en cada visita para no abrirlos nunca. Hoy son 1,1 KB
+   comprimidos de los 59 del bundle — poco, y no es por eso que se hace. Es porque el
+   panel va a crecer, y con el corte puesto puede crecer sin que nadie tenga que discutir
+   cuántos kilobytes le cuesta al que sólo marca cartas. */
+const Estadisticas = lazy(() => import('./Estadisticas'))
 import Instalar from './Instalar'
 import {
   ErrorApi,
@@ -439,7 +446,19 @@ export default function App() {
      mandar a mirar la conexión cuando la conexión ya volvió. */
   const [enLinea, setEnLinea] = useState(() => navigator.onLine !== false)
   const [exportando, setExportando] = useState(false)
-  const [viendoNumeros, setViendoNumeros] = useState(false)
+  /* El panel vive en el hash `#panel`, y no en un booleano suelto, por una razón muy
+     concreta de teléfono: ATRÁS TIENE QUE CERRARLO. Con un booleano, el primer botón que
+     aprieta cualquiera para cerrar algo que ocupa la pantalla te saca de la app. De paso
+     sobrevive a un F5 y se puede pasar el link.
+
+     `#cartas` ya existía para el enlace de saltar, así que esto convive: cualquier hash
+     que no sea `#panel` lo cierra. */
+  const [viendoNumeros, setViendoNumeros] = useState(() =>
+    typeof location !== 'undefined' && location.hash === '#panel')
+  /* Si lo abrimos nosotros empujamos una entrada al historial y cerrar es `history.back()`.
+     Si en cambio llegó con `#panel` en la dirección, no hay a dónde volver: un `back()`
+     ahí se va del sitio. En ese caso se limpia el hash sin dejar entrada nueva. */
+  const empujamos = useRef(false)
   const [guiñando, setGuiñando] = useState(false)
   /* Cuándo exportó por última vez vive en un estado y no sólo en localStorage: así,
      al usarlo, el efecto de abajo se vuelve a correr y cancela los guiños que quedaban
@@ -448,6 +467,21 @@ export default function App() {
   const [plegadas, setPlegadas] = useState(leerPlegadas)
   const [avisoAlias, setAvisoAlias] = useState(null)
   const [cambiandoClave, setCambiandoClave] = useState(false)
+
+  /* Atrás y adelante del navegador mueven el hash, y de ahí sale si el panel está
+     abierto. Un solo oyente para los dos sentidos. */
+  useEffect(() => {
+    const mirar = () => setViendoNumeros(location.hash === '#panel')
+    window.addEventListener('hashchange', mirar)
+    return () => window.removeEventListener('hashchange', mirar)
+  }, [])
+
+  const openDashboard = () => { empujamos.current = true; location.hash = 'panel' }
+  const closeDashboard = () => {
+    if (empujamos.current) { empujamos.current = false; history.back(); return }
+    history.replaceState(null, '', location.pathname + location.search)
+    setViendoNumeros(false)
+  }
 
   useEffect(() => {
     try { localStorage.setItem(CLAVE_PLEGADAS, JSON.stringify([...plegadas])) }
@@ -1037,7 +1071,28 @@ export default function App() {
               </h1>
               <p>Mi colección · Cartas Cromeros · 2007–2008</p>
           </div>
-          <div className="progreso">
+          {/* El botón del panel y el avance comparten la columna derecha: el botón arriba,
+              el avance abajo. Antes `.progreso` era el segundo hijo del flex del header;
+              ahora lo es `.lado`, y `.progreso` se queda con el ancho de su columna.
+
+              Va acá y NO en la barra de filtros: en teléfono esa barra se convierte en la
+              de abajo, con cinco lugares de ancho igual, y un sexto hermano les saca a los
+              cuatro filtros el 20% que tienen cada uno. El encabezado es donde vive lo que
+              no es la colección. */}
+          <div className="lado">
+            {cuenta.admin && (
+              <button className="a-panel" onClick={openDashboard}>
+                {/* SVG y no un emoji: un emoji lo dibuja cada sistema a su manera y en
+                    Android viejo puede salir un cuadradito. */}
+                <svg width="13" height="13" viewBox="0 0 13 13" aria-hidden="true" focusable="false">
+                  <rect x="0" y="7" width="3" height="6" rx="1" fill="currentColor" />
+                  <rect x="5" y="3" width="3" height="10" rx="1" fill="currentColor" />
+                  <rect x="10" y="0" width="3" height="13" rx="1" fill="currentColor" />
+                </svg>
+                Panel
+              </button>
+            )}
+            <div className="progreso">
               <div className="avance">
                 <span className="grande">{resumen.tengo}</span>
                 <span className="de">de {resumen.total} cartas</span>
@@ -1052,6 +1107,7 @@ export default function App() {
                 <span className="s-perfecta" style={{ width: `${pct(resumen.perfecta)}%` }} />
                 <span className="s-reemplazar" style={{ width: `${pct(resumen.reemplazar)}%` }} />
               </div>
+            </div>
           </div>
         </div>
       </header>
@@ -1193,9 +1249,24 @@ export default function App() {
           />
         )}
 
-        {viendoNumeros && (
-          <Estadisticas onCerrar={() => setViendoNumeros(false)} onSesionMuerta={sesionMuerta}
-                        totalCartas={resumen.total} />
+        {viendoNumeros && cuenta.admin && (
+          /* El respaldo dice algo: el chunk son 2 KB y con la red lenta el click puede
+             quedarse sin respuesta un segundo. Un botón que no hace nada se vuelve a
+             apretar.
+
+             Usa SÓLO clases de estilos.css — `.telon`, `.dialogo`, `.nada` — y a
+             propósito NO `.numeros`, que ahora viaja en la hoja perezosa: si el CSS del
+             panel todavía no llegó, un `.dialogo.numeros` se dibujaría sin ancho ni
+             scroll. Y dice «Buscando…», que es lo mismo que muestra el panel mientras
+             espera los datos, así que al montar no cambia el texto. */
+          <Suspense fallback={
+            <div className="telon">
+              <div className="dialogo"><p className="nada">Buscando…</p></div>
+            </div>
+          }>
+            <Estadisticas onCerrar={closeDashboard} onSesionMuerta={sesionMuerta}
+                          totalCartas={resumen.total} />
+          </Suspense>
         )}
 
         {preguntando && (
@@ -1237,9 +1308,6 @@ export default function App() {
               )}
             </span>
             <span className="pie-acciones">
-              {cuenta.admin && (
-                <button onClick={() => setViendoNumeros(true)} className="enlace">Los números</button>
-              )}
               <button onClick={() => setCambiandoClave(true)} className="enlace">Cambiar mi clave</button>
               <button onClick={cerrar} className="salir" disabled={saliendo}>
                 {saliendo ? 'Saliendo…' : 'Salir'}

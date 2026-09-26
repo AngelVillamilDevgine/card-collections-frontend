@@ -739,8 +739,41 @@ button { cursor: pointer; }
 }
 .encabezado h1 { margin: 0 0 6px; }
 .encabezado h1 img { width: 240px; max-width: 70vw; }
-.progreso { flex: 0 1 400px; min-width: 0; }
+/* La columna derecha del encabezado: el botón del panel arriba, el avance abajo.
+   El `flex: 0 1 400px` que antes tenía `.progreso` es ahora de `.lado`, que es el que
+   pasó a ser hijo del flex. */
+.encabezado .lado {
+  flex: 0 1 400px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+.encabezado .lado .progreso { width: 100%; min-width: 0; }
 .progreso .avance { margin-top: 0; }
+
+/* La entrada al panel del administrador. Del mismo tipo redondo que los filtros y que
+   Salir, porque es un botón terciario y no tiene que competir con la colección: lo ve
+   una cuenta de cuarenta.
+
+   Dice «Panel» y no «Los números»: «los números» describe lo que hay adentro, «Panel»
+   describe el lugar al que vas, que es lo que un botón tiene que decir. */
+.a-panel {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 6px 15px;
+  border: 1px solid var(--linea2);
+  border-radius: 999px;
+  background: none;
+  color: var(--tinta2);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.a-panel:hover { border-color: var(--acento); color: var(--acento); }
+.a-panel svg { flex: none; }
 
 /* Blanca y opaca: la versión transparente dejaba ver las cartas pasando por detrás.
    La sombra la despega del contenido cuando queda pegada arriba. */
@@ -760,7 +793,40 @@ button { cursor: pointer; }
 .ayuda { margin: 16px 0 22px; font-size: 13px; color: var(--tinta3); }
 
 @media (max-width: 640px) {
-  .progreso { flex-basis: 100%; }
+  /* Angosto, el encabezado pasa a grilla de dos filas.
+
+     Apilando en columna como hace el flex, el botón se llevaba un renglón entero para
+     él solo y el encabezado pasaba de 162 px a 266 — o sea casi un tercio de la pantalla
+     de un teléfono gastado antes de la primera carta. Con la grilla el botón comparte
+     el primer renglón con la marca, alineado con el subtítulo, que es espacio que ya
+     estaba vacío, y el avance se queda con el segundo de lado a lado.
+
+     `.lado` se hace `display: contents` para que sus dos hijos se coloquen solos en la
+     grilla del abuelo: así no hay que sacar el botón del `.lado` que el escritorio
+     necesita. */
+  .encabezado .columna {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: end;
+    gap: 14px 12px;
+  }
+  /* Los dos envoltorios se hacen `display: contents` para que el logo, el subtítulo, el
+     botón y el avance se coloquen ellos mismos en esta grilla. Así el escritorio conserva
+     su estructura de dos columnas sin tener que mover nada de sitio en el JSX. */
+  .encabezado .marca,
+  .encabezado .lado { display: contents; }
+
+  /* El botón va en el renglón del LOGO, no en el del subtítulo. Puesto al lado del
+     subtítulo lo partía en dos y dejaba un «2008» solo abajo: el logo mide 240 px fijos
+     y a su derecha hay lugar de sobra, el subtítulo no. */
+  .encabezado h1 { grid-area: 1 / 1; align-self: center; }
+  .encabezado .a-panel { grid-area: 1 / 2; align-self: center; }
+  .encabezado .marca p { grid-area: 2 / 1 / 3 / -1; }
+  .encabezado .progreso { grid-area: 3 / 1 / 4 / -1; }
+
+  /* Abajo de ~400 px el logo de 240 y el botón no entran juntos. El logo cede, que para
+     eso ya tenía un `max-width`; encogerlo un poco se nota mucho menos que pisarlo. */
+  .encabezado h1 img { max-width: 100%; }
 }
 
 /* --------------------------------- footer --------------------------------- */
@@ -1036,11 +1102,13 @@ button { cursor: pointer; }
 .banda .plegar,
 .pie .enlace,
 .pie .alias,
+.a-panel,
 .filtro { position: relative; }
 
 .banda .plegar::after,
 .pie .enlace::after,
 .pie .alias::after,
+.a-panel::after,
 .filtro::after {
   content: '';
   position: absolute;
@@ -1079,124 +1147,6 @@ button { cursor: pointer; }
   font-size: 13.5px;
   line-height: 1.45;
 }
-
-/* ------------------------------ los números ------------------------------- */
-/* Todo cuelga de .numeros: son nombres comunes y .barra ya estaba tomada por la
-   barrita de progreso de cada expansión.
-   El panel del administrador. Sobrio a propósito: filas y barras, nada de
-   tarjetitas con sombras — la app no tiene ese aire en ningún otro lado. */
-
-.dialogo.numeros {
-  width: min(620px, 100%);
-  max-height: calc(100vh - 40px);
-  overflow-y: auto;
-}
-
-.dialogo.numeros h4 {
-  margin: 22px 0 10px;
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--tinta3);
-  border-bottom: 1px solid var(--linea);
-  padding-bottom: 6px;
-}
-
-.numeros .grupo { display: flex; flex-direction: column; gap: 7px; }
-
-.numeros .renglon {
-  display: grid;
-  grid-template-columns: 116px 1fr 44px 42px;
-  align-items: center;
-  gap: 10px;
-  font-size: 13px;
-}
-.numeros .renglon.flaca { grid-template-columns: 46px 1fr 44px 0; font-size: 12px; }
-
-.numeros .renglon-rotulo { color: var(--tinta2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.numeros .riel { height: 12px; background: var(--papel); border-radius: 6px; overflow: hidden; }
-.numeros .relleno {
-  display: block;
-  height: 100%;
-  min-width: 2px;
-  border-radius: 6px;
-  background: var(--naranja);
-}
-.numeros .renglon b { text-align: right; font-variant-numeric: tabular-nums; }
-.numeros .renglon-nota { color: var(--tinta3); font-size: 12px; font-variant-numeric: tabular-nums; }
-
-.numeros .sueltos {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 18px;
-  margin-top: 14px;
-  font-size: 13px;
-  color: var(--tinta2);
-}
-.numeros .sueltos b { color: var(--tinta); font-variant-numeric: tabular-nums; }
-
-.numeros .tablon { overflow-x: auto; }
-
-.numeros table.gente {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
-}
-.numeros table.gente th {
-  text-align: right;
-  font-weight: 600;
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--tinta3);
-  padding: 0 0 6px 10px;
-}
-.numeros table.gente td { text-align: right; padding: 5px 0 5px 10px; border-top: 1px solid var(--linea); }
-.numeros table.gente th:first-child, .numeros table.gente td:first-child { text-align: left; padding-left: 0; }
-.numeros table.gente .quien { max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* Callada cuando está bien; sólo se hace ver cuando hay algo que mirar. */
-.numeros .resumen-tabla {
-  margin: 0 0 8px;
-  font-size: 13px;
-  color: var(--tinta2);
-}
-.numeros .resumen-tabla b { color: var(--tinta); }
-/* La fila de quien entra desde la app, para poder encontrarla sin recorrer la tabla. */
-.numeros .gente tr.con-app > td { background: #eef4ec; }
-.numeros .gente tr.con-app.apagada > td { background: #f2f5f0; }
-
-.numeros .salud {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin: 0 0 16px;
-  padding: 10px 12px;
-  border-radius: 6px;
-  border: 1px solid var(--linea);
-  background: var(--papel);
-  font-size: 13px;
-  color: var(--tinta2);
-}
-.numeros .salud.atencion { border-color: var(--reem-linea); background: var(--reem-fondo); }
-.numeros .salud b { color: var(--tinta); font-weight: 600; }
-.numeros .salud .mal, .numeros .salud .mal b { color: var(--reem-tinta); font-weight: 700; }
-
-.numeros .chip {
-  margin-left: 6px;
-  padding: 1px 5px;
-  border-radius: 4px;
-  background: var(--perf-fondo);
-  border: 1px solid var(--perf-linea);
-  color: var(--perf-tinta);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-}
-
-/* Quien no cargó ninguna carta se anotó y se fue: que se note de un vistazo. */
-.numeros table.gente .apagada { color: var(--tinta3); }
 
 .pie-acciones { display: flex; align-items: center; gap: 16px; }
 
