@@ -486,8 +486,15 @@ export default function App() {
   fallidasRef.current = fallidas
 
   useEffect(() => {
-    fetch(new URL('data/expansiones.json', document.baseURI))
-      .then((r) => r.json())
+    /* El catálogo también sale adelantado desde `public/warm-start.js`, antes de que
+       exista este código. Si está, se levanta; si no —en desarrollo, o si falló— se pide
+       como siempre. Se saca del objeto para que el reintento no sirva el mismo error. */
+    const warm = window.__dbzWarm
+    const adelantado = warm?.catalog
+    if (warm) warm.catalog = null
+
+    ;(adelantado ? adelantado.then((d) => d ?? Promise.reject(new Error('sin catálogo')))
+                 : fetch(new URL('data/expansiones.json', document.baseURI)).then((r) => r.json()))
       .then((raw) => setCatalogo(raw.expansiones.map((e) => ({ ...e, lista: numerosDe(e) }))))
       .catch(() => setError('No se pudo cargar el catálogo de cartas.'))
   }, [intento])
