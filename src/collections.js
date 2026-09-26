@@ -125,7 +125,7 @@ export function slotsOf(exp, n, variantes, cantidades) {
      bajando la base a cero después de clasificar, y sin esta línea quedaba una carta en
      blanco diciendo «me falta» justo al lado de la misma carta que sí tenés — y el
      filtro «Me faltan» la contaba. Para volver a tener una sin clasificar se toca
-     cualquier casillero del hueco y se elige «Común». */
+     cualquier casillero del hueco y se baja a cero la variante. */
   return conBase ? [{ clave: base, variante: null }, ...deVariantes] : deVariantes
 }
 

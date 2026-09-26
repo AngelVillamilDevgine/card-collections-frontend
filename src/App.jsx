@@ -250,12 +250,17 @@ function Pregunta({ numero, onElegir, onCerrar }) {
    Las opciones salen del catálogo, así que agregar una variante es editar un json y no
    redeployar nada.
 
-   LA PRIMERA FILA DICE «COMÚN» Y NO «SIN CLASIFICAR». Decía lo segundo, y Angel preguntó
-   para qué estaba: «te voy dejando sin clasificar las que en realidad son comunes». O sea
-   que el casillero base ya se estaba usando para la común — que es lo que es, porque una
-   carta o salió en el fondo normal o salió en uno de los especiales — y el rótulo hablaba
-   del mecanismo («no le puse etiqueta») en vez de la cosa. Sigue siendo, de paso, donde
-   viven las que marcaste antes de que existiera el vocabulario.
+   OFRECE EXACTAMENTE LO QUE DICE LA PLANILLA, SIN NINGUNA FILA AGREGADA. Hubo una primera
+   que decía «sin clasificar» y después «común», y Angel la mandó sacar: *«la 824
+   pregunta si es común, en la planilla no te pasé común (...) no inventes nada adicional»*.
+   La planilla de una carta lista los acabados en que esa carta salió; que no haya columna
+   «común» es un dato, no un olvido, y la app no está para completarlo.
+
+   Dónde queda entonces la común: **una carta que no está en ninguna planilla no abre este
+   diálogo**. Se marca de un toque y cae en el casillero base, que es justo lo que Angel
+   venía haciendo — «te voy dejando en la base las que en realidad son comunes»—. Las 25
+   filas que tenía cargadas el 2026-09-26 se parten exactamente así: las 10 de variante son
+   todas de cartas que están en una planilla, y las 15 de base son todas de cartas que no.
 
    Cada opción muestra cuántas tenés de esa: sin eso, con tres fondos parecidos, no hay
    forma de acordarse de cuál ya cargaste. */
@@ -279,8 +284,7 @@ function AskVariant({ numero, variantes, cuentas, onElegir, onCerrar }) {
            ref={caja} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
         <h3>Carta {numero}</h3>
         <p>¿Cuál tenés?</p>
-        {fila(null, 'Común', true)}
-        {variantes.map((v) => fila(v.id, v.nombre, false))}
+        {variantes.map((v, i) => fila(v.id, v.nombre, i === 0))}
         <p className="salidas">
           <button className="cancelar" onClick={onCerrar}>Cancelar</button>
         </p>
@@ -1704,7 +1708,6 @@ export default function App() {
             numero={preguntandoVariante.n}
             variantes={variantsFor(preguntandoVariante.exp, preguntandoVariante.n)}
             cuentas={Object.fromEntries([
-              ['', cantidades[slotKey(preguntandoVariante.exp.id, preguntandoVariante.n)] ?? 0],
               ...variantsFor(preguntandoVariante.exp, preguntandoVariante.n).map((v) => [
                 v.id,
                 cantidades[slotKey(preguntandoVariante.exp.id, preguntandoVariante.n, v.id)] ?? 0,
