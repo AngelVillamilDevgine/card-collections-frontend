@@ -1185,23 +1185,33 @@ export default function App() {
   /* Un toque: si no la tenés, pregunta la condición. Si ya la tenés, suma una. */
   function tocar(clave, numero) {
     const tiene = vivo.current.cantidades[clave] ?? 0
-    /* LA APP PREGUNTA CUANDO HAY MÁS DE UNA RESPUESTA POSIBLE, y cuando hay una sola no
-       pregunta. Es la regla que ya regía: un toque sobre una carta que ya tenés no vuelve
-       a preguntar porque «a la repetida no le corresponde un estado propio».
 
-       Leyenda declara `condicion: false`, así que ahí no hay tres respuestas: hay una.
-       Un toque la deja en 1 y listo. No es un gesto nuevo ni un camino aparte — es la
-       misma regla aplicada a un caso que antes no existía. */
+    /* LA APP PREGUNTA CUANDO HAY MÁS DE UNA RESPUESTA POSIBLE, y cuando hay una sola no
+       pregunta. Es la regla de siempre: en Cromeros, el primer toque pregunta la condición
+       —hay tres respuestas— y el segundo no vuelve a preguntar, porque «a la repetida no
+       le corresponde un estado propio».
+
+       EN UNA EXPANSIÓN CON VARIANTES LA PREGUNTA ES LA MISMA TENGAS O NO TENGAS LA CARTA:
+       cuál es. Y va PRIMERO, antes de mirar la cantidad. La primera versión sólo
+       preguntaba en el segundo toque y Angel lo encontró al minuto de usarla: tocaba una
+       carta vacía teniendo una Rosa vino en la mano, se ponía violeta como «sin
+       clasificar» y no le preguntaba nada. La regla estaba bien; estaba aplicada a la
+       mitad de los casos.
+
+       Se pregunta también al tocar un casillero de variante que ya tenés, y no es por
+       gusto: si el hueco no tiene casillero base dibujado —que es lo que pasa cuando
+       tenés la variante y no la base— sería el único lugar desde donde se puede agregar
+       una variante DISTINTA. Sumándole una directo, esa tercera variante quedaba
+       inalcanzable. */
+    const hueco = huecoDe(clave)
+    if (hueco?.exp.variantes.length) return setPreguntandoVariante(hueco)
+
     if (!tiene) {
+      /* Sin variantes y sin condición —el resto de Leyenda— hay una sola respuesta
+         posible, así que no se pregunta: la deja en 1. */
       if (!album?.condicion) return aplicar(clave, 1, null)
       return setPreguntando({ clave, numero })
     }
-    /* Ya la tenés. En Cromeros eso es «suma una repetida» y no se pregunta nada, porque
-       «a la repetida no le corresponde un estado propio». En una expansión CON variantes
-       ese motivo es falso: a la repetida sí le corresponde algo propio, cuál de las dos
-       es. Misma regla, caso distinto. */
-    const hueco = huecoDe(clave)
-    if (hueco?.exp.variantes.length) return setPreguntandoVariante(hueco)
     aplicar(clave, tiene + 1, vivo.current.estados[clave])
   }
 
