@@ -8,7 +8,10 @@ import { atraparFoco, usarEscape } from './foco'
 import { estadisticas } from './almacenamiento'
 import './dashboard.css'
 
-const parte = (n, total) => (total ? Math.round((n / total) * 100) : 0)
+/* Con techo, y hace falta de verdad: `g.cartas` cuenta FILAS de esa persona y una carta
+   que tengas en dos variantes son dos filas, mientras que el total son huecos del álbum.
+   Sin el techo la columna «Álbum» puede pasarse de 100%, que se lee como un bug. */
+const parte = (n, total) => (total ? Math.min(100, Math.round((n / total) * 100)) : 0)
 const dia = (f) => (f ? f.slice(8, 10) + '/' + f.slice(5, 7) : '—')
 
 /* Hace cuánto, en palabras. El panel no tiene que hacer cuentas con husos: el servidor

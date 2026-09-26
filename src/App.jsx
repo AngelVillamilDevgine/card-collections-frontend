@@ -1,5 +1,5 @@
 import { lazy, memo, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ESTADOS, FALTA, etiqueta } from './estados'
+import { ESTADOS, etiqueta, claseDe } from './estados'
 import { atraparFoco, usarEscape } from './foco'
 import Entrar from './Entrar'
 import Exportar from './Exportar'
@@ -13,18 +13,13 @@ import Exportar from './Exportar'
 const Estadisticas = lazy(() => import('./Estadisticas'))
 import Instalar from './Instalar'
 import { ErrorBoundary } from './boundary'
+import { COLLECTIONS, readCollection, rememberCollection, loadCatalogs } from './collections'
 import {
   ErrorApi,
   descargar, restaurar, quienSoy, salir,
   leerColeccion, guardarCarta, reemplazarColeccion,
   cambiarClave, token, CLAVE_TOKEN,
 } from './almacenamiento'
-
-function numerosDe(exp) {
-  const out = []
-  for (let n = exp.desde; n <= exp.hasta; n++) out.push(n)
-  return out
-}
 
 /* Los tres listados que un coleccionista realmente necesita: qué buscar,
    qué puede cambiar y qué le conviene reemplazar. */
@@ -175,7 +170,7 @@ const Carta = memo(function Carta({ clave, numero, estado, cantidad, sinGuardar,
   }
 
   const titulo = cantidad
-    ? `${etiqueta(estado)} · tenés ${cantidad}`
+    ? `${etiqueta(estado, cantidad)} · tenés ${cantidad}`
     : 'Me falta'
 
   /* Sin `title`: decía lo mismo que el aria-label, y varios lectores de pantalla leen la
@@ -184,7 +179,7 @@ const Carta = memo(function Carta({ clave, numero, estado, cantidad, sinGuardar,
      estado y el número chico de la esquina es la cantidad. */
   return (
     <button
-      className={`carta ${cantidad ? estado : FALTA}${sinGuardar ? ' sin-guardar' : ''}`}
+      className={`carta ${claseDe(estado, cantidad)}${sinGuardar ? ' sin-guardar' : ''}`}
       aria-label={`Carta ${numero}. ${titulo}${sinGuardar ? '. Sin guardar' : ''}`}
       /* La forma estándar de anunciar un atajo de teclado. Restar con Backspace no
          estaba dicho en ningún lado: ni en la ayuda, ni en la etiqueta. Para quien usa
@@ -256,14 +251,21 @@ function Pregunta({ numero, onElegir, onCerrar }) {
    Muestra los NÚMEROS y no sólo la cantidad: es lo que deja ver de un vistazo que son
    «las 129 de la Expansión 1» y no cartas sueltas, o sea que el problema está en el
    catálogo y no en la colección. */
-function OrphansDialog({ keys, onConfirmar, onCerrar }) {
+function OrphansDialog({ keys, corTos, onConfirmar, onCerrar }) {
   const caja = useRef(null)
   const abrio = useRef(document.activeElement)
 
   usarEscape(onCerrar)
   useEffect(() => atraparFoco(caja.current, abrio.current), [])
 
-  const numeros = keys.map((c) => c.split(':')[1] ?? c)
+  /* El `corto` de la expansión y no el número pelado: con dos colecciones, «551» no dice
+     de cuál álbum es, y el diálogo existe justamente para que se vea de un vistazo que el
+     problema es el catálogo y no la colección. */
+  const numeros = keys.map((c) => {
+    const [exp, n] = c.split(':')
+    const corto = corTos?.[exp]
+    return corto ? `${corto} ${n}` : c
+  })
   const MUESTRA = 24
   const lista = numeros.slice(0, MUESTRA).join(', ')
 
@@ -478,7 +480,10 @@ function leerPlegadas() {
 }
 
 export default function App() {
-  const [catalogo, setCatalogo] = useState(null)
+  /* Todos los catálogos, por id. Un `null` adentro es «no cargó», que NO es lo mismo que
+     «cargó vacío»: de esa distinción depende que el pie no ofrezca borrar 1936 cartas. */
+  const [catalogos, setCatalogos] = useState(null)
+  const [collection, setCollection] = useState(readCollection)
   const [error, setError] = useState(null)
   // La cuenta entera, no el nombre: trae además si es administrador.
   const [cuenta, setCuenta] = useState(undefined) // undefined = todavía no sé
@@ -596,6 +601,23 @@ export default function App() {
 
   const { estados, cantidades } = datos
 
+  /* Las que de verdad se pueden mostrar: si un archivo no cargó, su píldora no existe. */
+  const disponibles = useMemo(
+    () => (catalogos ? COLLECTIONS.filter((c) => catalogos[c.id]) : []),
+    [catalogos]
+  )
+  /* Si la guardada no cargó, se cae a la primera que sí: mejor mostrar algo que nada. */
+  const coleccionViva = disponibles.some((c) => c.id === collection)
+    ? collection
+    : disponibles[0]?.id
+  const album = coleccionViva ? catalogos[coleccionViva] : null
+  const catalogo = album?.expansiones ?? null
+
+  function pickCollection(id) {
+    setCollection(id)
+    rememberCollection(id)
+  }
+
   /* Espejo de `datos` que se actualiza en el mismo instante del toque y no en el próximo
      render. `cantidades` sale del render anterior: dos toques en el mismo frame leen los
      dos el mismo número y el segundo pisa al primero — un toque perdido. Se resincroniza
@@ -621,9 +643,13 @@ export default function App() {
     const corte = new AbortController()
     const reloj = setTimeout(() => corte.abort(), 15000)
 
-    fetch(new URL('data/expansiones.json', document.baseURI), { signal: corte.signal })
-      .then((r) => r.json())
-      .then((raw) => setCatalogo(raw.expansiones.map((e) => ({ ...e, lista: numerosDe(e) }))))
+    loadCatalogs(corte.signal)
+      .then((todos) => {
+        /* Sólo es un error si no cargó NINGUNO. Que falte Leyenda no puede dejar sin app a
+           quien viene a marcar Cromeros: el selector muestra lo que haya. */
+        if (!Object.values(todos).some(Boolean)) throw new Error('ninguno')
+        setCatalogos(todos)
+      })
       .catch(() => setError('No se pudo cargar el catálogo de cartas.'))
       .finally(() => clearTimeout(reloj))
   }, [intento])
@@ -965,12 +991,31 @@ export default function App() {
      filas YA están guardadas y eran válidas cuando se escribieron. Ninguna validación de
      entrada las saca. Lo que hace falta es poder verlas y borrarlas, y el único lado que
      conoce el catálogo es éste. */
+  /* SE COMPARA CONTRA TODOS LOS CATÁLOGOS, mires lo que mires, y es de pérdida de datos.
+     `cantidades` son las filas de la cuenta ENTERA, las dos colecciones juntas. Mirando
+     sólo el catálogo elegido, apenas cambiás a Leyenda las 1936 de Cromeros figuran como
+     huérfanas y el pie ofrece borrarlas de un click.
+
+     Y devuelve `[]` mientras falte cargar alguno: si `leyenda.json` no bajó, no hay nada
+     que declarar. Un archivo que no llegó no es un catálogo vacío. */
   const huerfanas = useMemo(() => {
-    if (!catalogo) return []
+    if (!catalogos) return []
+    if (COLLECTIONS.some((c) => !catalogos[c.id])) return []
     const delCatalogo = new Set()
-    for (const exp of catalogo) for (const n of exp.lista) delCatalogo.add(`${exp.id}:${n}`)
+    for (const col of Object.values(catalogos))
+      for (const exp of col.expansiones)
+        for (const n of exp.lista) delCatalogo.add(`${exp.id}:${n}`)
     return Object.keys(cantidades).filter((c) => !delCatalogo.has(c))
-  }, [catalogo, cantidades])
+  }, [catalogos, cantidades])
+
+  /* id de expansión -> su rótulo corto, de TODAS las colecciones: lo usa el diálogo de
+     huérfanas y el listado de lo que no se pudo guardar. */
+  const cortosPorExpansion = useMemo(() => {
+    const m = {}
+    for (const col of Object.values(catalogos ?? {}))
+      for (const exp of col?.expansiones ?? []) m[exp.id] = exp.corto
+    return m
+  }, [catalogos])
 
   /* Se borran de a una, con el mismo camino que usa cada toque (cantidad 0 = no tener
      fila). A propósito NO va por el reemplazo masivo: ése es el único camino que borra
@@ -1006,18 +1051,41 @@ export default function App() {
     return { total, tengo, sobrantes, porFiltro, ...cuenta }
   }, [catalogo, estados, cantidades])
 
+  /* La columna «Álbum» del panel es cuánto lleva cada uno de TODO lo que hay para
+     marcar, no de la colección que yo esté mirando: `g.cartas` cuenta las filas de esa
+     persona, que son las dos colecciones juntas. Con `resumen.total` dividiría 1936
+     cartas por los 1097 huecos de Leyenda y daría 176%. */
+  const cartasDeTodos = useMemo(() => {
+    let n = 0
+    for (const col of Object.values(catalogos ?? {}))
+      for (const exp of col?.expansiones ?? []) n += exp.lista.length
+    return n
+  }, [catalogos])
+
   const hayQueExportar = (resumen?.tengo ?? 0) > 0
 
   /* Los números de las cartas que no se pudieron guardar. La clave es «expansión:número»,
      así que el número sale de ahí sin tener que buscar en el catálogo. Se nombran hasta
      seis: más que eso no se lee, y con esa cantidad el problema ya no es encontrarlas. */
+  /* Con dos colecciones, «la 551» es ambiguo: hay una 551 en cada álbum. Así que a la
+     que NO es de la colección que estás mirando se le antepone el rótulo corto de su
+     expansión. A las de acá no, que son la mayoría y el número pelado se lee mejor. */
   const listaFallidas = useMemo(() => {
     if (!fallidas.size) return ''
-    const numeros = [...fallidas].map((c) => Number(c.split(':')[1])).filter(Number.isFinite).sort((a, b) => a - b)
-    if (!numeros.length) return ''
-    if (numeros.length <= 6) return `Son la ${numeros.join(', la ')}.`
-    return `Son la ${numeros.slice(0, 6).join(', la ')} y ${numeros.length - 6} más.`
-  }, [fallidas])
+    const deAca = new Set((catalogo ?? []).map((e) => e.id))
+    const nombres = [...fallidas]
+      .map((c) => {
+        const [exp, n] = c.split(':')
+        if (!Number.isFinite(Number(n))) return null
+        return { n: Number(n), texto: deAca.has(exp) ? n : `${cortosPorExpansion[exp] ?? exp} ${n}` }
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.n - b.n)
+      .map((x) => x.texto)
+    if (!nombres.length) return ''
+    if (nombres.length <= 6) return `Son la ${nombres.join(', la ')}.`
+    return `Son la ${nombres.slice(0, 6).join(', la ')} y ${nombres.length - 6} más.`
+  }, [fallidas, catalogo, cortosPorExpansion])
 
   useEffect(() => {
     if (!hayQueExportar) return
@@ -1057,7 +1125,17 @@ export default function App() {
   /* Un toque: si no la tenés, pregunta la condición. Si ya la tenés, suma una. */
   function tocar(clave, numero) {
     const tiene = vivo.current.cantidades[clave] ?? 0
-    if (!tiene) return setPreguntando({ clave, numero })
+    /* LA APP PREGUNTA CUANDO HAY MÁS DE UNA RESPUESTA POSIBLE, y cuando hay una sola no
+       pregunta. Es la regla que ya regía: un toque sobre una carta que ya tenés no vuelve
+       a preguntar porque «a la repetida no le corresponde un estado propio».
+
+       Leyenda declara `condicion: false`, así que ahí no hay tres respuestas: hay una.
+       Un toque la deja en 1 y listo. No es un gesto nuevo ni un camino aparte — es la
+       misma regla aplicada a un caso que antes no existía. */
+    if (!tiene) {
+      if (!album?.condicion) return aplicar(clave, 1, null)
+      return setPreguntando({ clave, numero })
+    }
     aplicar(clave, tiene + 1, vivo.current.estados[clave])
   }
 
@@ -1292,7 +1370,33 @@ export default function App() {
               <h1>
                 <img src="./logo.png" alt="Dragon Ball Z" width="660" height="168" />
               </h1>
-              <p>Mi colección · Cartas Cromeros · 2007–2008</p>
+            {/* QUÉ ÁLBUM ESTOY MIRANDO. Píldoras y no un `<select>`: con dos opciones el
+                desplegable es un click de más.
+
+                SE LLEVA EL RENGLÓN DEL SUBTÍTULO, y el subtítulo se va. Decía «Mi colección
+                · Cartas Cromeros · 2007–2008», que es el nombre de la colección escrito en
+                prosa: el selector dice lo mismo y además deja cambiarla. Y así el
+                encabezado no gana una fila — en angosto es una grilla donde cada hijo
+                tiene su `grid-area` a mano, y un hermano nuevo sin área se auto-coloca en
+                una fila implicita. Eso ya llevó el encabezado de 162 a 266 px una vez.
+
+                Va en el encabezado y NO en la barra de filtros, por lo mismo que el botón
+                del panel: en teléfono esa barra son cinco lugares de ancho igual. */}
+            {disponibles.length > 1 && (
+              <div className="colecciones" role="group" aria-label="Qué colección estoy mirando">
+                {disponibles.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    className={`coleccion${c.id === coleccionViva ? ' activa' : ''}`}
+                    aria-pressed={c.id === coleccionViva}
+                    onClick={() => pickCollection(c.id)}
+                  >
+                    {c.nombre}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           {/* El botón del panel y el avance comparten la columna derecha: el botón arriba,
               el avance abajo. Antes `.progreso` era el segundo hijo del flex del header;
@@ -1325,10 +1429,19 @@ export default function App() {
                   </span>
                 )}
               </div>
+              {/* Con condición, los tres tramos. Sin condición —Leyenda— uno solo y
+                  neutro: `cuenta[est ?? 'bien']++` mete TODO en `bien`, así que las tres
+                  franjas pintarían «buen estado» sobre un álbum que no tiene estado. */}
               <div className="barra">
-                <span className="s-bien" style={{ width: `${pct(resumen.bien)}%` }} />
-                <span className="s-perfecta" style={{ width: `${pct(resumen.perfecta)}%` }} />
-                <span className="s-reemplazar" style={{ width: `${pct(resumen.reemplazar)}%` }} />
+                {album?.condicion ? (
+                  <>
+                    <span className="s-bien" style={{ width: `${pct(resumen.bien)}%` }} />
+                    <span className="s-perfecta" style={{ width: `${pct(resumen.perfecta)}%` }} />
+                    <span className="s-reemplazar" style={{ width: `${pct(resumen.reemplazar)}%` }} />
+                  </>
+                ) : (
+                  <span className="s-solo" style={{ width: `${pct(resumen.tengo)}%` }} />
+                )}
               </div>
             </div>
           </div>
@@ -1466,6 +1579,7 @@ export default function App() {
         {sacando && huerfanas.length > 0 && (
           <OrphansDialog
             keys={huerfanas}
+            corTos={cortosPorExpansion}
             onConfirmar={sacarHuerfanas}
             onCerrar={() => setSacando(false)}
           />
@@ -1500,7 +1614,7 @@ export default function App() {
             </div>
           }>
             <Estadisticas onCerrar={closeDashboard} onSesionMuerta={sesionMuerta}
-                          totalCartas={resumen.total} />
+                          totalCartas={cartasDeTodos} />
           </Suspense>
           </ErrorBoundary>
         )}

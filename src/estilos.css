@@ -28,6 +28,12 @@
   --bien-fondo:  #e8eef6;  --bien-linea:  #9db8d4;  --bien-tinta:  #2f5a80;
   --perf-fondo:  #e3efe5;  --perf-linea:  #98c0a1;  --perf-tinta:  #2b6135;
   --reem-fondo:  #fbe9e1;  --reem-linea:  #dfa184;  --reem-tinta:  #96431c;
+  /* La tenés, sin condición: el caso normal de Leyenda y el de una copia vieja sin
+     estados. Violeta porque los otros tres ya son azul, verde y durazno, y acá lo único
+     que importa es que se distinga de «me falta» de un vistazo. Medido: 39,4 de
+     distancia RGB contra el blanco de falta — más que los 30,0 que ya separan a falta
+     de buen estado — y el texto da 6,99 sobre su fondo. */
+  --tengo-fondo: #e9e1f2;  --tengo-linea: #bfa9d3;  --tengo-tinta: #57406e;
 }
 
 * { box-sizing: border-box; }
@@ -61,6 +67,28 @@ button { cursor: pointer; }
 }
 
 .encabezado p { margin: 0; color: var(--tinta2); font-size: 14px; }
+
+/* Qué álbum estoy mirando. Ocupa el lugar que dejó el subtítulo, debajo del logo.
+
+   Es un control segmentado y NO usa el naranja: el naranja ya es el filtro elegido, y dos
+   cosas naranjas a diez píxeles una de otra compiten. El elegido va en tinta plena, que
+   ademas da 16.77 contra su texto blanco. */
+.colecciones { display: flex; gap: 6px; margin-top: 4px; }
+.coleccion {
+  padding: 5px 13px;
+  border: 1px solid var(--linea2);
+  border-radius: 999px;
+  background: none;
+  color: var(--tinta2);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.coleccion:hover { border-color: var(--acento); color: var(--acento); }
+.coleccion.activa {
+  background: var(--tinta);
+  border-color: var(--tinta);
+  color: var(--blanco);
+}
 
 /* Avance general: una sola línea, no seis tarjetas de estadísticas. */
 .avance { display: flex; align-items: baseline; gap: 10px; margin-top: 26px; }
@@ -97,6 +125,10 @@ button { cursor: pointer; }
 .barra .s-bien       { background: #3f7fc0; }
 .barra .s-perfecta   { background: #478754; }
 .barra .s-reemplazar { background: var(--acento); }
+/* Un solo tramo, para las colecciones que no usan la condición. Neutro a propósito: no
+   dice «buen estado» de algo que no tiene estado. Medido contra el riel: 4.04, y la barra
+   de progreso pide 3:1 por ser un elemento no textual que informa (WCAG 1.4.11). */
+.barra .s-solo { background: var(--tinta2); }
 .barra span + span   { box-shadow: inset 1px 0 0 var(--linea); }
 
 /* -------------------------------- barra fija ------------------------------ */
@@ -246,6 +278,7 @@ button { cursor: pointer; }
 .carta.bien       { background: var(--bien-fondo); border-color: var(--bien-linea); color: var(--bien-tinta); }
 .carta.perfecta   { background: var(--perf-fondo); border-color: var(--perf-linea); color: var(--perf-tinta); font-weight: 600; }
 .carta.reemplazar { background: var(--reem-fondo); border-color: var(--reem-linea); color: var(--reem-tinta); }
+.carta.tengo      { background: var(--tengo-fondo); border-color: var(--tengo-linea); color: var(--tengo-tinta); }
 
 /* ---------------------------------- pie ----------------------------------- */
 
@@ -821,7 +854,10 @@ button { cursor: pointer; }
      y a su derecha hay lugar de sobra, el subtítulo no. */
   .encabezado h1 { grid-area: 1 / 1; align-self: center; }
   .encabezado .a-panel { grid-area: 1 / 2; align-self: center; }
-  .encabezado .marca p { grid-area: 2 / 1 / 3 / -1; }
+  /* El selector ocupa el renglón que dejó el subtítulo, así que el encabezado NO gana una
+     fila. Sin `grid-area` se auto-colocaría en una fila implícita, que es exactamente lo
+     que llevó este encabezado de 162 a 266 px la primera vez. */
+  .encabezado .colecciones { grid-area: 2 / 1 / 3 / -1; }
   .encabezado .progreso { grid-area: 3 / 1 / 4 / -1; }
 
   /* Abajo de ~400 px el logo de 240 y el botón no entran juntos. El logo cede, que para
@@ -1103,12 +1139,14 @@ button { cursor: pointer; }
 .pie .enlace,
 .pie .alias,
 .a-panel,
+.coleccion,
 .filtro { position: relative; }
 
 .banda .plegar::after,
 .pie .enlace::after,
 .pie .alias::after,
 .a-panel::after,
+.coleccion::after,
 .filtro::after {
   content: '';
   position: absolute;
