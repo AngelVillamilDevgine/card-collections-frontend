@@ -16,7 +16,7 @@ import {
   ErrorApi,
   descargar, restaurar, quienSoy, salir,
   leerColeccion, guardarCarta, reemplazarColeccion,
-  cambiarClave,
+  cambiarClave, token,
 } from './almacenamiento'
 
 function numerosDe(exp) {
@@ -551,10 +551,32 @@ export default function App() {
       .catch(() => setArranque('No se pudo conectar con el servidor. Tu sesión sigue abierta: probá de nuevo en un momento.'))
   }, [intento])
 
-  /* La colección es la del usuario: se pide al entrar y se olvida al salir. */
+  /* La colección es la del usuario: se pide al entrar y se olvida al salir.
+
+     LA CONDICIÓN ES EL TOKEN Y NO `cuenta`, Y ESO VALE UN VIAJE ENTERO. Esperando a
+     `cuenta` los dos pedidos salían en fila —primero `/api/yo`, y recién cuando
+     contestaba, `/api/coleccion`—, y en 3G cada viaje son varios cientos de
+     milisegundos. Pero los dos necesitan lo mismo y nada más: el token, que ya está en
+     `localStorage` antes de que arranque nada. Así que salen juntos.
+
+     No cambia lo que se ve cuando algo falla: un 401 de cualquiera de los dos termina
+     en la pantalla de entrada igual, y `pedir` ya borró el token antes de avisar.
+
+     El ref es lo que evita el pedido repetido: el efecto se vuelve a correr cuando
+     `cuenta` pasa de `undefined` al usuario, y sin él serían dos lecturas de la
+     colección en cada carga. Lleva el `intento` adentro para que el botón de reintentar
+     sí vuelva a pedir. */
+  const coleccionPedidaPara = useRef(null)
   useEffect(() => {
     setFallidas(new Set())
-    if (!cuenta) return setDatos(VACIA)
+    const t = token()
+    if (!t) {
+      coleccionPedidaPara.current = null
+      return setDatos(VACIA)
+    }
+    const marca = `${t}|${intento}`
+    if (coleccionPedidaPara.current === marca) return
+    coleccionPedidaPara.current = marca
     leerColeccion()
       .then((d) => { ultimaLectura.current = Date.now(); setDatos(d) })
       // Si el token ya no sirve, a la pantalla de entrada: un cartel de error con un
