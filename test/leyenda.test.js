@@ -22,7 +22,10 @@ const crudo = JSON.parse(
   fs.readFileSync(new URL('../public/data/leyenda.json', import.meta.url), 'utf8')
 )
 const catalogo = crudo.expansiones
-const variantes = crudo.variantes ?? []
+/* Las variantes son POR EXPANSIÓN: el vocabulario cambia según el tramo (la Expansión 6
+   tiene siete y Personajes doce). Una expansión sin las suyas hereda las de la colección. */
+const variantesDe = (exp) => exp.variantes ?? crudo.variantes ?? []
+const todasLasVariantes = catalogo.flatMap(variantesDe)
 
 // La misma que usa el backend. Duplicada porque son dos repos; si una cambia, la otra también.
 const CLAVE_VALIDA = /^[a-z0-9-]{1,34}:\d{1,5}$/
@@ -94,8 +97,8 @@ test('ningún id choca con los de Cromeros: las dos colecciones comparten la tab
 /* LOS DOS SEGUROS DEL DISEÑO DE VARIANTES. */
 
 test('ninguna clave derivable se pasa del ancho que acepta el servidor', () => {
-  const sufijos = ['', ...variantes.map((v) => `-${v.id}`)]
   for (const e of catalogo) {
+    const sufijos = ['', ...variantesDe(e).map((v) => `-${v.id}`)]
     for (const s of sufijos) {
       const clave = `${e.id}${s}:${Math.max(...numerosDe(e))}`
       assert.ok(
@@ -108,8 +111,11 @@ test('ninguna clave derivable se pasa del ancho que acepta el servidor', () => {
 
 test('ningún id de expansión es igual a otro id más un sufijo de variante', () => {
   const ids = new Set(catalogo.map((e) => e.id))
+  /* Se prueban TODAS las variantes contra TODAS las expansiones, no sólo las de cada una:
+     el día que alguien le agregue a una expansión una variante que ya existía en otra, el
+     choque tiene que aparecer acá y no en la base. */
   for (const e of catalogo) {
-    for (const v of variantes) {
+    for (const v of todasLasVariantes) {
       const derivada = `${e.id}-${v.id}`
       assert.ok(
         !ids.has(derivada),
@@ -120,11 +126,45 @@ test('ningún id de expansión es igual a otro id más un sufijo de variante', (
 })
 
 test('los ids de variante son cortos, que es lo que los deja entrar en la clave', () => {
-  for (const v of variantes) {
-    assert.match(v.id, /^[a-z0-9]{1,3}$/, `el id «${v.id}» tiene que ser de 1 a 3 letras o números`)
-    assert.ok(v.nombre, `la variante ${v.id} no tiene nombre`)
+  for (const e of catalogo) {
+    const suyas = variantesDe(e)
+    for (const v of suyas) {
+      assert.match(v.id, /^[a-z0-9]{1,3}$/, `el id «${v.id}» de ${e.id} tiene que ser de 1 a 3 letras o números`)
+      assert.ok(v.nombre, `la variante ${v.id} de ${e.id} no tiene nombre`)
+      assert.ok(v.corto, `la variante ${v.id} de ${e.id} no tiene rótulo corto`)
+    }
+    assert.equal(new Set(suyas.map((v) => v.id)).size, suyas.length, `ids de variante repetidos en ${e.id}`)
   }
-  assert.equal(new Set(variantes.map((v) => v.id)).size, variantes.length, 'ids de variante repetidos')
+})
+
+/* El mismo nombre con dos ids, o el mismo id con dos nombres, es lo que pasa si alguien
+   carga «Oro» en una expansión y «Dorado» en otra — que es literalmente lo que hacen las
+   planillas de las que salieron. Son la misma variante y tienen que llamarse igual. */
+test('una variante se llama igual en todas las expansiones', () => {
+  const porId = {}
+  const porNombre = {}
+  for (const e of catalogo) {
+    for (const v of variantesDe(e)) {
+      if (porId[v.id] && porId[v.id] !== v.nombre)
+        assert.fail(`el id «${v.id}» es «${porId[v.id]}» en una expansión y «${v.nombre}» en ${e.id}`)
+      if (porNombre[v.nombre] && porNombre[v.nombre] !== v.id)
+        assert.fail(`«${v.nombre}» tiene dos ids: «${porNombre[v.nombre]}» y «${v.id}» (${e.id})`)
+      porId[v.id] = v.nombre
+      porNombre[v.nombre] = v.id
+    }
+  }
+})
+
+/* Las dos que salieron de las planillas que pasó Angel el 2026-09-26. Si alguien las
+   borra sin querer, esto lo dice. */
+test('las variantes que estan cargadas son las de las planillas', () => {
+  const dela = (id) => variantesDe(catalogo.find((e) => e.id === id)).map((v) => v.nombre)
+  assert.deepEqual(dela('ley-6'),
+    ['Naranja', 'Diamante', 'Dorado', 'Verde', 'Plata', 'Rojo', 'Azul'])
+  assert.equal(dela('ley-personajes').length, 12, 'Personajes junta las dos planillas')
+  for (const n of ['Plata', 'Dorado', 'Holo glitter', 'Naranja']) {
+    assert.ok(dela('ley-personajes').includes(n), `falta ${n} en Personajes`)
+  }
 })
 
 test('esta colección no usa la condición: lo que se pregunta es la variante', () => {

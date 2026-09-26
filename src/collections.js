@@ -119,7 +119,20 @@ export function loadCatalogs(signal) {
         .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
         .then((raw) => [c.id, {
           ...raw,
-          expansiones: raw.expansiones.map((e) => ({ ...e, lista: numbersOf(e) })),
+          /* LAS VARIANTES SON POR EXPANSIÓN, y eso no es una generalización gratuita: las
+             planillas de Leyenda tienen vocabularios distintos según el tramo. La
+             Expansión 6 va con naranja / diamante / dorado / verde / plata / rojo / azul, y
+             Personajes suma holo glitter, marrón, rosa vino, matrix, cyan, azul viento y
+             fucsia. Una sola lista para toda la colección ofrecería catorce opciones de
+             las cuales la mitad no existen para esa carta.
+
+             Una expansión sin `variantes` propias hereda las de la colección, y si tampoco
+             hay, no tiene ninguna — que es todo Cromeros. */
+          expansiones: raw.expansiones.map((e) => ({
+            ...e,
+            lista: numbersOf(e),
+            variantes: e.variantes ?? raw.variantes ?? [],
+          })),
           /* Por omisión la colección usa la condición (buen estado / perfecta / para
              reemplazar). Leyenda dice `false` y ahí lo que se pregunta es la variante. */
           condicion: raw.condicion !== false,

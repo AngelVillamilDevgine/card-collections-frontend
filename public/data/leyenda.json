@@ -8,7 +8,10 @@
     "1078 cartas numeradas, corrida exacta del 1 al 1078 sin repetidos ni huecos. Los rangos salen del dorso de los sobres, que es la unica fuente que no se contradice. De 727 en adelante hay una sola fuente: confirmar leyendo el dorso de un sobre de Expansion 6 y otro de Personajes.",
     "Las cartas F y las ediciones limitadas estan FUERA de la corrida y llevan 'fuera': true. La F504 no es una variante de la 504: son dos cartas distintas, y por eso viven en expansiones distintas.",
     "'condicion': false apaga la pregunta de buen estado / perfecta / para reemplazar. En esta coleccion lo que se pregunta es la variante.",
-    "Las variantes se agregan a 'variantes' a medida que aparecen. El 'id' va CORTO, de una a tres letras, porque entra en la clave de cada carta y la columna es VARCHAR(40); el 'nombre' puede ser largo porque no entra nunca.",
+    "Las variantes van POR EXPANSION, porque el vocabulario cambia segun el tramo: la Expansion 6 tiene siete y Personajes doce. Una expansion sin 'variantes' propias hereda las de la coleccion; si no hay ninguna, no tiene variantes.",
+    "El 'id' va CORTO, de una a tres letras, porque entra en la clave de cada carta y la columna es VARCHAR(40); el 'nombre' puede ser largo porque no entra nunca. El 'corto' es lo que se dibuja en la esquina de la carta.",
+    "SALEN DE PLANILLAS DE COLECCIONISTAS, no de ninguna fuente publica: se buscaron en la web con seis consultas distintas y no existen en ningun lado. Angel paso dos fotos el 2026-09-26.",
+    "OJO: estan cargadas las variantes QUE EXISTEN EN CADA EXPANSION, pero NO cuales le faltan a cada carta. Las planillas marcan en negro las que una carta no tiene (por ejemplo la 953 no viene en cyan ni en azul viento), y eso son 44 filas por 8 columnas transcriptas a mano de una imagen. Se decidio no hacerlo: un error ahi no se nota hasta que falta una carta. Asi que el dialogo ofrece todas las de la expansion.",
     "Podes editar este archivo para corregir rangos o agregar sets sin recompilar la app."
   ],
   "variantes": [],
@@ -51,7 +54,16 @@
       "corto": "E6",
       "color": "#548235",
       "desde": 727,
-      "hasta": 902
+      "hasta": 902,
+      "variantes": [
+        { "id": "nar", "corto": "NA", "nombre": "Naranja" },
+        { "id": "dia", "corto": "DI", "nombre": "Diamante" },
+        { "id": "dor", "corto": "DO", "nombre": "Dorado" },
+        { "id": "ver", "corto": "VE", "nombre": "Verde" },
+        { "id": "pla", "corto": "PL", "nombre": "Plata" },
+        { "id": "roj", "corto": "RO", "nombre": "Rojo" },
+        { "id": "azu", "corto": "AZ", "nombre": "Azul" }
+      ]
     },
     {
       "id": "ley-personajes",
@@ -59,7 +71,21 @@
       "corto": "PJ",
       "color": "#7030a0",
       "desde": 903,
-      "hasta": 1078
+      "hasta": 1078,
+      "variantes": [
+        { "id": "pla", "corto": "PL", "nombre": "Plata" },
+        { "id": "dor", "corto": "DO", "nombre": "Dorado" },
+        { "id": "hol", "corto": "HG", "nombre": "Holo glitter" },
+        { "id": "nar", "corto": "NA", "nombre": "Naranja" },
+        { "id": "azu", "corto": "AZ", "nombre": "Azul" },
+        { "id": "mar", "corto": "MA", "nombre": "Marrón" },
+        { "id": "ros", "corto": "RV", "nombre": "Rosa vino" },
+        { "id": "mtx", "corto": "MX", "nombre": "Matrix" },
+        { "id": "cya", "corto": "CY", "nombre": "Cyan turquesa" },
+        { "id": "avi", "corto": "AV", "nombre": "Azul viento" },
+        { "id": "fuc", "corto": "FU", "nombre": "Fucsia" },
+        { "id": "ver", "corto": "VE", "nombre": "Verde" }
+      ]
     },
     {
       "id": "ley-f",
