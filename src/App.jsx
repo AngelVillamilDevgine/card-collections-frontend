@@ -17,7 +17,7 @@ import {
   ErrorApi,
   descargar, restaurar, quienSoy, salir,
   leerColeccion, guardarCarta, reemplazarColeccion,
-  cambiarClave, token,
+  cambiarClave, token, CLAVE_TOKEN,
 } from './almacenamiento'
 
 function numerosDe(exp) {
@@ -243,7 +243,14 @@ function Pregunta({ numero, onElegir, onCerrar }) {
 
    Ahora muestra los dos números antes de tocar nada. Los números importan más que el
    cartel: "vas a perder 861 cartas" se entiende; "¿estás seguro?" no dice nada. */
-function Reemplazar({ tengo, trae, onConfirmar, onCerrar }) {
+function Reemplazar({ mias, copia, onConfirmar, onCerrar }) {
+  /* Se cuentan CARTAS y no claves, igual que `revisarReemplazo` del servidor: una clave
+     con cantidad 0 no es una carta, y una copia armada a mano puede traerlas. */
+  const conCarta = (m) => Object.keys(m).filter((c) => Number(m[c]) > 0)
+  const claves = conCarta(mias)
+  const traidas = new Set(conCarta(copia))
+  const tengo = claves.length
+  const trae = traidas.size
   const caja = useRef(null)
   const abrio = useRef(document.activeElement)
 
@@ -251,7 +258,11 @@ function Reemplazar({ tengo, trae, onConfirmar, onCerrar }) {
 
   useEffect(() => atraparFoco(caja.current, abrio.current), [])
 
-  const pierde = tengo - trae
+  /* CUÁNTAS DE LAS TUYAS NO ESTÁN EN LA COPIA, que no es lo mismo que restar totales.
+     Con `tengo - trae`, un respaldo viejo de 600 cartas que sólo comparte 480 con tus 546
+     daba -54: la frase no se dibujaba y el diálogo se leía como que ganabas, cuando en
+     realidad perdías 66. Justo el caso típico de restaurar desde otro aparato. */
+  const pierde = claves.filter((c) => !traidas.has(c)).length
 
   return (
     <div className="telon" onClick={onCerrar}>
@@ -752,11 +763,32 @@ export default function App() {
     enVuelo.current.clear()
   }
 
-  function sesionMuerta() {
+  function sesionMuerta(aviso) {
     matarCola()
-    setAvisoSesion('Se venció tu sesión. Entrá de nuevo para seguir.')
+    setAvisoSesion(aviso ?? 'Se venció tu sesión. Entrá de nuevo para seguir.')
     setCuenta(null)
   }
+
+  /* DOS PESTAÑAS EN LA MISMA COMPU NO PUEDEN SER DOS CUENTAS.
+     El token vive en `localStorage`, que es de todo el origen, pero `cuenta` es estado de
+     React y por lo tanto de esta pestaña sola. Sin esto: tenés abierta la colección de
+     angel, alguien entra como lucas en otra pestaña, y la primera sigue dibujando las
+     cartas de angel y diciendo «Guardando en tu cuenta, angel» — pero el próximo toque
+     sale con el token de lucas y se guarda en la cuenta equivocada. No hay 401 que lo
+     frene, porque el token es válido: el servidor hace lo correcto con la credencial que
+     le llega.
+
+     El evento `storage` NO se dispara en la pestaña que hizo el cambio, que es justo lo
+     que hace falta. `e.key === null` es un `clear()` entero y también cuenta. */
+  useEffect(() => {
+    const mio = token()
+    const alCambiar = (e) => {
+      if (e.key !== null && e.key !== CLAVE_TOKEN) return
+      if (token() !== mio) sesionMuerta('Entraste con otra cuenta en otra pestaña. Entrá de nuevo acá.')
+    }
+    addEventListener('storage', alCambiar)
+    return () => removeEventListener('storage', alCambiar)
+  }, [cuenta])
 
   const vaciarRef = useRef(null)
   vaciarRef.current = vaciar
@@ -1301,8 +1333,8 @@ export default function App() {
 
         {porRestaurar && (
           <Reemplazar
-            tengo={Object.keys(cantidades).length}
-            trae={Object.keys(porRestaurar.cantidades).length}
+            mias={cantidades}
+            copia={porRestaurar.cantidades}
             onConfirmar={confirmarReemplazo}
             onCerrar={() => setPorRestaurar(null)}
           />

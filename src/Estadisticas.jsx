@@ -44,9 +44,16 @@ function Salud({ salud }) {
     },
     {
       que: 'Último despliegue',
-      mal: !!d && d.valor?.estado === 'descartado',
+      /* CUALQUIER estado que no sea «ok» va en rojo, y no sólo «descartado».
+         `dbz-despliegue.sh` escribe cuatro estados y acá se miraba uno: un
+         `dockerfile-sin-aprobar` —que es el portón puesto para que el Dockerfile de un
+         commit no corra como root en la máquina de los clientes— se dibujaba en gris,
+         idéntico a un deploy que salió bien. Y el correo del servidor no sale, así que
+         este bloque es el único aviso que llega. Lista blanca y no negra: lo que no
+         conocemos es sospechoso, no correcto. */
+      mal: !!d && d.valor?.estado !== 'ok',
       dice: d
-        ? `${cuando(d.hace)} · ${d.valor?.estado === 'descartado' ? `DESCARTÓ ${d.valor?.commit}` : d.valor?.commit ?? 'ok'}`
+        ? `${cuando(d.hace)} · ${d.valor?.estado && d.valor.estado !== 'ok' ? `${d.valor.estado.toUpperCase()} ${d.valor?.commit ?? ''}`.trim() : d.valor?.commit ?? 'ok'}`
         : 'todavía no se anotó ninguno',
     },
   ]

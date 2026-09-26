@@ -4,7 +4,9 @@
 // Antes esto hacía malabares — unir el archivo con localStorage, marcas de migrado,
 // una guarda contra StrictMode — porque el dueño del archivo era el dev server de Vite
 // y no había usuarios. Con cuentas de verdad nada de eso hace falta.
-const CLAVE_TOKEN = 'dbz-cromeros-token'
+/* Se exporta para que `App.jsx` pueda escuchar el evento `storage` y darse cuenta de
+   que en OTRA pestaña entraron con otra cuenta. Ver el efecto que la usa. */
+export const CLAVE_TOKEN = 'dbz-cromeros-token'
 
 // En desarrollo se usa el proxy de Vite, así el navegador ve un solo origen y no hay
 // CORS que arreglar. En producción se le pega directo a la API, que vive en el mismo
@@ -62,7 +64,20 @@ async function pedir(ruta, opciones = {}) {
     clearTimeout(reloj)
   }
 
-  if (r.status === 401) {
+  /* UN 401 NO SIEMPRE ES «se venció la sesión». En las tres rutas donde las credenciales
+     van en el cuerpo —entrar, registrarse y cambiar la clave— el 401 habla de lo que la
+     persona acaba de escribir, y el servidor manda el motivo exacto.
+
+     Tratarlos a todos igual rompía dos cosas distintas:
+
+     - Escribir mal la clave en la pantalla de entrada contestaba «Tenés que entrar de
+       nuevo», que en la pantalla de entrar no dice nada. El mensaje bueno —«Usuario o
+       clave incorrectos»— existía en el servidor y se tiraba a la basura acá.
+     - Y equivocarse la clave ACTUAL en «Cambiar mi clave» te echaba de una sesión que
+       estaba perfecta: borraba el token, tiraba la cola de guardados pendientes —o sea
+       que un toque de carta se perdía sin salir a la red— y te mandaba a entrar de nuevo
+       con la misma clave sobre la que la app te acababa de hacer dudar. */
+  if (r.status === 401 && !opciones.credenciales) {
     // El token venció o lo revocaron: no sirve de nada guardarlo.
     recordarToken(null)
     // Marcado, porque quien lo reciba tiene que hacer algo muy distinto que con un
@@ -83,7 +98,7 @@ async function pedir(ruta, opciones = {}) {
 // Devuelve la cuenta, no el nombre a secas: el front necesita saber además si es
 // administrador, para mostrarle el panel de números.
 async function entrarPor(ruta, usuario, clave) {
-  const dicho = await pedir(ruta + marcaApp(), { method: 'POST', cuerpo: { usuario, clave } })
+  const dicho = await pedir(ruta + marcaApp(), { method: 'POST', cuerpo: { usuario, clave }, credenciales: true })
   recordarToken(dicho.token)
   return { usuario: dicho.usuario, admin: !!dicho.admin }
 }
@@ -94,7 +109,7 @@ export const entrar = (usuario, clave) => entrarPor('/sesion', usuario, clave)
 /* Cambiar la clave. Devuelve cuántas OTRAS sesiones se cerraron, que es lo que el
    diálogo le dice al usuario: sin ese número, «listo» no cuenta si echó a alguien. */
 export const cambiarClave = (actual, nueva) =>
-  pedir('/clave', { method: 'PUT', cuerpo: { actual, nueva } })
+  pedir('/clave', { method: 'PUT', cuerpo: { actual, nueva }, credenciales: true })
 
 export async function salir() {
   await pedir('/sesion', { method: 'DELETE' }).catch(() => {})
