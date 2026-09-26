@@ -16,7 +16,7 @@ const OPCIONES = [
    distintas salen con el mismo «504» en el mismo mensaje de WhatsApp, y el que lo lee no
    tiene cómo saber cuál le están pidiendo. Con prefijo son `F504` y `504`.
 
-   Las ediciones limitadas no tienen número impreso —van con LOTE / EDICIÓN LIMITADA Nº /
+   Las cartas únicas no tienen número impreso —van con LOTE / EDICIÓN LIMITADA Nº /
    TOTAL— así que su prefijo es la palabra entera: «Leyenda 3».
 
    En Cromeros ninguna expansión tiene `prefijo`, así que su texto sale byte por byte igual

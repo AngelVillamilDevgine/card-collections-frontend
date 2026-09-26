@@ -99,8 +99,8 @@
     },
     {
       "id": "ley-unicas",
-      "nombre": "Ediciones limitadas",
-      "corto": "EL",
+      "nombre": "Cartas únicas",
+      "corto": "CU",
       "color": "#404040",
       "desde": 1,
       "hasta": 9,

@@ -65,7 +65,7 @@ test('las que están fuera de la corrida son las 10 cartas F y las 9 limitadas',
   const f = afuera.find((e) => e.id === 'ley-f')
   const u = afuera.find((e) => e.id === 'ley-unicas')
   assert.equal(numerosDe(f).length, 10, 'las cartas F son F504 a F513')
-  assert.equal(numerosDe(u).length, 9, 'las ediciones limitadas son Leyenda 1 a 9')
+  assert.equal(numerosDe(u).length, 9, 'las cartas únicas son Leyenda 1 a 9')
   // Se dibujan y se exportan con prefijo, o «504» sería ambiguo contra la 504 de Expansión 4.
   assert.equal(f.prefijo, 'F')
   assert.ok(u.prefijo)
