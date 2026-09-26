@@ -243,6 +243,55 @@ function Pregunta({ numero, onElegir, onCerrar }) {
 
    Ahora muestra los dos números antes de tocar nada. Los números importan más que el
    cartel: "vas a perder 861 cartas" se entiende; "¿estás seguro?" no dice nada. */
+/* Sacar las huérfanas es el SEGUNDO camino que borra en masa, y hasta hoy era un
+   botón-enlace que borraba N cartas de un click: sin preguntar, sin decir cuáles y sin
+   bajar una copia — las tres cosas que restaurar sí hace, en la misma pantalla.
+
+   Y el disparador no es un ataque ni un archivo raro: es editar el catálogo, que es el
+   flujo que el proyecto documenta como normal («podés editar este archivo para corregir
+   rangos o agregar sets sin recompilar»). Un `"hasta": 129` tipeado como `19` convierte
+   129 cartas en huérfanas, y un click las borra para siempre — cuando el arreglo de
+   verdad, deshacer el tipeo, las habría devuelto intactas.
+
+   Muestra los NÚMEROS y no sólo la cantidad: es lo que deja ver de un vistazo que son
+   «las 129 de la Expansión 1» y no cartas sueltas, o sea que el problema está en el
+   catálogo y no en la colección. */
+function OrphansDialog({ keys, onConfirmar, onCerrar }) {
+  const caja = useRef(null)
+  const abrio = useRef(document.activeElement)
+
+  usarEscape(onCerrar)
+  useEffect(() => atraparFoco(caja.current, abrio.current), [])
+
+  const numeros = keys.map((c) => c.split(':')[1] ?? c)
+  const MUESTRA = 24
+  const lista = numeros.slice(0, MUESTRA).join(', ')
+
+  return (
+    <div className="telon" onClick={onCerrar}>
+      <div className="dialogo" role="dialog" aria-modal="true" aria-label="Sacar las que no están en el catálogo"
+           ref={caja} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
+        <h3>Sacar {keys.length} carta{keys.length === 1 ? '' : 's'}</h3>
+        <p>
+          Estas cartas están marcadas en tu colección pero no están en el catálogo:
+          <br />
+          <b>{lista}</b>{numeros.length > MUESTRA && <> y {numeros.length - MUESTRA} más</>}.
+        </p>
+        <p className="ojo">
+          Si son muchas y seguidas, capaz que lo que está mal es el catálogo y no tu
+          colección. Antes se baja sola una copia de lo que tenés ahora, por las dudas.
+        </p>
+        <button className="opcion reemplazar" onClick={onConfirmar} autoFocus>
+          Sacarlas igual
+        </button>
+        <p className="salidas">
+          <button className="cancelar" onClick={onCerrar}>Cancelar</button>
+        </p>
+      </div>
+    </div>
+  )
+}
+
 function Reemplazar({ mias, copia, onConfirmar, onCerrar }) {
   /* Se cuentan CARTAS y no claves, igual que `revisarReemplazo` del servidor: una clave
      con cantidad 0 no es una carta, y una copia armada a mano puede traerlas. */
@@ -487,6 +536,7 @@ export default function App() {
   const [plegadas, setPlegadas] = useState(leerPlegadas)
   const [avisoAlias, setAvisoAlias] = useState(null)
   const [cambiandoClave, setCambiandoClave] = useState(false)
+  const [sacando, setSacando] = useState(false)
 
   /* Atrás y adelante del navegador mueven el hash, y de ahí sale si el panel está
      abierto. Un solo oyente para los dos sentidos. */
@@ -870,8 +920,12 @@ export default function App() {
   /* Se borran de a una, con el mismo camino que usa cada toque (cantidad 0 = no tener
      fila). A propósito NO va por el reemplazo masivo: ése es el único camino que borra
      en masa y no hace falta abrirlo para esto. */
+  /* La copia se baja ANTES de tocar nada, igual que al restaurar: si el catálogo estaba
+     mal, es lo único que permite volver. */
   function sacarHuerfanas() {
+    descargar(datos, 'mi-coleccion-dbz-antes-de-sacar.json')
     for (const clave of huerfanas) aplicar(clave, 0, null)
+    setSacando(false)
   }
 
   const resumen = useMemo(() => {
@@ -1331,6 +1385,14 @@ export default function App() {
           <Exportar catalogo={catalogo} datos={datos} onCerrar={() => setExportando(false)} />
         )}
 
+        {sacando && huerfanas.length > 0 && (
+          <OrphansDialog
+            keys={huerfanas}
+            onConfirmar={sacarHuerfanas}
+            onCerrar={() => setSacando(false)}
+          />
+        )}
+
         {porRestaurar && (
           <Reemplazar
             mias={cantidades}
@@ -1435,7 +1497,7 @@ export default function App() {
                 {huerfanas.length === 1
                   ? 'Tenés 1 carta que ya no está en el catálogo.'
                   : `Tenés ${huerfanas.length} cartas que ya no están en el catálogo.`}{' '}
-                <button onClick={sacarHuerfanas} className="enlace">Sacarlas</button>
+                <button onClick={() => setSacando(true)} className="enlace">Sacarlas</button>
               </span>
             )}
           </div>
