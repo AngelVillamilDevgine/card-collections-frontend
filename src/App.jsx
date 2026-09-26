@@ -12,6 +12,7 @@ import Exportar from './Exportar'
    cuántos kilobytes le cuesta al que sólo marca cartas. */
 const Estadisticas = lazy(() => import('./Estadisticas'))
 import Instalar from './Instalar'
+import { ErrorBoundary } from './boundary'
 import {
   ErrorApi,
   descargar, restaurar, quienSoy, salir,
@@ -417,6 +418,9 @@ export default function App() {
   // La cuenta entera, no el nombre: trae además si es administrador.
   const [cuenta, setCuenta] = useState(undefined) // undefined = todavía no sé
   const [datos, setDatos] = useState(VACIA)
+  /* Hace falta aparte de `datos` porque `VACIA` es ambiguo: no distingue «todavía no
+     llegó» de «este usuario no tiene ninguna carta», y las dos son un objeto vacío. */
+  const [coleccionLista, setColeccionLista] = useState(false)
   const [filtro, setFiltro] = useState('todas')
   const [preguntando, setPreguntando] = useState(null)
   /* Las cartas que no se pudieron guardar, no un sí/no. Era un booleano, y entonces el
@@ -455,10 +459,15 @@ export default function App() {
      que no sea `#panel` lo cierra. */
   const [viendoNumeros, setViendoNumeros] = useState(() =>
     typeof location !== 'undefined' && location.hash === '#panel')
-  /* Si lo abrimos nosotros empujamos una entrada al historial y cerrar es `history.back()`.
-     Si en cambio llegó con `#panel` en la dirección, no hay a dónde volver: un `back()`
-     ahí se va del sitio. En ese caso se limpia el hash sin dejar entrada nueva. */
-  const empujamos = useRef(false)
+  /* Si la entrada la empujamos nosotros, cerrar es `history.back()`. Si en cambio llegó
+     con `#panel` en la dirección, no hay a dónde volver y un `back()` se va del sitio.
+
+     ESO SE PREGUNTA AL HISTORIAL, NO A UN REF. Con un `useRef` se perdía al recargar:
+     abrías el panel con el botón, apretabas F5 —la página vuelve con `#panel` y el panel
+     abierto— y al cerrar tomaba la rama equivocada, dejando dos entradas idénticas sin
+     hash. El Atrás siguiente navegaba de `.../` a `.../`: no pasaba nada en pantalla, que
+     es justo lo que este diseño existe para evitar. `history.state` sobrevive al F5. */
+  const loEmpujamosNosotros = () => !!(history.state && history.state.dbzPanel)
   const [guiñando, setGuiñando] = useState(false)
   /* Cuándo exportó por última vez vive en un estado y no sólo en localStorage: así,
      al usarlo, el efecto de abajo se vuelve a correr y cancela los guiños que quedaban
@@ -470,15 +479,28 @@ export default function App() {
 
   /* Atrás y adelante del navegador mueven el hash, y de ahí sale si el panel está
      abierto. Un solo oyente para los dos sentidos. */
+  /* Los dos eventos, y hacen falta los dos: `popstate` cubre Atrás y Adelante (incluido
+     el que vuelve de una entrada puesta con `pushState`), y `hashchange` cubre el enlace
+     de saltar a `#cartas`, que cierra el panel. Es idempotente, así que que disparen los
+     dos no molesta. */
   useEffect(() => {
     const mirar = () => setViendoNumeros(location.hash === '#panel')
+    window.addEventListener('popstate', mirar)
     window.addEventListener('hashchange', mirar)
-    return () => window.removeEventListener('hashchange', mirar)
+    return () => {
+      window.removeEventListener('popstate', mirar)
+      window.removeEventListener('hashchange', mirar)
+    }
   }, [])
 
-  const openDashboard = () => { empujamos.current = true; location.hash = 'panel' }
+  /* `pushState` y no `location.hash = ...` porque hay que dejar la marca en el estado.
+     Ojo: `pushState` NO dispara `hashchange`, así que el estado se prende acá a mano. */
+  const openDashboard = () => {
+    history.pushState({ dbzPanel: true }, '', '#panel')
+    setViendoNumeros(true)
+  }
   const closeDashboard = () => {
-    if (empujamos.current) { empujamos.current = false; history.back(); return }
+    if (loEmpujamosNosotros()) { history.back(); return }
     history.replaceState(null, '', location.pathname + location.search)
     setViendoNumeros(false)
   }
@@ -570,15 +592,20 @@ export default function App() {
   useEffect(() => {
     setFallidas(new Set())
     const t = token()
-    if (!t) {
+    /* `!t && !cuenta` y no sólo `!t`: hay un navegador con el almacenamiento bloqueado
+       donde `recordarToken` no puede escribir, se lo traga a propósito, y entonces el
+       login anda pero `token()` sigue devolviendo null. Mirando sólo el token, ese
+       usuario entraba a un álbum VACÍO con el pie jurándole que se estaba guardando.
+       Pidiendo igual, el 401 lo manda a la pantalla de entrada, que es feo pero honesto. */
+    if (!t && !cuenta) {
       coleccionPedidaPara.current = null
       return setDatos(VACIA)
     }
-    const marca = `${t}|${intento}`
+    const marca = `${t ?? 'sin-token'}|${intento}`
     if (coleccionPedidaPara.current === marca) return
     coleccionPedidaPara.current = marca
     leerColeccion()
-      .then((d) => { ultimaLectura.current = Date.now(); setDatos(d) })
+      .then((d) => { ultimaLectura.current = Date.now(); setDatos(d); setColeccionLista(true) })
       // Si el token ya no sirve, a la pantalla de entrada: un cartel de error con un
       // solo botón de Salir no le sirve a nadie.
       .catch((e) => (e?.sesion ? sesionMuerta() : setError(e.message)))
@@ -1073,7 +1100,15 @@ export default function App() {
       </p>
     </div>
   )
-  if (!catalogo) return <div className="hoja"><p className="cargando">Cargando…</p></div>
+  /* LA GRILLA NO SE DIBUJA HASTA QUE LLEGÓ LA COLECCIÓN, y no es cosmético.
+     `datos` arranca en `VACIA`, así que apenas contestan `/api/yo` y el catálogo se
+     dibujaban las 1936 cartas en «me falta» mientras `/api/coleccion` seguía viajando.
+     Esa grilla se podía tocar: `tocar` lee `vivo.current.cantidades[clave] ?? 0`, ve un 0
+     que en realidad es «no sé», abre el diálogo de condición y manda un PUT con
+     cantidad 1 PISANDO en el servidor la cantidad de verdad. Y después la colección
+     llegaba y devolvía el número bueno a la pantalla, así que no quedaba ni rastro: el
+     usuario se entera la próxima vez que abre la app, o nunca. */
+  if (!catalogo || !coleccionLista) return <div className="hoja"><p className="cargando">Cargando…</p></div>
 
   const pct = (n) => (n / resumen.total) * 100
 
@@ -1283,6 +1318,10 @@ export default function App() {
              panel todavía no llegó, un `.dialogo.numeros` se dibujaría sin ancho ni
              scroll. Y dice «Buscando…», que es lo mismo que muestra el panel mientras
              espera los datos, así que al montar no cambia el texto. */
+          /* El límite va ADENTRO del `{viendoNumeros && ...}` y alrededor del `Suspense`:
+             así un panel que no baja se queda en su diálogo y no se lleva puesta la
+             colección. `onReset` cierra el panel, que es volver a donde se estaba. */
+          <ErrorBoundary aviso="No se pudo abrir el panel." onReset={closeDashboard}>
           <Suspense fallback={
             <div className="telon">
               <div className="dialogo"><p className="nada">Buscando…</p></div>
@@ -1291,6 +1330,7 @@ export default function App() {
             <Estadisticas onCerrar={closeDashboard} onSesionMuerta={sesionMuerta}
                           totalCartas={resumen.total} />
           </Suspense>
+          </ErrorBoundary>
         )}
 
         {preguntando && (

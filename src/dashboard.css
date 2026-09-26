@@ -18,10 +18,16 @@
    El panel del administrador. Sobrio a propósito: filas y barras, nada de
    tarjetitas con sombras — la app no tiene ese aire en ningún otro lado. */
 
+/* Sólo el ancho. El techo de alto y el scroll ya los pone `.dialogo` en estilos.css, y
+   repetirlos acá los ROMPÍA: aquella regla declara `max-height` dos veces a propósito
+   —`vh` de respaldo y `dvh` encima, porque en el teléfono `vh` cuenta la barra del
+   navegador como si no estuviera— y esta copia, con más especificidad y ahora además en
+   una hoja que Vite inyecta después, ganaba con el `vh` pelado. O sea que el panel era el
+   único diálogo sin el arreglo, y en apaisado el título y el botón Cerrar quedaban fuera
+   de la pantalla. Es la tercera vez en este proyecto que una regla anula a otra sin que
+   nada avise; antes de repetir una declaración, buscarla. */
 .dialogo.numeros {
   width: min(620px, 100%);
-  max-height: calc(100vh - 40px);
-  overflow-y: auto;
 }
 
 .dialogo.numeros h4 {
