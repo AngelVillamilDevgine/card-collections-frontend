@@ -161,7 +161,13 @@ test('las variantes que estan cargadas son las de las planillas', () => {
   const dela = (id) => variantesDe(catalogo.find((e) => e.id === id)).map((v) => v.nombre)
   assert.deepEqual(dela('ley-6'),
     ['Naranja', 'Diamante', 'Dorado', 'Verde', 'Plata', 'Rojo', 'Azul'])
+  assert.deepEqual(dela('ley-5'),
+    ['Dorado', 'Plata', 'Azul', 'Fucsia', 'Verde', 'Naranja', 'Holográfica'])
   assert.equal(dela('ley-personajes').length, 12, 'Personajes junta las dos planillas')
+  /* Holográfica y Holo glitter son distintas, no dos nombres de lo mismo. */
+  assert.ok(dela('ley-5').includes('Holográfica'))
+  assert.ok(dela('ley-personajes').includes('Holo glitter'))
+  assert.ok(!dela('ley-personajes').includes('Holográfica'))
   for (const n of ['Plata', 'Dorado', 'Holo glitter', 'Naranja']) {
     assert.ok(dela('ley-personajes').includes(n), `falta ${n} en Personajes`)
   }

@@ -10,7 +10,9 @@
     "'condicion': false apaga la pregunta de buen estado / perfecta / para reemplazar. En esta coleccion lo que se pregunta es la variante.",
     "Las variantes van POR EXPANSION, porque el vocabulario cambia segun el tramo: la Expansion 6 tiene siete y Personajes doce. Una expansion sin 'variantes' propias hereda las de la coleccion; si no hay ninguna, no tiene variantes.",
     "El 'id' va CORTO, de una a tres letras, porque entra en la clave de cada carta y la columna es VARCHAR(40); el 'nombre' puede ser largo porque no entra nunca. El 'corto' es lo que se dibuja en la esquina de la carta.",
-    "SALEN DE PLANILLAS DE COLECCIONISTAS, no de ninguna fuente publica: se buscaron en la web con seis consultas distintas y no existen en ningun lado. Angel paso dos fotos el 2026-09-26.",
+    "SALEN DE PLANILLAS DE COLECCIONISTAS, no de ninguna fuente publica: se buscaron en la web con seis consultas distintas y no existen en ningun lado. Angel paso las fotos el 2026-09-26.",
+    "OJO CON LA DIVISION: existe OTRA, la del checklist de la caja, que va en 7 series (1-176, 177-265, 266-401, 402-543, 544-679, 680-815, 816-902) y coincide con los cortes de la Cromeros vieja de 2007. Esta de aca sale del DORSO DE LOS SOBRES, y es la que usan las planillas de variantes: dicen '5ta expansion' para las 554-722, que cae entera en 551-726, y '6ta' para las 729-894, que cae entera en 727-902. Con la division en series esas planillas quedarian repartidas entre dos tramos cada una. Decidido con Angel el 2026-09-26.",
+    "'Holografica' (Expansion 5) y 'Holo glitter' (Personajes) son DISTINTAS, confirmado por Angel. Por eso tienen ids distintos: hol y hgl.",
     "OJO: estan cargadas las variantes QUE EXISTEN EN CADA EXPANSION, pero NO cuales le faltan a cada carta. Las planillas marcan en negro las que una carta no tiene (por ejemplo la 953 no viene en cyan ni en azul viento), y eso son 44 filas por 8 columnas transcriptas a mano de una imagen. Se decidio no hacerlo: un error ahi no se nota hasta que falta una carta. Asi que el dialogo ofrece todas las de la expansion.",
     "Podes editar este archivo para corregir rangos o agregar sets sin recompilar la app."
   ],
@@ -46,7 +48,16 @@
       "corto": "E5",
       "color": "#b8860b",
       "desde": 551,
-      "hasta": 726
+      "hasta": 726,
+      "variantes": [
+        { "id": "dor", "corto": "DO", "nombre": "Dorado" },
+        { "id": "pla", "corto": "PL", "nombre": "Plata" },
+        { "id": "azu", "corto": "AZ", "nombre": "Azul" },
+        { "id": "fuc", "corto": "FU", "nombre": "Fucsia" },
+        { "id": "ver", "corto": "VE", "nombre": "Verde" },
+        { "id": "nar", "corto": "NA", "nombre": "Naranja" },
+        { "id": "hol", "corto": "HO", "nombre": "Holográfica" }
+      ]
     },
     {
       "id": "ley-6",
@@ -75,7 +86,7 @@
       "variantes": [
         { "id": "pla", "corto": "PL", "nombre": "Plata" },
         { "id": "dor", "corto": "DO", "nombre": "Dorado" },
-        { "id": "hol", "corto": "HG", "nombre": "Holo glitter" },
+        { "id": "hgl", "corto": "HG", "nombre": "Holo glitter" },
         { "id": "nar", "corto": "NA", "nombre": "Naranja" },
         { "id": "azu", "corto": "AZ", "nombre": "Azul" },
         { "id": "mar", "corto": "MA", "nombre": "Marrón" },
