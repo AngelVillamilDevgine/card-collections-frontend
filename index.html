@@ -3,12 +3,16 @@
   <head>
     <meta charset="UTF-8" />
 
-    <!-- Un solo archivo, `async`, y las dos cosas son a propósito. Separado en dos
-         archivos el primer pintado se iba de 996 a 1304 ms: cada `<script src>` del <head>
-         compite en prioridad alta con la hoja de estilos, que es la que frena el pintado.
-         El porqué de cada decisión está en el archivo. -->
+    <!-- Atrapa `beforeinstallprompt`, que se dispara a los ~180 ms y una sola vez. Va
+         `async` porque un script clásico sin eso frena el parseo del HTML, y el bundle es
+         un módulo que sólo ejecuta cuando el parseo termina. El porqué está en el archivo,
+         incluido por qué el adelanto de los pedidos de la API que vivía ahí se fue. -->
     <script async src="./temprano.js"></script>
 
+    <!-- Abrir la conexión con la API mientras todavía se parsea el HTML: en 3G el apretón
+         de manos (DNS + TCP + TLS) son varios cientos de milisegundos que si no se pagan
+         recién con el primer pedido. Esto NO ejecuta JavaScript ni toca el hilo principal,
+         que es exactamente la diferencia con adelantar los pedidos a mano. -->
     <link rel="preconnect" href="https://api.cromeros.com.ar" crossorigin />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#f4a11d" />

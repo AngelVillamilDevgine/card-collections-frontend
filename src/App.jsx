@@ -520,17 +520,19 @@ export default function App() {
   fallidasRef.current = fallidas
 
   useEffect(() => {
-    /* El catálogo también sale adelantado desde `public/temprano.js`, antes de que
-       exista este código. Si está, se levanta; si no —en desarrollo, o si falló— se pide
-       como siempre. Se saca del objeto para que el reintento no sirva el mismo error. */
-    const warm = window.__dbzWarm
-    const adelantado = warm?.catalog
-    if (warm) warm.catalog = null
+    /* Con corte, igual que todos los pedidos de `almacenamiento.js`. Era el unico
+       `fetch` de la app sin techo de tiempo, y un pedido COLGADO no es lo mismo que uno
+       que falla: sin corte se quedaba para siempre en la pantalla de espera, que no tiene
+       ni botón de reintentar ni forma de salir. Con el corte cae en el `catch` de abajo,
+       que sí lo tiene. Los 15 s son los mismos que usa `pedir`. */
+    const corte = new AbortController()
+    const reloj = setTimeout(() => corte.abort(), 15000)
 
-    ;(adelantado ? adelantado.then((d) => d ?? Promise.reject(new Error('sin catálogo')))
-                 : fetch(new URL('data/expansiones.json', document.baseURI)).then((r) => r.json()))
+    fetch(new URL('data/expansiones.json', document.baseURI), { signal: corte.signal })
+      .then((r) => r.json())
       .then((raw) => setCatalogo(raw.expansiones.map((e) => ({ ...e, lista: numerosDe(e) }))))
       .catch(() => setError('No se pudo cargar el catálogo de cartas.'))
+      .finally(() => clearTimeout(reloj))
   }, [intento])
 
   /* ¿El token guardado sigue sirviendo? Si no, se muestra la pantalla de entrada.

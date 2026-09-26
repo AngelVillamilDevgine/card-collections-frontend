@@ -40,26 +40,13 @@ function recordarToken(t) {
    silencio todos los guardados siguientes de esa carta. */
 const CORTE = 15000
 
-/* Los pedidos que `public/temprano.js` largó antes de que existiera este código.
-   Cada uno se usa UNA sola vez: la segunda lectura de la colección —la del refresco al
-   volver a la pestaña— tiene que ir a buscar datos frescos, no servir los de la carga.
-
-   Se saca del objeto al tomarlo, así que no hay forma de servir dos veces lo mismo. */
-function tomarAdelantado(nombre) {
-  const warm = typeof window !== 'undefined' ? window.__dbzWarm : null
-  if (!warm || !warm[nombre]) return null
-  const pedido = warm[nombre]
-  warm[nombre] = null
-  return pedido
-}
-
 async function pedir(ruta, opciones = {}) {
   const t = token()
   let r
   const corte = new AbortController()
   const reloj = setTimeout(() => corte.abort(), CORTE)
   try {
-    r = opciones.adelantado ? await opciones.adelantado : await fetch(RAIZ + ruta, {
+    r = await fetch(RAIZ + ruta, {
       signal: corte.signal,
       ...opciones,
       headers: {
@@ -74,10 +61,6 @@ async function pedir(ruta, opciones = {}) {
   } finally {
     clearTimeout(reloj)
   }
-
-  /* El adelantado se resuelve con `null` si falló: se trata igual que cualquier otro
-     error de red, para que el camino sea uno solo. */
-  if (!r) throw new ErrorApi('Sin conexión con el servidor.')
 
   if (r.status === 401) {
     // El token venció o lo revocaron: no sirve de nada guardarlo.
@@ -121,7 +104,7 @@ export async function salir() {
 // Al abrir: ¿el token guardado sigue sirviendo? Si no, se muestra la pantalla de entrada.
 export async function quienSoy() {
   if (!token()) return null
-  return pedir('/yo' + marcaApp(), { adelantado: tomarAdelantado('me') })
+  return pedir('/yo' + marcaApp())
     .then((d) => ({ usuario: d.usuario, admin: !!d.admin }))
     /* `null` quiere decir UNA sola cosa: no hay sesión, andá al formulario. Antes se
        tragaba cualquier error y devolvía null igual, así que el servidor caído, un
@@ -138,10 +121,7 @@ export const estadisticas = () => pedir('/admin/resumen')
 
 /* ---------------------------------- colección ---------------------------------- */
 
-/* La primera lectura usa el pedido que ya salió antes de que existiera este módulo; las
-   siguientes —el refresco al volver a la pestaña, o después de restaurar— piden de nuevo,
-   que es justamente para lo que están. */
-export const leerColeccion = () => pedir('/coleccion', { adelantado: tomarAdelantado('collection') })
+export const leerColeccion = () => pedir('/coleccion')
 
 // Un toque manda sólo la carta que cambió, no las 1936.
 // keepalive deja que el pedido termine aunque se cierre la pestaña: se usa para
