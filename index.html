@@ -47,7 +47,26 @@
     <title>Mi colección de Dragon Ball Z</title>
   </head>
   <body>
-    <div id="root"></div>
+    <!-- El cartel de espera va ACÁ y no sólo en React, y es el cambio que más bajó el
+         primer pintado de toda la app.
+
+         La app se dibuja del lado del navegador, así que con `#root` vacío no hay
+         literalmente nada que pintar hasta que bajen los 59 KB del bundle, los parsee y
+         React monte. Medido en 3G con la CPU 6 veces más lenta, el primer pintado daba
+         1156 ms, y lo único que aparecía en ese momento era esta misma palabra — el
+         `if (cuenta === undefined)` de App.jsx. O sea que se esperaba el bundle entero
+         para mostrar un cartel de espera.
+
+         El CSS ya está en el head como <link> (lo pone Vite), y es de los que frenan el
+         pintado, así que cuando el navegador puede pintar algo ya tiene `.hoja` y
+         `.cargando`: se ve idéntico a lo que dibuja React, y por eso al montar no hay
+         ningún salto. React limpia lo que haya adentro del contenedor cuando monta, que
+         es lo que corresponde: esto es render del lado del cliente, no hidratación, así
+         que no hay que calzar nada ni agregar `suppressHydrationWarning`.
+
+         TIENE QUE DECIR LO MISMO QUE App.jsx. Si algún día cambia el texto o las clases
+         de ese estado, esto queda desincronizado y se ve un parpadeo al montar. -->
+    <div id="root"><div class="hoja"><p class="cargando">Cargando…</p></div></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
