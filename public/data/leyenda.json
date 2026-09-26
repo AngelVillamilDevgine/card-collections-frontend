@@ -1,0 +1,85 @@
+{
+  "coleccion": "Dragon Ball Z Leyenda",
+  "editorial": "Flash Gondor (Argentina)",
+  "anios": "2025-2026",
+  "condicion": false,
+  "notas": [
+    "Es la reedicion de la coleccion de Cromeros de 2007, pero la hace OTRA empresa: Flash Gondor. Va como coleccion aparte y no se compara con la vieja.",
+    "1078 cartas numeradas, corrida exacta del 1 al 1078 sin repetidos ni huecos. Los rangos salen del dorso de los sobres, que es la unica fuente que no se contradice. De 727 en adelante hay una sola fuente: confirmar leyendo el dorso de un sobre de Expansion 6 y otro de Personajes.",
+    "Las cartas F y las ediciones limitadas estan FUERA de la corrida y llevan 'fuera': true. La F504 no es una variante de la 504: son dos cartas distintas, y por eso viven en expansiones distintas.",
+    "'condicion': false apaga la pregunta de buen estado / perfecta / para reemplazar. En esta coleccion lo que se pregunta es la variante.",
+    "Las variantes se agregan a 'variantes' a medida que aparecen. El 'id' va CORTO, de una a tres letras, porque entra en la clave de cada carta y la columna es VARCHAR(40); el 'nombre' puede ser largo porque no entra nunca.",
+    "Podes editar este archivo para corregir rangos o agregar sets sin recompilar la app."
+  ],
+  "variantes": [],
+  "expansiones": [
+    {
+      "id": "ley-inicial",
+      "nombre": "Mazo inicial",
+      "corto": "MI",
+      "color": "#e8912d",
+      "desde": 1,
+      "hasta": 176
+    },
+    {
+      "id": "ley-2-3",
+      "nombre": "Expansiones 2 y 3",
+      "corto": "E23",
+      "color": "#4472c4",
+      "desde": 177,
+      "hasta": 384
+    },
+    {
+      "id": "ley-4",
+      "nombre": "Expansión 4",
+      "corto": "E4",
+      "color": "#c00000",
+      "desde": 385,
+      "hasta": 550
+    },
+    {
+      "id": "ley-5",
+      "nombre": "Expansión 5",
+      "corto": "E5",
+      "color": "#b8860b",
+      "desde": 551,
+      "hasta": 726
+    },
+    {
+      "id": "ley-6",
+      "nombre": "Expansión 6",
+      "corto": "E6",
+      "color": "#548235",
+      "desde": 727,
+      "hasta": 902
+    },
+    {
+      "id": "ley-personajes",
+      "nombre": "Personajes",
+      "corto": "PJ",
+      "color": "#7030a0",
+      "desde": 903,
+      "hasta": 1078
+    },
+    {
+      "id": "ley-f",
+      "nombre": "Cartas F",
+      "corto": "F",
+      "color": "#2f5597",
+      "desde": 504,
+      "hasta": 513,
+      "prefijo": "F",
+      "fuera": true
+    },
+    {
+      "id": "ley-unicas",
+      "nombre": "Ediciones limitadas",
+      "corto": "EL",
+      "color": "#404040",
+      "desde": 1,
+      "hasta": 9,
+      "prefijo": "Leyenda ",
+      "fuera": true
+    }
+  ]
+}
