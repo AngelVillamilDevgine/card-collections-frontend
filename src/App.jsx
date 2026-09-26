@@ -13,7 +13,7 @@ import Exportar from './Exportar'
 const Estadisticas = lazy(() => import('./Estadisticas'))
 import Instalar from './Instalar'
 import { ErrorBoundary } from './boundary'
-import { COLLECTIONS, DEFAULT_COLLECTION, readCollection, rememberCollection, loadCatalogs } from './collections'
+import { COLLECTIONS, DEFAULT_COLLECTION, readCollection, rememberCollection, loadCatalogs, slotKey, slotsOf, pointsToASlot } from './collections'
 import {
   ErrorApi,
   descargar, restaurar, quienSoy, salir,
@@ -94,7 +94,7 @@ const DESLIZ = 10
    cada render. Por eso la carta les pasa su clave al llamarlos, en vez de recibir dos
    flechas que ya la tengan adentro: una flecha nueva por carta es una prop nueva por
    carta, y el memo no ahorraría nada. */
-const Carta = memo(function Carta({ clave, numero, estado, cantidad, sinGuardar, onTocar, onMantener }) {
+const Carta = memo(function Carta({ clave, numero, variante, estado, cantidad, sinGuardar, onTocar, onMantener }) {
   const reloj = useRef(null)
   const fueLargo = useRef(false)  // ya pasaron los 420 ms: el click que venga no cuenta
   const cobrable = useRef(false)  // ...y además todavía se puede cobrar al soltar
@@ -172,6 +172,9 @@ const Carta = memo(function Carta({ clave, numero, estado, cantidad, sinGuardar,
   const titulo = cantidad
     ? `${etiqueta(estado, cantidad)} · tenés ${cantidad}`
     : 'Me falta'
+  /* El nombre de la variante va en la etiqueta hablada y el rótulo corto en la esquina.
+     Con lector de pantalla, «Carta 551» dos veces seguidas no distingue nada. */
+  const comoSeLlama = variante ? `Carta ${numero}, ${variante.nombre}` : `Carta ${numero}`
 
   /* Sin `title`: decía lo mismo que el aria-label, y varios lectores de pantalla leen la
      etiqueta y después la descripción, o sea «Carta 5. Me falta. Me falta» — 1936 veces.
@@ -179,8 +182,8 @@ const Carta = memo(function Carta({ clave, numero, estado, cantidad, sinGuardar,
      estado y el número chico de la esquina es la cantidad. */
   return (
     <button
-      className={`carta ${claseDe(estado, cantidad)}${sinGuardar ? ' sin-guardar' : ''}`}
-      aria-label={`Carta ${numero}. ${titulo}${sinGuardar ? '. Sin guardar' : ''}`}
+      className={`carta ${claseDe(estado, cantidad)}${sinGuardar ? ' sin-guardar' : ''}${variante ? ' variante' : ''}`}
+      aria-label={`${comoSeLlama}. ${titulo}${sinGuardar ? '. Sin guardar' : ''}`}
       /* La forma estándar de anunciar un atajo de teclado. Restar con Backspace no
          estaba dicho en ningún lado: ni en la ayuda, ni en la etiqueta. Para quien usa
          el teclado, el camino era invisible. */
@@ -195,6 +198,7 @@ const Carta = memo(function Carta({ clave, numero, estado, cantidad, sinGuardar,
       onClick={() => { if (!fueLargo.current) onTocar(clave, numero) }}
     >
       {numero}
+      {variante && <b className="marca-variante">{variante.corto ?? variante.id.toUpperCase()}</b>}
       {cantidad > 1 && <b className="repes">{cantidad}</b>}
     </button>
   )
@@ -238,6 +242,47 @@ function Pregunta({ numero, onElegir, onCerrar }) {
 
    Ahora muestra los dos números antes de tocar nada. Los números importan más que el
    cartel: "vas a perder 861 cartas" se entiende; "¿estás seguro?" no dice nada. */
+/* «¿Cuál tenés?» — la variante EN VEZ de la condición, que es lo que pidió Angel para
+   Leyenda. Es el mismo diálogo que en Cromeros pregunta el estado, con otra pregunta
+   adentro, y NO un cuarto gesto: la regla de la app es que se pregunta cuando hay más de
+   una respuesta posible.
+
+   Las opciones salen del catálogo, así que agregar una variante es editar un json y no
+   redeployar nada. La primera fila es la base: ahí vive todo lo que marcaste antes de que
+   el vocabulario existiera, y es la respuesta honesta cuando no sabés cuál es.
+
+   Cada opción muestra cuántas tenés de esa: sin eso, con tres fondos parecidos, no hay
+   forma de acordarse de cuál ya cargaste. */
+function AskVariant({ numero, variantes, cuentas, onElegir, onCerrar }) {
+  const caja = useRef(null)
+  const abrio = useRef(document.activeElement)
+
+  usarEscape(onCerrar)
+  useEffect(() => atraparFoco(caja.current, abrio.current), [])
+
+  const fila = (id, nombre, autoFoco) => (
+    <button key={id ?? 'base'} className="opcion simple" onClick={() => onElegir(id)} autoFocus={autoFoco}>
+      {nombre}
+      {(cuentas[id ?? ''] ?? 0) > 0 && <b>{cuentas[id ?? '']}</b>}
+    </button>
+  )
+
+  return (
+    <div className="telon" onClick={onCerrar}>
+      <div className="dialogo" role="dialog" aria-modal="true" aria-label={`Carta ${numero}`}
+           ref={caja} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
+        <h3>Carta {numero}</h3>
+        <p>¿Cuál tenés?</p>
+        {fila(null, 'Sin clasificar', true)}
+        {variantes.map((v) => fila(v.id, v.nombre, false))}
+        <p className="salidas">
+          <button className="cancelar" onClick={onCerrar}>Cancelar</button>
+        </p>
+      </div>
+    </div>
+  )
+}
+
 /* Sacar las huérfanas es el SEGUNDO camino que borra en masa, y hasta hoy era un
    botón-enlace que borraba N cartas de un click: sin preguntar, sin decir cuáles y sin
    bajar una copia — las tres cosas que restaurar sí hace, en la misma pantalla.
@@ -547,6 +592,7 @@ export default function App() {
   const [avisoAlias, setAvisoAlias] = useState(null)
   const [cambiandoClave, setCambiandoClave] = useState(false)
   const [sacando, setSacando] = useState(false)
+  const [preguntandoVariante, setPreguntandoVariante] = useState(null)
 
   /* Atrás y adelante del navegador mueven el hash, y de ahí sale si el panel está
      abierto. Un solo oyente para los dos sentidos. */
@@ -612,6 +658,11 @@ export default function App() {
     : disponibles[0]?.id
   const album = coleccionViva ? catalogos[coleccionViva] : null
   const catalogo = album?.expansiones ?? null
+
+  /* El vocabulario de variantes de la colección que estoy mirando. Vacío en Cromeros y,
+     hasta que Angel cargue la primera, también en Leyenda — y con la lista vacía la app
+     se comporta exactamente como antes. */
+  const variantes = album?.variantes ?? []
 
   function pickCollection(id) {
     setCollection(id)
@@ -1001,11 +1052,7 @@ export default function App() {
   const huerfanas = useMemo(() => {
     if (!catalogos) return []
     if (COLLECTIONS.some((c) => !catalogos[c.id])) return []
-    const delCatalogo = new Set()
-    for (const col of Object.values(catalogos))
-      for (const exp of col.expansiones)
-        for (const n of exp.lista) delCatalogo.add(`${exp.id}:${n}`)
-    return Object.keys(cantidades).filter((c) => !delCatalogo.has(c))
+    return Object.keys(cantidades).filter((c) => !pointsToASlot(c, catalogos))
   }, [catalogos, cantidades])
 
   /* id de expansión -> su rótulo corto, de TODAS las colecciones: lo usa el diálogo de
@@ -1034,22 +1081,40 @@ export default function App() {
     const cuenta = { bien: 0, perfecta: 0, reemplazar: 0 }
     const porFiltro = Object.fromEntries(FILTROS.map((f) => [f.id, 0]))
 
+    /* `total` son los HUECOS del álbum: las variantes nunca son huecos, porque nadie sabe
+       cuántas existen. `tengo` es cuántos huecos tienen algo — si no, tener la 551 en dos
+       fondos daría «1079 de 1078». Y `sobrantes` se cuenta POR CASILLERO: la 551 mate una
+       y la 551 estrellada una son cero sobrantes, que es la verdad — no te sobra nada,
+       tenés las dos.
+
+       Con un solo casillero por hueco (o sea, todo Cromeros para siempre) las tres
+       fórmulas dan exactamente el número de antes, sin ninguna rama especial. */
     for (const exp of catalogo) {
       for (const n of exp.lista) {
-        const clave = `${exp.id}:${n}`
-        const cant = cantidades[clave] ?? 0
-        const est = estados[clave]
         total++
-        if (cant > 0) {
-          tengo++
-          sobrantes += cant - 1
-          cuenta[est ?? 'bien']++
+        let algo = false
+        /* LOS CONTADORES DE LOS FILTROS SON DE HUECOS, NO DE CASILLEROS, y hace falta
+           para que los números cierren entre sí. Contando casilleros, teniendo la 2 en
+           dos fondos el chip «Todas» decía «Colección 1099» al lado de un «4 de 1097»,
+           y 1093 + 4 no daba 1099. Un hueco cuenta para un filtro si ALGUNO de sus
+           casilleros pasa, que además es lo que se ve: la carta aparece en el listado. */
+        const pasaElHueco = Object.fromEntries(FILTROS.map((f) => [f.id, false]))
+        for (const { clave } of slotsOf(exp, n, variantes, cantidades)) {
+          const cant = cantidades[clave] ?? 0
+          const est = estados[clave]
+          if (cant > 0) {
+            algo = true
+            sobrantes += cant - 1
+            cuenta[est ?? 'bien']++
+          }
+          for (const f of FILTROS) if (f.pasa(cant, est)) pasaElHueco[f.id] = true
         }
-        for (const f of FILTROS) if (f.pasa(cant, est)) porFiltro[f.id]++
+        for (const f of FILTROS) if (pasaElHueco[f.id]) porFiltro[f.id]++
+        if (algo) tengo++
       }
     }
     return { total, tengo, sobrantes, porFiltro, ...cuenta }
-  }, [catalogo, estados, cantidades])
+  }, [catalogo, variantes, estados, cantidades])
 
   /* La columna «Álbum» del panel es cuánto lleva cada uno de TODO lo que hay para
      marcar, no de la colección que yo esté mirando: `g.cartas` cuenta las filas de esa
@@ -1136,7 +1201,38 @@ export default function App() {
       if (!album?.condicion) return aplicar(clave, 1, null)
       return setPreguntando({ clave, numero })
     }
+    /* Ya la tenés. En Cromeros eso es «suma una repetida» y no se pregunta nada, porque
+       «a la repetida no le corresponde un estado propio». En una colección CON variantes
+       ese motivo es falso: a la repetida sí le corresponde algo propio, cuál de las dos
+       es. Misma regla, caso distinto. */
+    if (variantes.length) {
+      const hueco = huecoDe(clave)
+      if (hueco) return setPreguntandoVariante(hueco)
+    }
     aplicar(clave, tiene + 1, vivo.current.estados[clave])
+  }
+
+  /* De qué hueco del álbum es este casillero. La parte de la clave anterior a los dos
+     puntos puede ser el id de la expansión o ese id con el sufijo de una variante, y los
+     ids de expansión llevan guiones (`ley-2-3`), así que no se puede partir por guion: se
+     busca contra el catálogo, que es quien sabe. */
+  function huecoDe(clave) {
+    const corte = clave.lastIndexOf(':')
+    const expParte = clave.slice(0, corte)
+    const n = Number(clave.slice(corte + 1))
+    for (const exp of catalogo ?? []) {
+      if (expParte === exp.id || expParte.startsWith(exp.id + '-')) return { exp, n }
+    }
+    return null
+  }
+
+  /* Elegiste una variante: se le suma una a ESE casillero. */
+  function elegirVariante(id) {
+    const hueco = preguntandoVariante
+    setPreguntandoVariante(null)
+    if (!hueco) return
+    const clave = slotKey(hueco.exp.id, hueco.n, id)
+    aplicar(clave, (vivo.current.cantidades[clave] ?? 0) + 1, vivo.current.estados[clave] ?? null)
   }
 
   /* Mantener apretado: resta una. Al llegar a cero se olvida también la condición. */
@@ -1507,13 +1603,19 @@ export default function App() {
 
         {catalogo.map((exp) => {
           const activo = FILTROS.find((f) => f.id === filtro)
-          const visibles = exp.lista.filter((n) => {
-            const clave = `${exp.id}:${n}`
-            return activo.pasa(cantidades[clave] ?? 0, estados[clave])
-          })
+          /* Un hueco se dibuja si ALGUNO de sus casilleros pasa el filtro. */
+          const visibles = exp.lista.filter((n) =>
+            slotsOf(exp, n, variantes, cantidades).some((s) =>
+              activo.pasa(cantidades[s.clave] ?? 0, estados[s.clave])
+            )
+          )
           if (!visibles.length) return null
 
-          const tengoAca = exp.lista.filter((n) => cantidades[`${exp.id}:${n}`]).length
+          /* Y la cuenta de la banda es de HUECOS, no de casilleros: «180 de 176» no
+             significaría nada. */
+          const tengoAca = exp.lista.filter((n) =>
+            slotsOf(exp, n, variantes, cantidades).some((s) => (cantidades[s.clave] ?? 0) > 0)
+          ).length
           const plegada = plegadas.has(exp.id)
           return (
             <section className={`expansion${plegada ? ' plegada' : ''}`} key={exp.id}>
@@ -1547,21 +1649,21 @@ export default function App() {
               </div>
               {!plegada && (
               <div className="grilla">
-                {visibles.map((n) => {
-                  const clave = `${exp.id}:${n}`
-                  return (
+                {visibles.flatMap((n) =>
+                  slotsOf(exp, n, variantes, cantidades).map(({ clave, variante }) => (
                     <Carta
                       key={clave}
                       clave={clave}
                       numero={n}
+                      variante={variante}
                       estado={estados[clave]}
                       cantidad={cantidades[clave] ?? 0}
                       sinGuardar={fallidas.has(clave)}
-                    onTocar={alTocar}
+                      onTocar={alTocar}
                       onMantener={alMantener}
                     />
-                  )
-                })}
+                  ))
+                )}
               </div>
               )}
             </section>
@@ -1580,6 +1682,22 @@ export default function App() {
                exportando exactamente el mismo texto que antes. */
             encabezado={coleccionViva === DEFAULT_COLLECTION ? null : (album?.coleccion ?? null)}
             onCerrar={() => setExportando(false)}
+          />
+        )}
+
+        {preguntandoVariante && (
+          <AskVariant
+            numero={preguntandoVariante.n}
+            variantes={variantes}
+            cuentas={Object.fromEntries([
+              ['', cantidades[slotKey(preguntandoVariante.exp.id, preguntandoVariante.n)] ?? 0],
+              ...variantes.map((v) => [
+                v.id,
+                cantidades[slotKey(preguntandoVariante.exp.id, preguntandoVariante.n, v.id)] ?? 0,
+              ]),
+            ])}
+            onElegir={elegirVariante}
+            onCerrar={() => setPreguntandoVariante(null)}
           />
         )}
 

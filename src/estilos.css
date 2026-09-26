@@ -296,6 +296,29 @@ button { cursor: pointer; }
 
 .carta { position: relative; }
 
+/* El rótulo corto de la variante, abajo a la izquierda — la esquina contraria al contador
+   de repetidas, que va arriba a la derecha, así que nunca se pisan.
+
+   Va en el borde y no adentro del número porque el número es lo que se busca con el ojo
+   cuando tenés el álbum adelante: la variante es el dato de después. Y es texto, no un
+   color: dos fondos parecidos a 40 píxeles no se distinguen, y además el color ya está
+   usado para decir si la tenés. */
+.carta .marca-variante {
+  position: absolute;
+  bottom: 2px;
+  left: 3px;
+  font-size: 9.5px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.03em;
+  opacity: 1;
+  color: inherit;
+}
+
+/* Un contorno punteado, para que se lea como «la misma carta, otra versión» y no como una
+   carta distinta. No cambia el color de fondo: ése dice si la tenés, y eso no cambia. */
+.carta.variante { border-style: dashed; }
+
 .carta .repes {
   position: absolute;
   top: 3px;
