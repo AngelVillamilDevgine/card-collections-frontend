@@ -38,6 +38,61 @@ export function rememberCollection(id) {
   try { localStorage.setItem(CLAVE, id) } catch { /* modo privado */ }
 }
 
+/* LAS VARIANTES VAN POR GRUPO DE CARTAS, no por expansión, y esto es el corazón del
+ * diseño — la primera versión lo tuvo mal y el bug se veía en la pantalla.
+ *
+ * Decía: «esta expansión tiene estas doce variantes», y entonces las 176 cartas de
+ * Personajes ofrecían las doce. Angel lo vio en dos minutos: «la 1069 no tiene variantes,
+ * yo no te pasé nada, y vos estás suponiendo que tiene un montón», y después «en la 957
+ * la app tiene muchas más variantes de las que corresponde». **Lo normal es que sólo
+ * algunas cartas tengan**: de las 176 del mazo inicial, 48.
+ *
+ * Y no alcanza con una lista de cartas por expansión, porque EL VOCABULARIO CAMBIA
+ * ADENTRO DE LA MISMA EXPANSIÓN. Las 36 cartas de «Metalizadas» se parten en dos bloques
+ * de 18: uno sale en violeta y verde, el otro en azul viento y cyan, y ninguna carta sale
+ * en los cuatro. Angel cortó la discusión de raz: «está diferenciado porque son diferentes
+ * las variantes que vienen en la caja y en los sobres, estás buscando normalizar algo no
+ * normalizado». Así que el grupo ES el dato, y se copia de la planilla tal cual.
+ *
+ * Una carta puede estar en más de un grupo — en la 4ta, los colores y el glitter son dos
+ * planillas distintas — y ahí sus variantes son la unión. Una expansión con `variantes`
+ * sueltas y sin grupos se lee como «todas sus cartas, estas variantes»; sin ninguna de
+ * las dos no tiene variantes, que es todo Cromeros. */
+function withVariants(e, raw) {
+  const grupos = (e.grupos ?? []).map((g) => ({
+    variantes: g.variantes ?? [],
+    cartas: new Set(g.cartas ?? []),
+  }))
+  const sueltas = e.variantes ?? raw.variantes ?? []
+
+  /* Todas las declaradas de la expansión, en orden y sin repetir. Es lo que se recorre
+     para DIBUJAR los casilleros que ya tenés, y por eso es la unión y no lo de cada
+     carta: una fila guardada se muestra siempre, aunque el catálogo haya dejado de creer
+     que esa carta puede tenerla. Esconder algo que el usuario cargó sería peor que
+     mostrar de más, y es el mismo criterio que `pointsToASlot`. */
+  const vistas = new Map()
+  for (const v of sueltas) vistas.set(v.id, v)
+  for (const g of grupos) for (const v of g.variantes) if (!vistas.has(v.id)) vistas.set(v.id, v)
+
+  return { ...e, lista: numbersOf(e), grupos, sueltas, variantes: [...vistas.values()] }
+}
+
+/* Las variantes que ESTA carta puede tener: lo que decide si se pregunta y qué se ofrece.
+   Distinto de `exp.variantes`, que es todo lo declarado en la expansión y sirve para
+   dibujar. Vacío quiere decir «esta carta no tiene variantes», y es el caso normal. */
+export function variantsFor(exp, n) {
+  if (!exp) return []
+  if (!exp.grupos?.length) return exp.sueltas ?? exp.variantes ?? []
+  const vistas = new Map()
+  for (const g of exp.grupos) {
+    if (!g.cartas.has(n)) continue
+    for (const v of g.variantes) if (!vistas.has(v.id)) vistas.set(v.id, v)
+  }
+  /* Las sueltas, si las hay, valen para todas las cartas de la expansión. */
+  for (const v of exp.sueltas ?? []) if (!vistas.has(v.id)) vistas.set(v.id, v)
+  return [...vistas.values()]
+}
+
 /* LA CLAVE DE UN CASILLERO, y acá está todo el diseño de las variantes.
 
    Una variante NO es una columna nueva ni un campo nuevo: es un SUFIJO en el id de la
@@ -70,8 +125,45 @@ export function slotsOf(exp, n, variantes, cantidades) {
      bajando la base a cero después de clasificar, y sin esta línea quedaba una carta en
      blanco diciendo «me falta» justo al lado de la misma carta que sí tenés — y el
      filtro «Me faltan» la contaba. Para volver a tener una sin clasificar se toca
-     cualquier casillero del hueco y se elige «Sin clasificar». */
+     cualquier casillero del hueco y se elige «Común». */
   return conBase ? [{ clave: base, variante: null }, ...deVariantes] : deVariantes
+}
+
+/* Lo que hay que DIBUJAR en una expansión: las variantes declaradas MÁS las que
+ * aparezcan en tus datos sin estar declaradas.
+ *
+ * Es la red que deja corregir el catálogo sin que se pierda nada de vista. Las planillas
+ * se leen de fotos y el vocabulario se va a seguir corrigiendo — ya pasó: «holo glitter»
+ * en Personajes resultó ser «holográfica» y cambió de id. Sin esto, una fila guardada con
+ * el id viejo dejaba de dibujarse: no estaba en la grilla, no la ofrecía el pie de
+ * huérfanas — que a propósito NO las cuenta como huérfanas, ver `pointsToASlot`— y
+ * seguía ocupando una fila en la base. Invisible, que es peor que borrada.
+ *
+ * El rótulo sale del propio id, en mayúscula. No es lindo, y es justamente la señal de
+ * que a esa variante le falta su renglón en el catálogo. */
+export function drawableVariants(catalogo, cantidades) {
+  /* De más largo a más corto: así `ley-6-dor:824` se lee contra `ley-6` y no contra un
+     hipotético `ley` que fuera prefijo suyo. */
+  const porLargo = [...(catalogo ?? [])].sort((a, b) => b.id.length - a.id.length)
+  const extra = new Map()
+  for (const clave of Object.keys(cantidades ?? {})) {
+    if (!((cantidades[clave] ?? 0) > 0)) continue
+    const corte = clave.lastIndexOf(':')
+    if (corte < 0) continue
+    const parte = clave.slice(0, corte)
+    const exp = porLargo.find((e) => parte.startsWith(e.id + '-'))
+    if (!exp) continue
+    const id = parte.slice(exp.id.length + 1)
+    if (exp.variantes.some((v) => v.id === id)) continue
+    if (!extra.has(exp.id)) extra.set(exp.id, new Map())
+    extra.get(exp.id).set(id, { id, corto: id.toUpperCase(), nombre: id.toUpperCase() })
+  }
+  const salida = {}
+  for (const exp of catalogo ?? []) {
+    const suyas = extra.get(exp.id)
+    salida[exp.id] = suyas ? [...exp.variantes, ...suyas.values()] : exp.variantes
+  }
+  return salida
 }
 
 /* ¿Esta clave apunta a un hueco que existe? Se usa para las huérfanas, y la respuesta
@@ -119,20 +211,7 @@ export function loadCatalogs(signal) {
         .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
         .then((raw) => [c.id, {
           ...raw,
-          /* LAS VARIANTES SON POR EXPANSIÓN, y eso no es una generalización gratuita: las
-             planillas de Leyenda tienen vocabularios distintos según el tramo. La
-             Expansión 6 va con naranja / diamante / dorado / verde / plata / rojo / azul, y
-             Personajes suma holo glitter, marrón, rosa vino, matrix, cyan, azul viento y
-             fucsia. Una sola lista para toda la colección ofrecería catorce opciones de
-             las cuales la mitad no existen para esa carta.
-
-             Una expansión sin `variantes` propias hereda las de la colección, y si tampoco
-             hay, no tiene ninguna — que es todo Cromeros. */
-          expansiones: raw.expansiones.map((e) => ({
-            ...e,
-            lista: numbersOf(e),
-            variantes: e.variantes ?? raw.variantes ?? [],
-          })),
+          expansiones: raw.expansiones.map((e) => withVariants(e, raw)),
           /* Por omisión la colección usa la condición (buen estado / perfecta / para
              reemplazar). Leyenda dice `false` y ahí lo que se pregunta es la variante. */
           condicion: raw.condicion !== false,

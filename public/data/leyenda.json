@@ -5,15 +5,17 @@
   "condicion": false,
   "notas": [
     "Es la reedicion de la coleccion de Cromeros de 2007, pero la hace OTRA empresa: Flash Gondor. Va como coleccion aparte y no se compara con la vieja.",
-    "1078 cartas numeradas, corrida exacta del 1 al 1078 sin repetidos ni huecos. Los rangos salen del dorso de los sobres, que es la unica fuente que no se contradice. De 727 en adelante hay una sola fuente: confirmar leyendo el dorso de un sobre de Expansion 6 y otro de Personajes.",
+    "1078 cartas numeradas, corrida exacta del 1 al 1078 sin repetidos ni huecos. Los rangos salen del dorso de los sobres, que es la unica fuente que no se contradice.",
     "Las cartas F y las ediciones limitadas estan FUERA de la corrida y llevan 'fuera': true. La F504 no es una variante de la 504: son dos cartas distintas, y por eso viven en expansiones distintas.",
     "'condicion': false apaga la pregunta de buen estado / perfecta / para reemplazar. En esta coleccion lo que se pregunta es la variante.",
-    "Las variantes van POR EXPANSION, porque el vocabulario cambia segun el tramo: la Expansion 6 tiene siete y Personajes doce. Una expansion sin 'variantes' propias hereda las de la coleccion; si no hay ninguna, no tiene variantes.",
+    "LAS VARIANTES VAN POR GRUPO DE CARTAS, no por expansion. Cada 'grupo' es un bloque de una planilla: sus 'cartas' y las 'variantes' en las que esas cartas salieron. Una carta que no esta en ningun grupo NO TIENE VARIANTES, y es el caso normal: de las 176 del mazo inicial, 48 tienen. Una carta puede estar en mas de un grupo y ahi sus variantes son la union.",
+    "NO HAY UN VOCABULARIO POR EXPANSION QUE DESCUBRIR, y buscarlo es el error. Angel: 'esta diferenciado porque son diferentes las variantes que vienen en la caja y en los sobres, estas buscando normalizar algo no normalizado'. En Personajes las mismas 36 cartas se parten en dos bloques de 18: uno sale en violeta y verde, el otro en azul viento y cyan, y ninguna carta sale en los cuatro.",
+    "Una expansion con 'variantes' sueltas en vez de grupos se lee como 'todas sus cartas, estas variantes'. Se usa solo mientras no esta transcripta la planilla.",
     "El 'id' va CORTO, de una a tres letras, porque entra en la clave de cada carta y la columna es VARCHAR(40); el 'nombre' puede ser largo porque no entra nunca. El 'corto' es lo que se dibuja en la esquina de la carta.",
     "SALEN DE PLANILLAS DE COLECCIONISTAS, no de ninguna fuente publica: se buscaron en la web con seis consultas distintas y no existen en ningun lado. Angel paso las fotos el 2026-09-26.",
     "OJO CON LA DIVISION: existe OTRA, la del checklist de la caja, que va en 7 series (1-176, 177-265, 266-401, 402-543, 544-679, 680-815, 816-902) y coincide con los cortes de la Cromeros vieja de 2007. Esta de aca sale del DORSO DE LOS SOBRES, y es la que usan las planillas de variantes: dicen '5ta expansion' para las 554-722, que cae entera en 551-726, y '6ta' para las 729-894, que cae entera en 727-902. Con la division en series esas planillas quedarian repartidas entre dos tramos cada una. Decidido con Angel el 2026-09-26.",
-    "'Holografica' (Expansion 5) y 'Holo glitter' (Personajes) son DISTINTAS, confirmado por Angel. Por eso tienen ids distintos: hol y hgl.",
-    "OJO: estan cargadas las variantes QUE EXISTEN EN CADA EXPANSION, pero NO cuales le faltan a cada carta. Las planillas marcan en negro las que una carta no tiene (por ejemplo la 953 no viene en cyan ni en azul viento), y eso son 44 filas por 8 columnas transcriptas a mano de una imagen. Se decidio no hacerlo: un error ahi no se nota hasta que falta una carta. Asi que el dialogo ofrece todas las de la expansion.",
+    "'Holografica' y 'Holo glitter' son DISTINTAS, confirmado por Angel. Por eso hol y hgl.",
+    "LO QUE FALTA CONFIRMAR: (a) en el mazo inicial, la 2-3, la 4ta, la 5ta y la 6ta esta transcripta la lista de cartas y el vocabulario, pero NO que casillas estan en negro, asi que esas cartas ofrecen todas las variantes de su planilla y pueden ofrecer alguna de mas; Personajes si esta completa. (b) la planilla GLITTERS de la 4ta no esta cargada. (c) esa misma planilla lista F504 a F515 y aca hay F504 a F513.",
     "Podes editar este archivo para corregir rangos o agregar sets sin recompilar la app."
   ],
   "variantes": [],
@@ -24,7 +26,29 @@
       "corto": "MI",
       "color": "#e8912d",
       "desde": 1,
-      "hasta": 176
+      "hasta": 176,
+      "grupos": [
+        {
+          "planilla": "1RA (falta leer las casillas en negro)",
+          "variantes": [
+            { "id": "dor", "corto": "DO", "nombre": "Dorado" },
+            { "id": "pla", "corto": "PL", "nombre": "Plata" },
+            { "id": "azu", "corto": "AZ", "nombre": "Azul" },
+            { "id": "tur", "corto": "TU", "nombre": "Turquesa" },
+            { "id": "roj", "corto": "RO", "nombre": "Rojo" },
+            { "id": "vio", "corto": "VI", "nombre": "Violeta" },
+            { "id": "ver", "corto": "VE", "nombre": "Verde" },
+            { "id": "mar", "corto": "MA", "nombre": "Marrón" },
+            { "id": "ros", "corto": "RS", "nombre": "Rosa" }
+          ],
+          "cartas": [
+            1, 2, 3, 4, 11, 12, 14, 18, 20, 22, 23, 25, 27, 33, 36, 42, 45, 55,
+            56, 59, 63, 66, 78, 88, 91, 93, 99, 102, 103, 119, 130, 131, 132,
+            133, 134, 135, 136, 143, 148, 149, 150, 152, 153, 154, 155, 160,
+            171, 175
+          ]
+        }
+      ]
     },
     {
       "id": "ley-2-3",
@@ -32,7 +56,22 @@
       "corto": "E23",
       "color": "#4472c4",
       "desde": 177,
-      "hasta": 384
+      "hasta": 384,
+      "grupos": [
+        {
+          "planilla": "2DA / 3RA (falta leer las casillas en negro)",
+          "variantes": [
+            { "id": "pla", "corto": "PL", "nombre": "Plata" },
+            { "id": "dor", "corto": "DO", "nombre": "Dorado" }
+          ],
+          "cartas": [
+            177, 183, 184, 190, 199, 200, 203, 204, 205, 215, 216, 217, 221,
+            227, 239, 241, 244, 245, 257, 261, 266, 267, 268, 269, 270, 271,
+            272, 299, 309, 315, 317, 318, 320, 329, 330, 332, 334, 339, 343,
+            344, 349, 358, 360, 363, 366, 367, 368, 371, 375, 377, 378, 379
+          ]
+        }
+      ]
     },
     {
       "id": "ley-4",
@@ -40,7 +79,26 @@
       "corto": "E4",
       "color": "#c00000",
       "desde": 385,
-      "hasta": 550
+      "hasta": 550,
+      "grupos": [
+        {
+          "planilla": "4TA (falta leer las casillas en negro; falta la planilla GLITTERS)",
+          "variantes": [
+            { "id": "ros", "corto": "RS", "nombre": "Rosa" },
+            { "id": "pla", "corto": "PL", "nombre": "Plata" },
+            { "id": "dor", "corto": "DO", "nombre": "Dorado" },
+            { "id": "roj", "corto": "RO", "nombre": "Rojo" },
+            { "id": "azu", "corto": "AZ", "nombre": "Azul" },
+            { "id": "nar", "corto": "NA", "nombre": "Naranja" }
+          ],
+          "cartas": [
+            387, 393, 396, 409, 411, 418, 425, 426, 427, 429, 437, 440, 441,
+            442, 449, 452, 454, 460, 470, 471, 472, 484, 485, 486, 498, 500,
+            502, 503, 504, 505, 515, 529, 530, 531, 533, 536, 537, 538, 539,
+            544, 545, 546, 547, 548, 549, 550
+          ]
+        }
+      ]
     },
     {
       "id": "ley-5",
@@ -49,14 +107,25 @@
       "color": "#b8860b",
       "desde": 551,
       "hasta": 726,
-      "variantes": [
-        { "id": "dor", "corto": "DO", "nombre": "Dorado" },
-        { "id": "pla", "corto": "PL", "nombre": "Plata" },
-        { "id": "azu", "corto": "AZ", "nombre": "Azul" },
-        { "id": "fuc", "corto": "FU", "nombre": "Fucsia" },
-        { "id": "ver", "corto": "VE", "nombre": "Verde" },
-        { "id": "nar", "corto": "NA", "nombre": "Naranja" },
-        { "id": "hol", "corto": "HO", "nombre": "Holográfica" }
+      "grupos": [
+        {
+          "planilla": "5ta expansión (falta leer las casillas en negro)",
+          "variantes": [
+            { "id": "dor", "corto": "DO", "nombre": "Dorado" },
+            { "id": "pla", "corto": "PL", "nombre": "Plata" },
+            { "id": "azu", "corto": "AZ", "nombre": "Azul" },
+            { "id": "fuc", "corto": "FU", "nombre": "Fucsia" },
+            { "id": "ver", "corto": "VE", "nombre": "Verde" },
+            { "id": "nar", "corto": "NA", "nombre": "Naranja" },
+            { "id": "hol", "corto": "HO", "nombre": "Holográfica" }
+          ],
+          "cartas": [
+            554, 555, 558, 561, 562, 566, 574, 580, 590, 594, 599, 607, 620,
+            621, 627, 628, 631, 634, 635, 636, 637, 639, 657, 659, 661, 677,
+            680, 681, 682, 683, 684, 685, 686, 687, 688, 692, 695, 709, 711,
+            712, 718, 719, 720, 722
+          ]
+        }
       ]
     },
     {
@@ -66,14 +135,25 @@
       "color": "#548235",
       "desde": 727,
       "hasta": 902,
-      "variantes": [
-        { "id": "nar", "corto": "NA", "nombre": "Naranja" },
-        { "id": "dia", "corto": "DI", "nombre": "Diamante" },
-        { "id": "dor", "corto": "DO", "nombre": "Dorado" },
-        { "id": "ver", "corto": "VE", "nombre": "Verde" },
-        { "id": "pla", "corto": "PL", "nombre": "Plata" },
-        { "id": "roj", "corto": "RO", "nombre": "Rojo" },
-        { "id": "azu", "corto": "AZ", "nombre": "Azul" }
+      "grupos": [
+        {
+          "planilla": "6ta expansión (falta leer las casillas en negro)",
+          "variantes": [
+            { "id": "nar", "corto": "NA", "nombre": "Naranja" },
+            { "id": "dia", "corto": "DI", "nombre": "Diamante" },
+            { "id": "dor", "corto": "DO", "nombre": "Dorado" },
+            { "id": "ver", "corto": "VE", "nombre": "Verde" },
+            { "id": "pla", "corto": "PL", "nombre": "Plata" },
+            { "id": "roj", "corto": "RO", "nombre": "Rojo" },
+            { "id": "azu", "corto": "AZ", "nombre": "Azul" }
+          ],
+          "cartas": [
+            729, 733, 755, 784, 787, 798, 799, 811, 816, 817, 818, 819, 821,
+            822, 823, 824, 825, 826, 827, 828, 829, 832, 833, 834, 838, 839,
+            840, 841, 842, 843, 844, 845, 848, 849, 850, 851, 853, 854, 858,
+            860, 882, 892, 893, 894
+          ]
+        }
       ]
     },
     {
@@ -83,19 +163,37 @@
       "color": "#7030a0",
       "desde": 903,
       "hasta": 1078,
-      "variantes": [
-        { "id": "pla", "corto": "PL", "nombre": "Plata" },
-        { "id": "dor", "corto": "DO", "nombre": "Dorado" },
-        { "id": "hgl", "corto": "HG", "nombre": "Holo glitter" },
-        { "id": "nar", "corto": "NA", "nombre": "Naranja" },
-        { "id": "azu", "corto": "AZ", "nombre": "Azul" },
-        { "id": "mar", "corto": "MA", "nombre": "Marrón" },
-        { "id": "ros", "corto": "RV", "nombre": "Rosa vino" },
-        { "id": "mtx", "corto": "MX", "nombre": "Matrix" },
-        { "id": "cya", "corto": "CY", "nombre": "Cyan turquesa" },
-        { "id": "avi", "corto": "AV", "nombre": "Azul viento" },
-        { "id": "fuc", "corto": "FU", "nombre": "Fucsia" },
-        { "id": "ver", "corto": "VE", "nombre": "Verde" }
+      "grupos": [
+        {
+          "planilla": "Metalizadas / De sobre, el bloque que sale en violeta y verde",
+          "variantes": [
+            { "id": "pla", "corto": "PL", "nombre": "Plata" },
+            { "id": "dor", "corto": "DO", "nombre": "Dorado" },
+            { "id": "hol", "corto": "HO", "nombre": "Holográfica" },
+            { "id": "nar", "corto": "NA", "nombre": "Naranja" },
+            { "id": "vio", "corto": "VI", "nombre": "Violeta" },
+            { "id": "ver", "corto": "VE", "nombre": "Verde" }
+          ],
+          "cartas": [
+            953, 968, 969, 971, 972, 973, 978, 984, 986, 1006, 1008, 1012,
+            1016, 1021, 1037, 1053, 1055, 1056
+          ]
+        },
+        {
+          "planilla": "Metalizadas / De sobre, el bloque que sale en azul viento y cyan",
+          "variantes": [
+            { "id": "pla", "corto": "PL", "nombre": "Plata" },
+            { "id": "dor", "corto": "DO", "nombre": "Dorado" },
+            { "id": "hol", "corto": "HO", "nombre": "Holográfica" },
+            { "id": "nar", "corto": "NA", "nombre": "Naranja" },
+            { "id": "avi", "corto": "AV", "nombre": "Azul viento" },
+            { "id": "cya", "corto": "CY", "nombre": "Cyan" }
+          ],
+          "cartas": [
+            947, 957, 958, 975, 976, 977, 981, 993, 994, 1013, 1014, 1019,
+            1025, 1029, 1030, 1051, 1064, 1065
+          ]
+        }
       ]
     },
     {

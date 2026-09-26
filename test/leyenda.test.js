@@ -22,9 +22,28 @@ const crudo = JSON.parse(
   fs.readFileSync(new URL('../public/data/leyenda.json', import.meta.url), 'utf8')
 )
 const catalogo = crudo.expansiones
-/* Las variantes son POR EXPANSIÓN: el vocabulario cambia según el tramo (la Expansión 6
-   tiene siete y Personajes doce). Una expansión sin las suyas hereda las de la colección. */
-const variantesDe = (exp) => exp.variantes ?? crudo.variantes ?? []
+/* Todas las variantes declaradas en una expansión: las de sus grupos más las sueltas.
+   Es lo que se dibuja. Lo que se OFRECE en una carta es `deLaCarta`, que es otra cosa. */
+function variantesDe(exp) {
+  const vistas = new Map()
+  for (const v of exp.variantes ?? crudo.variantes ?? []) vistas.set(v.id, v)
+  for (const g of exp.grupos ?? []) for (const v of g.variantes ?? []) vistas.set(v.id, v)
+  return [...vistas.values()]
+}
+
+/* Las que puede tener ESA carta, que es lo único que decide qué ofrece el diálogo. */
+function deLaCarta(exp, n) {
+  if (!exp.grupos?.length) return variantesDe(exp).map((v) => v.nombre)
+  const vistas = new Map()
+  for (const g of exp.grupos) {
+    if (!(g.cartas ?? []).includes(n)) continue
+    for (const v of g.variantes ?? []) vistas.set(v.id, v)
+  }
+  for (const v of exp.variantes ?? []) vistas.set(v.id, v)
+  return [...vistas.values()].map((v) => v.nombre)
+}
+
+const porId = (id) => catalogo.find((e) => e.id === id)
 const todasLasVariantes = catalogo.flatMap(variantesDe)
 
 // La misma que usa el backend. Duplicada porque son dos repos; si una cambia, la otra también.
@@ -155,22 +174,93 @@ test('una variante se llama igual en todas las expansiones', () => {
   }
 })
 
-/* Las dos que salieron de las planillas que pasó Angel el 2026-09-26. Si alguien las
-   borra sin querer, esto lo dice. */
+/* LOS GRUPOS SON EL DATO, y estos tests son lo que impide que alguien los «simplifique»
+   a una lista por expansión. Eso ya se hizo una vez y el bug llegó a producción: Angel lo
+   vio en dos minutos — «en la 957 la app tiene muchas más variantes de las que
+   corresponde». La 957 tiene seis, no doce. */
+
+test('una carta que no está en ninguna planilla NO tiene variantes', () => {
+  /* El caso que reporto Angel: «la 1069 no tiene variantes, yo no te pase nada, y vos
+     estas suponiendo que tiene un monton». Es el caso NORMAL, no la excepcion. */
+  assert.deepEqual(deLaCarta(porId('ley-personajes'), 1069), [])
+  assert.deepEqual(deLaCarta(porId('ley-inicial'), 5), [])
+  assert.deepEqual(deLaCarta(porId('ley-6'), 857), [], 'la 857 la tiene Angel como comun')
+})
+
+test('la 957 ofrece las SEIS de su bloque, no las de toda la expansion', () => {
+  assert.deepEqual(deLaCarta(porId('ley-personajes'), 957),
+    ['Plata', 'Dorado', 'Holográfica', 'Naranja', 'Azul viento', 'Cyan'])
+  /* Y la 953, que es el otro bloque de la MISMA planilla y de la misma expansion. */
+  assert.deepEqual(deLaCarta(porId('ley-personajes'), 953),
+    ['Plata', 'Dorado', 'Holográfica', 'Naranja', 'Violeta', 'Verde'])
+})
+
+test('los dos bloques de Personajes son 18 y 18, y no se pisan', () => {
+  const g = porId('ley-personajes').grupos
+  assert.equal(g.length, 2)
+  assert.equal(g[0].cartas.length, 18)
+  assert.equal(g[1].cartas.length, 18)
+  const juntas = [...g[0].cartas, ...g[1].cartas]
+  assert.equal(new Set(juntas).size, 36, 'una carta en los dos bloques saldria en las ocho')
+})
+
+test('las cartas de un grupo caen dentro del rango de su expansion', () => {
+  /* Un numero fuera del rango no dibuja nada y no ofrece nada: la variante queda
+     inalcanzable y no hay forma de notarlo mirando la pantalla. */
+  for (const e of catalogo) {
+    for (const g of e.grupos ?? []) {
+      for (const n of g.cartas ?? []) {
+        assert.ok(
+          numerosDe(e).includes(n),
+          `${e.id}: la carta ${n} del grupo «${g.planilla}» no esta en ${e.desde}-${e.hasta}`
+        )
+      }
+      assert.equal(new Set(g.cartas).size, g.cartas.length, `${e.id}: numeros repetidos en un grupo`)
+      assert.ok(g.variantes?.length, `${e.id}: un grupo sin variantes no sirve para nada`)
+    }
+  }
+})
+
+/* LAS QUE ANGEL YA CARGO EN PRODUCCION, verificadas contra la base el 2026-09-26. Son la
+   unica comprobacion independiente de que las listas se transcribieron bien: las diez
+   variantes que el marco caen dentro de las listas, y las quince que dejo como comunes
+   caen fuera. Si alguien edita el catalogo y saca una de estas, su carta desaparece de la
+   grilla — la red de `drawableVariants` la salva, pero el diálogo deja de ofrecerla. */
+test('las variantes que Angel ya cargo siguen estando ofrecidas', () => {
+  const marcadas = [
+    ['ley-6', 824, 'Dorado'], ['ley-6', 858, 'Dorado'], ['ley-6', 882, 'Dorado'],
+    ['ley-6', 892, 'Dorado'], ['ley-6', 827, 'Naranja'], ['ley-6', 850, 'Naranja'],
+    ['ley-6', 821, 'Plata'], ['ley-6', 845, 'Plata'], ['ley-6', 851, 'Plata'],
+    ['ley-personajes', 957, 'Cyan'],
+  ]
+  for (const [id, n, nombre] of marcadas) {
+    assert.ok(
+      deLaCarta(porId(id), n).includes(nombre),
+      `${id}:${n} esta cargada en ${nombre} y el catalogo ya no la ofrece`
+    )
+  }
+  const comunes = [
+    ['ley-6', 857], ['ley-6', 859], ['ley-6', 861], ['ley-6', 863], ['ley-6', 871],
+    ['ley-6', 873], ['ley-6', 877], ['ley-6', 878], ['ley-6', 886], ['ley-6', 897],
+    ['ley-6', 899], ['ley-personajes', 939], ['ley-personajes', 964],
+    ['ley-personajes', 1061], ['ley-personajes', 1069],
+  ]
+  for (const [id, n] of comunes) {
+    assert.deepEqual(deLaCarta(porId(id), n), [], `${id}:${n} Angel la dejo comun y el catalogo le ofrece variantes`)
+  }
+})
+
+/* Si alguien las borra sin querer, esto lo dice. */
 test('las variantes que estan cargadas son las de las planillas', () => {
-  const dela = (id) => variantesDe(catalogo.find((e) => e.id === id)).map((v) => v.nombre)
+  const dela = (id) => variantesDe(porId(id)).map((v) => v.nombre)
   assert.deepEqual(dela('ley-6'),
     ['Naranja', 'Diamante', 'Dorado', 'Verde', 'Plata', 'Rojo', 'Azul'])
   assert.deepEqual(dela('ley-5'),
     ['Dorado', 'Plata', 'Azul', 'Fucsia', 'Verde', 'Naranja', 'Holográfica'])
-  assert.equal(dela('ley-personajes').length, 12, 'Personajes junta las dos planillas')
-  /* Holográfica y Holo glitter son distintas, no dos nombres de lo mismo. */
-  assert.ok(dela('ley-5').includes('Holográfica'))
-  assert.ok(dela('ley-personajes').includes('Holo glitter'))
-  assert.ok(!dela('ley-personajes').includes('Holográfica'))
-  for (const n of ['Plata', 'Dorado', 'Holo glitter', 'Naranja']) {
-    assert.ok(dela('ley-personajes').includes(n), `falta ${n} en Personajes`)
-  }
+  assert.deepEqual(dela('ley-2-3'), ['Plata', 'Dorado'])
+  assert.equal(dela('ley-inicial').length, 9)
+  assert.equal(dela('ley-4').length, 6)
+  assert.equal(dela('ley-personajes').length, 8, 'las dos planillas juntas, sin repetir')
 })
 
 test('esta colección no usa la condición: lo que se pregunta es la variante', () => {

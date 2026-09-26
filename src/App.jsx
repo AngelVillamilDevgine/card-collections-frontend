@@ -13,7 +13,7 @@ import Exportar from './Exportar'
 const Estadisticas = lazy(() => import('./Estadisticas'))
 import Instalar from './Instalar'
 import { ErrorBoundary } from './boundary'
-import { COLLECTIONS, DEFAULT_COLLECTION, readCollection, rememberCollection, loadCatalogs, slotKey, slotsOf, pointsToASlot } from './collections'
+import { COLLECTIONS, DEFAULT_COLLECTION, readCollection, rememberCollection, loadCatalogs, slotKey, slotsOf, variantsFor, drawableVariants, pointsToASlot } from './collections'
 import {
   ErrorApi,
   descargar, restaurar, quienSoy, salir,
@@ -248,8 +248,14 @@ function Pregunta({ numero, onElegir, onCerrar }) {
    una respuesta posible.
 
    Las opciones salen del catálogo, así que agregar una variante es editar un json y no
-   redeployar nada. La primera fila es la base: ahí vive todo lo que marcaste antes de que
-   el vocabulario existiera, y es la respuesta honesta cuando no sabés cuál es.
+   redeployar nada.
+
+   LA PRIMERA FILA DICE «COMÚN» Y NO «SIN CLASIFICAR». Decía lo segundo, y Angel preguntó
+   para qué estaba: «te voy dejando sin clasificar las que en realidad son comunes». O sea
+   que el casillero base ya se estaba usando para la común — que es lo que es, porque una
+   carta o salió en el fondo normal o salió en uno de los especiales — y el rótulo hablaba
+   del mecanismo («no le puse etiqueta») en vez de la cosa. Sigue siendo, de paso, donde
+   viven las que marcaste antes de que existiera el vocabulario.
 
    Cada opción muestra cuántas tenés de esa: sin eso, con tres fondos parecidos, no hay
    forma de acordarse de cuál ya cargaste. */
@@ -273,7 +279,7 @@ function AskVariant({ numero, variantes, cuentas, onElegir, onCerrar }) {
            ref={caja} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
         <h3>Carta {numero}</h3>
         <p>¿Cuál tenés?</p>
-        {fila(null, 'Sin clasificar', true)}
+        {fila(null, 'Común', true)}
         {variantes.map((v) => fila(v.id, v.nombre, false))}
         <p className="salidas">
           <button className="cancelar" onClick={onCerrar}>Cancelar</button>
@@ -1070,6 +1076,11 @@ export default function App() {
     setSacando(false)
   }
 
+  /* Las variantes que se DIBUJAN por expansión, que no son las mismas que se ofrecen:
+     acá entra también lo que ya tenés cargado con un id que el catálogo dejó de declarar.
+     Se calcula una vez por cambio de colección y no por carta. */
+  const dibujables = useMemo(() => drawableVariants(catalogo, cantidades), [catalogo, cantidades])
+
   const resumen = useMemo(() => {
     if (!catalogo) return null
     let total = 0, tengo = 0, sobrantes = 0
@@ -1094,7 +1105,7 @@ export default function App() {
            y 1093 + 4 no daba 1099. Un hueco cuenta para un filtro si ALGUNO de sus
            casilleros pasa, que además es lo que se ve: la carta aparece en el listado. */
         const pasaElHueco = Object.fromEntries(FILTROS.map((f) => [f.id, false]))
-        for (const { clave } of slotsOf(exp, n, exp.variantes, cantidades)) {
+        for (const { clave } of slotsOf(exp, n, dibujables[exp.id], cantidades)) {
           const cant = cantidades[clave] ?? 0
           const est = estados[clave]
           if (cant > 0) {
@@ -1109,7 +1120,7 @@ export default function App() {
       }
     }
     return { total, tengo, sobrantes, porFiltro, ...cuenta }
-  }, [catalogo, estados, cantidades])
+  }, [catalogo, dibujables, estados, cantidades])
 
   /* La columna «Álbum» del panel es cuánto lleva cada uno de TODO lo que hay para
      marcar, no de la colección que yo esté mirando: `g.cartas` cuenta las filas de esa
@@ -1204,7 +1215,7 @@ export default function App() {
        una variante DISTINTA. Sumándole una directo, esa tercera variante quedaba
        inalcanzable. */
     const hueco = huecoDe(clave)
-    if (hueco?.exp.variantes.length) return setPreguntandoVariante(hueco)
+    if (hueco && variantsFor(hueco.exp, hueco.n).length) return setPreguntandoVariante(hueco)
 
     if (!tiene) {
       /* Sin variantes y sin condición —el resto de Leyenda— hay una sola respuesta
@@ -1608,7 +1619,7 @@ export default function App() {
           const activo = FILTROS.find((f) => f.id === filtro)
           /* Un hueco se dibuja si ALGUNO de sus casilleros pasa el filtro. */
           const visibles = exp.lista.filter((n) =>
-            slotsOf(exp, n, exp.variantes, cantidades).some((s) =>
+            slotsOf(exp, n, dibujables[exp.id], cantidades).some((s) =>
               activo.pasa(cantidades[s.clave] ?? 0, estados[s.clave])
             )
           )
@@ -1617,7 +1628,7 @@ export default function App() {
           /* Y la cuenta de la banda es de HUECOS, no de casilleros: «180 de 176» no
              significaría nada. */
           const tengoAca = exp.lista.filter((n) =>
-            slotsOf(exp, n, exp.variantes, cantidades).some((s) => (cantidades[s.clave] ?? 0) > 0)
+            slotsOf(exp, n, dibujables[exp.id], cantidades).some((s) => (cantidades[s.clave] ?? 0) > 0)
           ).length
           const plegada = plegadas.has(exp.id)
           return (
@@ -1653,7 +1664,7 @@ export default function App() {
               {!plegada && (
               <div className="grilla">
                 {visibles.flatMap((n) =>
-                  slotsOf(exp, n, exp.variantes, cantidades).map(({ clave, variante }) => (
+                  slotsOf(exp, n, dibujables[exp.id], cantidades).map(({ clave, variante }) => (
                     <Carta
                       key={clave}
                       clave={clave}
@@ -1691,10 +1702,10 @@ export default function App() {
         {preguntandoVariante && (
           <AskVariant
             numero={preguntandoVariante.n}
-            variantes={preguntandoVariante.exp.variantes}
+            variantes={variantsFor(preguntandoVariante.exp, preguntandoVariante.n)}
             cuentas={Object.fromEntries([
               ['', cantidades[slotKey(preguntandoVariante.exp.id, preguntandoVariante.n)] ?? 0],
-              ...preguntandoVariante.exp.variantes.map((v) => [
+              ...variantsFor(preguntandoVariante.exp, preguntandoVariante.n).map((v) => [
                 v.id,
                 cantidades[slotKey(preguntandoVariante.exp.id, preguntandoVariante.n, v.id)] ?? 0,
               ]),
