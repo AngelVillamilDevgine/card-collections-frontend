@@ -13,7 +13,7 @@ import Exportar from './Exportar'
 const Estadisticas = lazy(() => import('./Estadisticas'))
 import Instalar from './Instalar'
 import { ErrorBoundary } from './boundary'
-import { COLLECTIONS, readCollection, rememberCollection, loadCatalogs } from './collections'
+import { COLLECTIONS, DEFAULT_COLLECTION, readCollection, rememberCollection, loadCatalogs } from './collections'
 import {
   ErrorApi,
   descargar, restaurar, quienSoy, salir,
@@ -1573,7 +1573,14 @@ export default function App() {
         )}
 
         {exportando && (
-          <Exportar catalogo={catalogo} datos={datos} onCerrar={() => setExportando(false)} />
+          <Exportar
+            catalogo={catalogo}
+            datos={datos}
+            /* Sólo las colecciones que NO son la de siempre se anuncian. Cromeros sigue
+               exportando exactamente el mismo texto que antes. */
+            encabezado={coleccionViva === DEFAULT_COLLECTION ? null : (album?.coleccion ?? null)}
+            onCerrar={() => setExportando(false)}
+          />
         )}
 
         {sacando && huerfanas.length > 0 && (

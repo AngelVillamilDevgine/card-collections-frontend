@@ -11,9 +11,21 @@ const OPCIONES = [
   { id: 'ambas',     label: 'Las dos cosas' },
 ]
 
+/* EL NÚMERO QUE SE IMPRIME LLEVA EL PREFIJO DE SU EXPANSIÓN, y sin eso el texto miente.
+   En Leyenda, `ley-f` va de 504 a 513 y `ley-4` de 385 a 550: sin prefijo, dos cartas
+   distintas salen con el mismo «504» en el mismo mensaje de WhatsApp, y el que lo lee no
+   tiene cómo saber cuál le están pidiendo. Con prefijo son `F504` y `504`.
+
+   Las ediciones limitadas no tienen número impreso —van con LOTE / EDICIÓN LIMITADA Nº /
+   TOTAL— así que su prefijo es la palabra entera: «Leyenda 3».
+
+   En Cromeros ninguna expansión tiene `prefijo`, así que su texto sale byte por byte igual
+   que antes. Eso importa: son 28 personas que ya leen ese formato. */
+const rotulo = (exp, n) => `${exp.prefijo ?? ''}${n}`
+
 function faltantesDe(exp, cantidades) {
   const numeros = exp.lista.filter((n) => !cantidades[`${exp.id}:${n}`])
-  return { textos: numeros.map(String), total: numeros.length }
+  return { textos: numeros.map((n) => rotulo(exp, n)), total: numeros.length }
 }
 
 function repetidasDe(exp, cantidades) {
@@ -25,7 +37,7 @@ function repetidasDe(exp, cantidades) {
     const sobran = (cantidades[`${exp.id}:${n}`] ?? 0) - 1
     if (sobran <= 0) continue
     total += sobran
-    textos.push(sobran > 1 ? `${n}x${sobran}` : `${n}`)
+    textos.push(sobran > 1 ? `${rotulo(exp, n)}x${sobran}` : rotulo(exp, n))
   }
   return { textos, total }
 }
@@ -58,7 +70,7 @@ function expansionesCon(modo, catalogo, cantidades) {
 }
 
 /* Las cartas van una por una, sin agrupar en rangos: así se pega y se lee derecho. */
-function armar(modo, elegidas, catalogo, cantidades) {
+function armar(modo, elegidas, catalogo, cantidades, encabezado) {
   const partes = []
   for (const s of SECCIONES[modo]) {
     const lineas = []
@@ -73,7 +85,12 @@ function armar(modo, elegidas, catalogo, cantidades) {
     if (lineas.length)
       partes.push(`${ESTRELLA} ${s.titulo} (${total}) ${ESTRELLA}\n${lineas.join('\n')}`)
   }
-  return partes.join('\n\n') || 'No hay nada para listar.'
+  if (!partes.length) return 'No hay nada para listar.'
+  /* Una línea al principio diciendo de qué álbum es. Hace falta desde que hay dos: «me
+     falta la 551» no significa lo mismo en uno que en otro. Cromeros no la lleva — su
+     texto tiene que salir idéntico al de siempre. */
+  const cuerpo = partes.join('\n\n')
+  return encabezado ? `${encabezado}\n\n${cuerpo}` : cuerpo
 }
 
 const Tilde = ({ marcada }) => (
@@ -87,7 +104,7 @@ const Tilde = ({ marcada }) => (
   </span>
 )
 
-export default function Exportar({ catalogo, datos, onCerrar }) {
+export default function Exportar({ catalogo, datos, encabezado, onCerrar }) {
   const [modo, setModo] = useState(null)
   const [elegidas, setElegidas] = useState(new Set())
   const [mostrando, setMostrando] = useState(false)
@@ -113,7 +130,7 @@ export default function Exportar({ catalogo, datos, onCerrar }) {
   const expansiones = modo ? expansionesCon(modo, catalogo, cantidades) : []
   const marcadas = expansiones.filter(({ exp }) => elegidas.has(exp.id))
   const enTotal = marcadas.reduce((a, e) => a + e.cuenta, 0)
-  const texto = mostrando ? armar(modo, elegidas, catalogo, cantidades) : ''
+  const texto = mostrando ? armar(modo, elegidas, catalogo, cantidades, encabezado) : ''
 
   /* Al elegir la lista arrancan todas marcadas: lo más común es querer todo, y
      desmarcar las que sobran es menos trabajo que marcar quince. */
