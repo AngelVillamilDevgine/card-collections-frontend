@@ -40,7 +40,7 @@ function recordarToken(t) {
    silencio todos los guardados siguientes de esa carta. */
 const CORTE = 15000
 
-/* Los pedidos que `public/warm-start.js` largó antes de que existiera este código.
+/* Los pedidos que `public/temprano.js` largó antes de que existiera este código.
    Cada uno se usa UNA sola vez: la segunda lectura de la colección —la del refresco al
    volver a la pestaña— tiene que ir a buscar datos frescos, no servir los de la carga.
 

@@ -3,35 +3,12 @@
   <head>
     <meta charset="UTF-8" />
 
-    <!-- Los dos van `async`, y eso NO es un detalle.
+    <!-- Un solo archivo, `async`, y las dos cosas son a propósito. Separado en dos
+         archivos el primer pintado se iba de 996 a 1304 ms: cada `<script src>` del <head>
+         compite en prioridad alta con la hoja de estilos, que es la que frena el pintado.
+         El porqué de cada decisión está en el archivo. -->
+    <script async src="./temprano.js"></script>
 
-         Son clásicos a propósito (sin type="module", que se difiere hasta después del
-         parseo) porque tienen que correr temprano: Chrome dispara `beforeinstallprompt`
-         a los ~180 ms y una sola vez, y los pedidos de la API cuanto antes salgan mejor.
-
-         Pero sin `async`, un script clásico en el <head> BLOQUEA EL PARSEO, y el bundle
-         es un módulo que sólo ejecuta cuando el parseo termina: o sea que cada uno de
-         estos le agrega un viaje de ida y vuelta al camino crítico. Medido en 3G con
-         nueve corridas por rama, antes de ponerles `async`:
-
-             sin warm-start    cartas 2636 ms · primer pintado 1616 ms
-             con warm-start    cartas 2887 ms · primer pintado 2076 ms
-
-         O sea que adelantar dos pedidos que ya iban en paralelo costaba más de lo que
-         ahorraba. Con `async` el parseo no se frena, el bundle arranca apenas llega, y
-         estos dos siguen corriendo igual de temprano: se bajan en paralelo con todo lo
-         demás y ejecutan cuando llegan. -->
-    <script async src="./instalar-temprano.js"></script>
-
-    <!-- Larga los pedidos de la API antes de que exista el JavaScript de la app. Medido:
-         en 3G, el primer pintado es a los 2.2 s y las cartas recién a los 3.3 — ese
-         segundo es esperar dos viajes que arrancaban después de bajar y correr el bundle.
-         Clásico y no type="module", que se difiere. Ver el archivo. -->
-    <script async src="./warm-start.js"></script>
-
-    <!-- Abrir la conexión con la API mientras todavía se parsea el HTML. En 3G, el
-         apretón de manos (DNS + TCP + TLS) son varios cientos de milisegundos que si no
-         se pagan recién con el primer pedido. -->
     <link rel="preconnect" href="https://api.cromeros.com.ar" crossorigin />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#f4a11d" />

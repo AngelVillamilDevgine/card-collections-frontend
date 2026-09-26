@@ -66,7 +66,7 @@ export default function Instalar() {
 
     /* El evento de instalación NO se escucha desde acá: para cuando este efecto corre
        —después de que quienSoy() resolvió y la app se dibujó— hace más de un segundo
-       que pasó. Lo agarra `public/instalar-temprano.js`, que corre antes que todo, y
+       que pasó. Lo agarra `public/temprano.js`, que corre antes que todo, y
        acá se recoge lo que haya guardado.
 
        Medido contra producción con un Android emulado: el evento a los 182 ms, este

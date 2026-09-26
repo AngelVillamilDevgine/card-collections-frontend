@@ -520,7 +520,7 @@ export default function App() {
   fallidasRef.current = fallidas
 
   useEffect(() => {
-    /* El catálogo también sale adelantado desde `public/warm-start.js`, antes de que
+    /* El catálogo también sale adelantado desde `public/temprano.js`, antes de que
        exista este código. Si está, se levanta; si no —en desarrollo, o si falló— se pide
        como siempre. Se saca del objeto para que el reintento no sirva el mismo error. */
     const warm = window.__dbzWarm
