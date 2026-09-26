@@ -430,6 +430,11 @@ const ESPERA_REINTENTO = 900
 /* Lo máximo que Salir espera a que salga lo pendiente. Un pedido colgado no puede
    dejarte atrapado adentro de la app. */
 const TECHO_SALIR = 4000
+/* Cuánto espera una restauración a que aterricen los guardados que ya salieron. Más que
+   el de Salir —ahí la persona se quiere ir y cada segundo pesa— porque restaurar ya son
+   dos viajes y la espera se nota menos; y alcanza para un PUT normal más su primer
+   reintento. Ver `confirmarReemplazo`. */
+const TECHO_RESTAURAR = 8000
 
 /* Cuánto tiene que haber pasado para que, al volver a la pestaña, se vuelva a pedir la
    colección. Cambiar de app un rato en el teléfono es lo normal; lo que hay que atrapar
@@ -598,6 +603,11 @@ export default function App() {
   const vivo = useRef(datos)
   useEffect(() => { vivo.current = datos }, [datos])
 
+  /* Sube de a uno en cada restauración. `despachar` la captura al empezar y se rinde si
+     cambió: un reintento programado a 900 o 1800 ms no puede aterrizar DESPUÉS de que se
+     reemplazó la colección entera y reponer una carta que la copia no traía. */
+  const generacion = useRef(0)
+
   /* Para leer las fallidas desde un efecto que no depende de ellas. */
   const fallidasRef = useRef(fallidas)
   fallidasRef.current = fallidas
@@ -717,6 +727,7 @@ export default function App() {
 
      `seVa` es la página yéndose: ahí no se reintenta nada, no hay tiempo. */
   async function despachar(clave, cantidad, estado, seVa) {
+    const gen = generacion.current
     for (let intento = 0; ; intento++) {
       try {
         // keepalive también acá, no sólo al cerrar: lo que hay que proteger no son los
@@ -729,9 +740,15 @@ export default function App() {
         // La sesión murió: no hay nada que reintentar, hay que volver a entrar. Antes
         // esto pintaba el cartel de "fijate la conexión" y la app seguía andando: podías
         // marcar media hora al vacío y perder todo sin enterarte.
+        /* Hubo una restauración mientras esto viajaba: este valor es de la colección
+           ANTERIOR y ya no significa nada. No se reintenta y no se marca como fallado
+           —no se perdió un cambio: se reemplazó a propósito—. `null` es justamente
+           «no mandé nada» y quien llama ya lo distingue. */
+        if (generacion.current !== gen) return null
         if (e?.sesion) { sesionMuerta(); return false }
         if (seVa || intento >= REINTENTOS) return false
         await new Promise((r) => setTimeout(r, ESPERA_REINTENTO * (intento + 1)))
+        if (generacion.current !== gen) return null
       }
     }
   }
@@ -843,6 +860,36 @@ export default function App() {
   const vaciarRef = useRef(null)
   vaciarRef.current = vaciar
 
+  /* Lo que el servidor manda, pero conservando lo que NO se pudo guardar.
+
+     Sin esto, el refresco al volver a la pestaña pisaba `datos` con lo del servidor y no
+     tocaba `fallidas`: tu cambio desaparecía de la pantalla sin que nada lo dijera, la
+     carta seguía marcada como «sin guardar» pero mostrando el número VIEJO, y no había
+     forma de destrabarlo —volver a tocarla no reintenta, le suma una—.
+
+     Y lo peor venía después: el reintento por `online` lee `vivo.current`, que tras el
+     refresco ya era el valor del servidor, así que mandaba el número viejo, salía bien y
+     apagaba el aviso. El mecanismo que existe para recuperar un cambio perdido terminaba
+     certificando que se había guardado. */
+  function conLoFallado(d) {
+    const perdidas = fallidasRef.current
+    if (!perdidas.size) return d
+    const cantidades = { ...d.cantidades }
+    const estados = { ...d.estados }
+    for (const clave of perdidas) {
+      const n = vivo.current.cantidades[clave] ?? 0
+      if (n > 0) {
+        cantidades[clave] = n
+        estados[clave] = vivo.current.estados[clave] ?? null
+      } else {
+        // Lo que quiso borrar y no se pudo: tampoco vuelve.
+        delete cantidades[clave]
+        delete estados[clave]
+      }
+    }
+    return { estados, cantidades }
+  }
+
   /* Volver a pedir la colección al volver a la pestaña, si pasó un rato.
 
      Antes se pedía UNA sola vez y nunca más. El teléfono con la pestaña abierta desde
@@ -860,7 +907,15 @@ export default function App() {
       Promise.resolve(vaciarRef.current(false))
         .catch(() => {})
         .then(() => leerColeccion())
-        .then((d) => setDatos(d))
+        .then((d) => {
+          const con = conLoFallado(d)
+          vivo.current = con
+          setDatos(con)
+          /* Y se reintenta lo que había quedado sin guardar, que acá tiene más sentido
+             que en ningún lado: acabamos de leer del servidor, o sea que la red anda. */
+          for (const clave of fallidasRef.current)
+            mandar(clave, con.cantidades[clave] ?? 0, con.estados[clave] ?? null)
+        })
         .catch(() => { /* si falla, se sigue con lo que ya había en pantalla */ })
     }
     document.addEventListener('visibilitychange', alVolver)
@@ -1135,7 +1190,29 @@ export default function App() {
     setPorRestaurar(null)
     if (!nueva) return
     descargar(datos, 'mi-coleccion-dbz-antes-de-restaurar.json')
-    reemplazarColeccion(nueva)
+
+    /* PRIMERO SE ESPERA A LO QUE YA SALIÓ, Y RECÉN DESPUÉS SE REEMPLAZA.
+       Restaurar es el único camino que borra en masa y el CLAUDE.md lo protege con tres
+       capas para que el resultado sea exactamente el archivo. Pero un PUT de carta que
+       salió hace 200 ms puede aterrizar DESPUÉS del reemplazo y reponer una carta que la
+       copia no traía: la colección queda contaminada, sin ningún aviso, y no se descubre
+       hasta la próxima carga.
+
+       Cancelarlo desde el navegador no sirve: un `abort` corta la espera del cliente, no
+       impide que el servidor procese lo que ya le llegó. Lo único que ORDENA de verdad es
+       esperar. Con techo, porque un pedido colgado no puede dejar la restauración
+       trabada; y lo que sobreviva al techo lo frena la `generacion`, que corta los
+       reintentos. Queda una ventana chica —un PUT colgado que conteste entre el techo y
+       su propio corte de 15 s— y se acepta: cerrarla del todo pediría que el servidor
+       supiera ordenar, que es mucho más caro que el problema. */
+    generacion.current += 1
+    for (const { reloj } of pendientes.current.values()) clearTimeout(reloj)
+    pendientes.current.clear()
+    porSalir.current.clear()
+    const aterrizando = Promise.all([...enVuelo.current.values()].map((pp) => pp.catch(() => {})))
+
+    Promise.race([aterrizando, new Promise((r) => setTimeout(r, TECHO_RESTAURAR))])
+      .then(() => reemplazarColeccion(nueva))
       /* Se relee del servidor en vez de pintar lo que venía en el archivo. El servidor
          es la única fuente y puede haber descartado claves que no reconoce: antes la
          pantalla te mostraba cartas que en tu cuenta no habían quedado, y no había forma
@@ -1147,9 +1224,10 @@ export default function App() {
         vivo.current = d
         setDatos(d)
         // Se reemplazó todo: lo que no se había podido guardar carta por carta ya no
-        // tiene sentido.
+        // tiene sentido. (La cola ya se vació arriba, antes de esperar.)
         pendientes.current.clear()
         porSalir.current.clear()
+        enVuelo.current.clear()
         setFallidas(new Set())
       })
       .catch((e) => {
