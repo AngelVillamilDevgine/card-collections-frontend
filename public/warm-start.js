@@ -19,6 +19,13 @@
  * parseo del HTML, que es justo lo que hay que evitar. Ver instalar-temprano.js, que está
  * separado porque hace otra cosa y por la misma razón tiene que correr temprano.
  *
+ * LOS TRES VAN EN PRIORIDAD BAJA, Y ES LO QUE HACE QUE ESTO SIRVA. Medido en 3G: sin
+ * `priority: 'low'` los tres pedidos salen en High, la misma que el bundle, y el navegador
+ * se reparte la tubería entre todos -- el primer pintado pasaba de 1652 a 2024 ms. No son
+ * los bytes (5,6 KB contra 60 KB del bundle, ~64 ms de tubería): es la cola. En baja, el
+ * bundle se lleva la tubería entera y estos tres entran en los huecos, que es exactamente
+ * lo que se quiere: nadie los está esperando todavía.
+ *
  * OJO, LA DIRECCIÓN DE LA API ESTÁ ACÁ REPETIDA. Vive también en src/almacenamiento.js y
  * en public/_headers (la CSP). Son tres lugares y no hay forma de compartir una constante,
  * porque este archivo no pasa por el empaquetador. Si alguna vez cambia el dominio, son
@@ -37,7 +44,9 @@
   if (local) return
 
   // El catálogo no necesita sesión, así que sale siempre.
-  window.__dbzWarm.catalog = fetch(new URL('data/expansiones.json', document.baseURI))
+  var low = { priority: 'low' }
+
+  window.__dbzWarm.catalog = fetch(new URL('data/expansiones.json', document.baseURI), low)
     .then(function (r) { return r.ok ? r.json() : null })
     .catch(function () { return null })
 
@@ -54,7 +63,7 @@
       navigator.standalone === true
   } catch (e) { /* algún navegador viejo */ }
   var mark = standalone ? '?app=1' : ''
-  var options = { headers: { Authorization: 'Bearer ' + token } }
+  var options = { headers: { Authorization: 'Bearer ' + token }, priority: 'low' }
 
   /* No se llama a .json() acá: la app necesita la Response entera para mirarle el estado
      —un 401 es «entrá de nuevo» y no un error cualquiera— y para eso usa el mismo camino
