@@ -17,33 +17,30 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
-/* La misma función que la app, importada y no copiada: ver el comentario en collections.js. */
-import { numbersOf } from '../src/collections.js'
+/* Las mismas funciones que la app, importadas y no copiadas: ver el comentario en
+   collections.js. Este archivo TENÍA su propia copia de las dos de abajo, que es el
+   agujero que ese comentario describe para `numbersOf` — y ya habían divergido: la copia
+   dejaba que un grupo redefiniera el rótulo de una variante suelta y `withVariants` se
+   queda con el de la suelta. Hoy no muerde porque ninguna expansión tiene las dos, pero
+   el día que las tenga el test iba a estar probando otra cosa que la app. */
+import { numbersOf, withVariants, variantsFor } from '../src/collections.js'
 
 const crudo = JSON.parse(
   fs.readFileSync(new URL('../public/data/leyenda.json', import.meta.url), 'utf8')
 )
+/* El catálogo tal como sale del archivo, para lo que se mira de la FORMA del dato (que
+   `cartas` sea una lista sin repetidos, por ejemplo). */
 const catalogo = crudo.expansiones
+/* Y el mismo pasado por la app, para lo que se mira del COMPORTAMIENTO. */
+const comoLoVeLaApp = crudo.expansiones.map((e) => withVariants(e, crudo))
+const normal = (id) => comoLoVeLaApp.find((e) => e.id === id)
+
 /* Todas las variantes declaradas en una expansión: las de sus grupos más las sueltas.
    Es lo que se dibuja. Lo que se OFRECE en una carta es `deLaCarta`, que es otra cosa. */
-function variantesDe(exp) {
-  const vistas = new Map()
-  for (const v of exp.variantes ?? crudo.variantes ?? []) vistas.set(v.id, v)
-  for (const g of exp.grupos ?? []) for (const v of g.variantes ?? []) vistas.set(v.id, v)
-  return [...vistas.values()]
-}
+const variantesDe = (exp) => normal(exp.id).variantes
 
 /* Las que puede tener ESA carta, que es lo único que decide qué ofrece el diálogo. */
-function deLaCarta(exp, n) {
-  if (!exp.grupos?.length) return variantesDe(exp).map((v) => v.nombre)
-  const vistas = new Map()
-  for (const g of exp.grupos) {
-    if (!(g.cartas ?? []).includes(n)) continue
-    for (const v of g.variantes ?? []) vistas.set(v.id, v)
-  }
-  for (const v of exp.variantes ?? []) vistas.set(v.id, v)
-  return [...vistas.values()].map((v) => v.nombre)
-}
+const deLaCarta = (exp, n) => variantsFor(normal(exp.id), n).map((v) => v.nombre)
 
 const porId = (id) => catalogo.find((e) => e.id === id)
 const todasLasVariantes = catalogo.flatMap(variantesDe)

@@ -58,7 +58,7 @@ export function rememberCollection(id) {
  * planillas distintas — y ahí sus variantes son la unión. Una expansión con `variantes`
  * sueltas y sin grupos se lee como «todas sus cartas, estas variantes»; sin ninguna de
  * las dos no tiene variantes, que es todo Cromeros. */
-function withVariants(e, raw) {
+export function withVariants(e, raw) {
   const grupos = (e.grupos ?? []).map((g) => ({
     variantes: g.variantes ?? [],
     cartas: new Set(g.cartas ?? []),
