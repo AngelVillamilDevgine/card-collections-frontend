@@ -85,11 +85,17 @@ function Barra({ rotulo, valor, techo, nota, flaca }) {
   )
 }
 
-/* `totalCartas` llega del catálogo que la app ya tiene cargado, no del servidor. Antes
-   venía en la respuesta como un 1936 escrito a mano en `estadisticas.js`: el catálogo se
-   edita sin recompilar nada, así que el día que cambiara, la columna «Álbum» iba a
-   calcular los porcentajes contra un número viejo sin que nada avisara. */
-export default function Estadisticas({ onCerrar, onSesionMuerta, totalCartas }) {
+/* `colecciones` llega del catálogo que la app ya tiene cargado, no del servidor: cada una
+   con su nombre, cuántos huecos tiene y qué prefijos de clave son suyos. El catálogo se
+   edita sin recompilar nada, así que el servidor no puede saberlo — antes acá hubo un
+   1936 escrito a mano y por eso se sacó.
+
+   Se le mandan los prefijos al servidor para que parta los números por colección. Angel:
+   «el panel está para la verga desde el punto que no me diferencia los datos de cromeros y
+   leyenda» — y tenía razón hasta el fondo: la columna «Álbum» dividía las filas de cada
+   persona por la suma de los DOS catálogos, así que tener Cromeros entero se dibujaba
+   como 64%. */
+export default function Estadisticas({ onCerrar, onSesionMuerta, colecciones }) {
   const [datos, setDatos] = useState(null)
   const [error, setError] = useState(null)
   const caja = useRef(null)
@@ -100,7 +106,10 @@ export default function Estadisticas({ onCerrar, onSesionMuerta, totalCartas }) 
   useEffect(() => {
     // Un 401 acá tiene que mandar a entrar de nuevo, igual que en el resto de la app,
     // y no pintar el error adentro del panel.
-    estadisticas()
+    const mapa = colecciones?.length
+      ? Object.fromEntries(colecciones.map((c) => [c.id, c.prefijos]))
+      : null
+    estadisticas(mapa)
       .then(setDatos)
       .catch((e) => (e?.sesion ? onSesionMuerta?.() : setError(e.message)))
   }, [])
@@ -117,17 +126,44 @@ export default function Estadisticas({ onCerrar, onSesionMuerta, totalCartas }) 
         <h3>Los números</h3>
         {error && <p className="nada">{error}</p>}
         {!datos && !error && <p className="nada">Buscando…</p>}
-        {datos && <Cuerpo d={datos} totalCartas={totalCartas} />}
+        {datos && <Cuerpo d={datos} colecciones={colecciones ?? []} />}
         <button className="cancelar" onClick={onCerrar}>Cerrar</button>
       </div>
     </div>
   )
 }
 
-function Cuerpo({ d, totalCartas }) {
+function Cuerpo({ d, colecciones }) {
   const { usuarios: u, cartas, porDia, tramos, gente } = d
   const pico = Math.max(1, ...porDia.map((x) => x.cuantos))
   const picoTramo = Math.max(1, ...tramos.map((x) => x.cuantos))
+
+  const actividad = d.actividad ?? []
+  const picoActivos = Math.max(1, ...actividad.map((x) => x.personas))
+  const cohortes = d.cohortes ?? []
+
+  /* Cada colección con lo que trajo el servidor. `porColeccion` puede venir en null si el
+     back es más viejo que el front: entonces no se dibuja nada partido, que es mejor que
+     dibujar ceros. */
+  const partido = d.porColeccion
+  const porCol = partido
+    ? colecciones.map((c) => ({
+        ...c,
+        ...(partido.find((p) => p.col === c.id) ?? { cartas: 0, repetidas: 0, personas: 0 }),
+      }))
+    : null
+  const picoCol = Math.max(1, ...(porCol ?? []).map((c) => c.cartas))
+
+  /* Tramos que no son de ninguna colección: claves guardadas de un catálogo que ya no
+     existe. Es el único lugar donde aparecen, y si alguna vez hay una conviene verla.
+
+     Se compara POR PREFIJO y no por igualdad, igual que en el servidor: `ley-6-dor` es una
+     variante de `ley-6` y es una carta perfectamente válida. Comparando entero, las once
+     que Angel tenía cargadas salían acá como «de un catálogo viejo» y el texto invitaba a
+     borrarlas. */
+  const esDeAlguna = (tramo) =>
+    colecciones.some((c) => c.prefijos.some((p) => tramo === p || tramo.startsWith(p + '-')))
+  const sueltas = (d.porTramo ?? []).filter((t) => !esDeAlguna(t.tramo))
 
   return (
     <>
@@ -157,6 +193,70 @@ function Cuerpo({ d, totalCartas }) {
         <span><b>{cartas.total.toLocaleString('es-AR')}</b> cartas marcadas</span>
         <span><b>{cartas.repetidas.toLocaleString('es-AR')}</b> repetidas</span>
       </div>
+
+      {porCol && (
+        <>
+          <h4>Qué colección usan</h4>
+          <div className="grupo">
+            {porCol.map((c) => (
+              /* SIN porcentaje, a propósito: acá `cartas` son las filas de TODA la gente
+                 sumadas, y dividirlas por los huecos de un álbum no significa nada — con
+                 19 personas dan 8026 sobre 1936 y el tope de 100% lo disfrazaba de
+                 «álbum completo». El porcentaje sólo tiene sentido por persona, y ahí
+                 está, en la tabla de abajo. */
+              <Barra key={c.id} rotulo={c.nombre} valor={c.cartas} techo={picoCol}
+                     nota={`${c.personas} ${c.personas === 1 ? 'persona' : 'personas'}${c.repetidas ? ` · ${c.repetidas} ${c.repetidas === 1 ? 'repetida' : 'repetidas'}` : ''}`} />
+            ))}
+          </div>
+          {sueltas.length > 0 && (
+            <p className="nada">
+              Y hay {sueltas.reduce((a, t) => a + t.filas, 0)} cartas guardadas en tramos que
+              no son de ninguna colección ({sueltas.map((t) => t.tramo).join(', ')}): son de un
+              catálogo viejo y el pie de la app ofrece sacarlas.
+            </p>
+          )}
+        </>
+      )}
+
+      {cohortes.length > 0 && (
+        <>
+          <h4>Cada semana que entró</h4>
+          {/* Un total acumulado no sirve mientras la app crece: cada semana entra gente que
+              todavía no tuvo tiempo de volver, así que el promedio baja solo aunque nada
+              empeore. Por semana de alta sí se puede comparar una contra otra. */}
+          <div className="tablon">
+            <table className="gente">
+              <thead>
+                <tr><th>Semana</th><th>Entraron</th><th>Cargaron</th><th>Volvieron</th></tr>
+              </thead>
+              <tbody>
+                {cohortes.map((c) => (
+                  <tr key={c.semana}>
+                    <td>{dia(c.semana)}</td>
+                    <td>{c.gente}</td>
+                    <td>{c.cargaron} <i>{parte(c.cargaron, c.gente)}%</i></td>
+                    <td>{c.volvieron} <i>{parte(c.volvieron, c.gente)}%</i></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+
+      {actividad.length > 0 && (
+        <>
+          <h4>La usaron, por día</h4>
+          {/* Distinto de «altas por día», que está abajo: las altas hacen un pico el día que
+              se comparte el enlace y después nada. Esto dice si alguien sigue ahí. */}
+          <div className="grupo">
+            {actividad.map((x) => (
+              <Barra key={x.dia} flaca rotulo={dia(x.dia)} valor={x.personas} techo={picoActivos}
+                     nota={x.porApp ? `${x.porApp} por la app` : ''} />
+            ))}
+          </div>
+        </>
+      )}
 
       <h4>Altas por día</h4>
       {porDia.length ? (
@@ -197,7 +297,11 @@ function Cuerpo({ d, totalCartas }) {
         <table className="gente">
           <thead>
             <tr>
-              <th>Cuenta</th><th>Alta</th><th>Última</th><th title="Días distintos en que usó la app">Días</th><th>Cartas</th><th>Álbum</th><th>Repes</th>
+              <th>Cuenta</th><th>Alta</th><th>Última</th><th title="Días distintos en que usó la app">Días</th>
+              {porCol
+                ? porCol.map((c) => <th key={c.id} title={`De ${c.total} huecos`}>{c.nombre}</th>)
+                : <><th>Cartas</th><th>Álbum</th></>}
+              <th>Repes</th>
             </tr>
           </thead>
           <tbody>
@@ -211,8 +315,12 @@ function Cuerpo({ d, totalCartas }) {
                 <td>{dia(g.alta)}</td>
                 <td>{dia(g.ultima)}</td>
                 <td>{g.dias}</td>
-                <td>{g.cartas}</td>
-                <td>{parte(g.cartas, totalCartas)}%</td>
+                {porCol
+                  ? porCol.map((c) => {
+                      const n = g.porColeccion?.[c.id]?.cartas ?? 0
+                      return <td key={c.id}>{n ? <>{n} <i>{parte(n, c.total)}%</i></> : '—'}</td>
+                    })
+                  : <><td>{g.cartas}</td><td>—</td></>}
                 <td>{g.repetidas}</td>
               </tr>
             ))}

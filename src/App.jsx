@@ -1141,11 +1141,23 @@ export default function App() {
      marcar, no de la colección que yo esté mirando: `g.cartas` cuenta las filas de esa
      persona, que son las dos colecciones juntas. Con `resumen.total` dividiría 1936
      cartas por los 1097 huecos de Leyenda y daría 176%. */
-  const cartasDeTodos = useMemo(() => {
-    let n = 0
-    for (const col of Object.values(catalogos ?? {}))
-      for (const exp of col?.expansiones ?? []) n += exp.lista.length
-    return n
+  /* LO QUE EL PANEL NECESITA SABER DE LOS CATÁLOGOS, y que el servidor no puede saber.
+     Cada colección con su nombre, cuántos huecos tiene y qué prefijos de clave son suyos.
+     Sin esto la columna «Álbum» divide por la suma de los dos: el que tiene Cromeros
+     entero —1936 de 1936— se dibujaba con 64%. */
+  const coleccionesDelPanel = useMemo(() => {
+    const salida = []
+    for (const c of COLLECTIONS) {
+      const col = catalogos?.[c.id]
+      if (!col) continue
+      salida.push({
+        id: c.id,
+        nombre: c.nombre,
+        total: col.expansiones.reduce((a, e) => a + e.lista.length, 0),
+        prefijos: col.expansiones.map((e) => e.id),
+      })
+    }
+    return salida
   }, [catalogos])
 
   const hayQueExportar = (resumen?.tengo ?? 0) > 0
@@ -1774,7 +1786,7 @@ export default function App() {
             </div>
           }>
             <Estadisticas onCerrar={closeDashboard} onSesionMuerta={sesionMuerta}
-                          totalCartas={cartasDeTodos} />
+                          colecciones={coleccionesDelPanel} />
           </Suspense>
           </ErrorBoundary>
         )}

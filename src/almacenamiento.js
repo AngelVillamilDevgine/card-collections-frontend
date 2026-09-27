@@ -132,7 +132,12 @@ export async function quienSoy() {
 
 // Los números de toda la app. A quien no es administrador el servidor le contesta
 // 404, así que el botón ni se dibuja.
-export const estadisticas = () => pedir('/admin/resumen')
+/* `mapa` es {idDeColeccion: [prefijos de sus expansiones]}. Va en la dirección y no en
+   el cuerpo porque esto es un GET, y el catálogo lo conoce el front: el servidor no puede
+   saber qué prefijo es de qué colección sin que se lo digan. Si no se manda, el panel
+   contesta igual pero sin partir por colección. */
+export const estadisticas = (mapa) =>
+  pedir('/admin/resumen' + (mapa ? `?cols=${encodeURIComponent(JSON.stringify(mapa))}` : ''))
 
 /* ---------------------------------- colección ---------------------------------- */
 
