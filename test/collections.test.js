@@ -12,7 +12,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import {
-  COLLECTIONS, DEFAULT_COLLECTION, readCollection, albumNames, cardLabel, cardDetail,
+  COLLECTIONS, DEFAULT_COLLECTION, readCollection, albumNames, cardLabel, cardDetail, listLabel,
   withVariants, variantsFor, slotKey, slotsOf, drawableVariants, pointsToASlot, numbersOf,
   slotOf, slotName, orphanName,
 } from '../src/collections.js'
@@ -303,6 +303,37 @@ test('slotName: EL PIE IMPRIMÍA LA CLAVE INTERNA cuando era una variante', () =
   /* Y un sufijo que el catálogo no declara sale en mayúscula, igual que al dibujarlo. */
   assert.equal(slotName('ley-6-hgl:824', CATALOGOS), '824 HGL')
   assert.equal(slotName('exp-1:999', CATALOGOS), null, 'lo que no es un hueco no tiene nombre de carta')
+})
+
+test('EL PREFIJO Y EL CORTO NO SE APILAN: «F F504» era lo que decía', () => {
+  /* Los dos hacen el mismo trabajo —decir de qué expansión es— y el 2026-09-27 se
+     apilaron: el pie de lo que no se pudo guardar decía «Son la F F504» y el diálogo que
+     BORRA listaba «CU Leyenda 3». No se vio contra producción porque no hay ni una carta
+     cargada de las dos expansiones con prefijo, así que el test es el único que lo agarra. */
+  const conPrefijo = armar({ id: 'ley-f', corto: 'F', desde: 504, hasta: 513, prefijo: 'F' })
+  const sinPrefijo = armar({ id: 'ley-6', corto: 'E6', desde: 727, hasta: 902 })
+  /* De otra colección: hay que decir de dónde es. */
+  assert.equal(listLabel(conPrefijo, 504, false), 'F504', 'el prefijo ya la identifica')
+  assert.equal(listLabel(sinPrefijo, 824, false), 'E6 824', 'sin prefijo, va el corto')
+  /* De la que estás mirando: el número pelado, que es lo que se lee mejor. */
+  assert.equal(listLabel(conPrefijo, 504, true), 'F504')
+  assert.equal(listLabel(sinPrefijo, 824, true), '824')
+  /* Y sin ninguno de los dos, el número y nada más. */
+  assert.equal(listLabel(armar({ id: 'x', desde: 1, hasta: 9 }), 5, false), '5')
+})
+
+test('el doble prefijo, contra los CATÁLOGOS DE VERDAD y no contra un fixture', () => {
+  const crudo = JSON.parse(fs.readFileSync(new URL('../public/data/leyenda.json', import.meta.url), 'utf8'))
+  const cats = { leyenda: { expansiones: crudo.expansiones.map((e) => withVariants(e, crudo)) } }
+  for (const exp of cats.leyenda.expansiones) {
+    if (!exp.prefijo) continue
+    const n = exp.desde
+    const nombre = slotName(`${exp.id}:${n}`, cats, false)
+    assert.ok(!nombre.startsWith(`${exp.corto} `),
+      `${exp.id}: «${nombre}» apila el corto sobre el prefijo`)
+    assert.ok(!orphanName(`${exp.id}:999999`, cats).startsWith(`${exp.corto} `),
+      `${exp.id}: el diálogo que borra apila el corto sobre el prefijo`)
+  }
 })
 
 test('orphanName: una huérfana se nombra por su expansión, no por su clave', () => {

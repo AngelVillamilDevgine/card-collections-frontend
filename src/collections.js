@@ -145,6 +145,22 @@ export const cardLabel = (exp, n) => `${exp?.prefijo ?? ''}${n}`
  * expansión quiera nombres, se los pone en el json y aparecen. */
 export const cardDetail = (exp, n) => exp?.detalle?.[n] ?? null
 
+/* EL RÓTULO PARA UNA LISTA, donde hay que decir además DE DÓNDE es la carta.
+ *
+ * Con dos álbumes, «551» es ambiguo, así que a la que no es de la colección que estás
+ * mirando se le antepone el `corto` de su expansión. Pero el `prefijo` hace exactamente el
+ * mismo trabajo, y apilarlos daba **«F F504»** y **«CU Leyenda 3»** — el 2026-09-27, en el
+ * pie de lo que no se pudo guardar y en el diálogo que BORRA. No se vio contra producción
+ * porque hoy no hay ni una carta cargada de las dos expansiones con prefijo.
+ *
+ * La regla: si la expansión tiene `prefijo`, ése ya la identifica y alcanza; si no, va el
+ * `corto`. Nunca los dos. */
+export function listLabel(exp, n, deAca) {
+  const nombre = cardLabel(exp, n)
+  if (deAca || exp?.prefijo || !exp?.corto) return nombre
+  return `${exp.corto} ${nombre}`
+}
+
 /* Los casilleros que hay que dibujar para un hueco del álbum: SIEMPRE el base, y cada
    variante de la que tengas al menos una.
 
@@ -260,10 +276,10 @@ export function slotOf(clave, catalogos) {
    puntos, `ley-6-dor` no figuraba en la tabla de rótulos —ahí sólo están los ids de
    expansión— y salía tal cual. «No se pudo guardar ley-6-dor 824» no le dice nada a nadie.
    Un sufijo que el catálogo no declara sale en mayúscula, igual que en `drawableVariants`. */
-export function slotName(clave, catalogos) {
+export function slotName(clave, catalogos, deAca = true) {
   const hueco = slotOf(clave, catalogos)
   if (!hueco) return null
-  const nombre = cardLabel(hueco.exp, hueco.n)
+  const nombre = listLabel(hueco.exp, hueco.n, deAca)
   if (!hueco.variantId) return nombre
   const v = hueco.exp.variantes.find((x) => x.id === hueco.variantId)
   /* El nombre ENTERO y no el `corto`, y es el mismo criterio que el prefijo: esto se usa
@@ -281,10 +297,10 @@ export function slotName(clave, catalogos) {
    Importa porque este es el diálogo que BORRA: la lista es con lo que se decide. */
 export function orphanName(clave, catalogos) {
   const partes = partir(clave, catalogos)
-  if (!partes) return clave
-  if (!partes.exp) return clave
-  const nombre = cardLabel(partes.exp, partes.n)
-  return partes.exp.corto ? `${partes.exp.corto} ${nombre}` : nombre
+  if (!partes?.exp) return clave
+  /* Acá SIEMPRE se dice de dónde es —el diálogo mezcla las dos colecciones— así que va por
+     `listLabel` con `deAca` en falso. Es lo que evita el «F F99999». */
+  return listLabel(partes.exp, partes.n, false)
 }
 
 /* Los números de una expansión: un rango, o una lista de números sueltos.

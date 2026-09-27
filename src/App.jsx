@@ -182,7 +182,12 @@ const Carta = memo(function Carta({ clave, numero, nombre, detalle, variante, es
   /* Y si el catálogo sabe cómo se llama esa carta, se dice: en las «Cartas únicas» el
      número es una etiqueta nuestra —esas nueve no llevan número impreso— y lo que la
      identifica de verdad es el personaje. */
-  const quien = detalle ? `${nombre}, ${detalle.nombre}` : nombre
+  /* La tirada va también en la etiqueta hablada, no sólo pintada: es la mitad del dato
+     —lo que separa a Shenron de las otras ocho— y sin esto quien usa lector de pantalla
+     oye el personaje y no se entera de que una es de 500. */
+  const quien = detalle
+    ? `${nombre}, ${detalle.nombre}${detalle.copias > 0 ? `, ${detalle.copias} copias` : ''}`
+    : nombre
   const comoSeLlama = variante ? `Carta ${quien}, ${variante.nombre}` : `Carta ${quien}`
 
   /* Sin `title`: decía lo mismo que el aria-label, y varios lectores de pantalla leen la
@@ -1237,11 +1242,9 @@ export default function App() {
           const n = Number(c.slice(c.lastIndexOf(':') + 1))
           return Number.isFinite(n) && c.includes(':') ? { n, texto: String(n) } : null
         }
-        const nombre = slotName(c, catalogos)
-        return {
-          n: hueco.n,
-          texto: deAca.has(hueco.exp.id) ? nombre : `${hueco.exp.corto} ${nombre}`,
-        }
+        /* El «de dónde es» lo resuelve `slotName`, que sabe que el `corto` y el `prefijo`
+           hacen el mismo trabajo. Acá se apilaban: «Son la F F504». */
+        return { n: hueco.n, texto: slotName(c, catalogos, deAca.has(hueco.exp.id)) }
       })
       .filter(Boolean)
       .sort((a, b) => a.n - b.n)

@@ -1261,6 +1261,27 @@ button { cursor: pointer; }
 /* 44 - 32 = 12, seis de cada lado. */
 .banda .plegar::after { left: -6px; right: -6px; min-width: 44px; }
 
+/* EL «SALIR» DE LA PANTALLA DE ERROR, que se encogió el 2026-09-27. Cuando `.secundario`
+   estaba colgado de `.entrar` —un flex en columna— el botón salía del ancho de la caja.
+   Suelto en `.acciones-error`, que es un flex en fila, se encoge al texto: medido, 34 px
+   de ancho, o sea por debajo de los 44 que necesita un dedo. Y es el botón de la única
+   pantalla que aparece cuando algo ya salió mal.
+
+   Se agranda con el mismo `::after` que el resto y no con padding: así no le mueve el
+   renglón al «Reintentar» de al lado. Los 5 px de cada lado son 44 - 34 = 10 repartidos. */
+.acciones-error .secundario { position: relative; }
+.acciones-error .secundario::after {
+  content: '';
+  position: absolute;
+  left: -5px;
+  right: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 100%;
+  min-height: 44px;
+  min-width: 44px;
+}
+
 /* La carta cuyo último cambio no se pudo guardar. Un contorno y nada más: el color de
    la carta ya dice el estado y no se lo puede pisar. Antes el pie decía «no se pudieron
    guardar 3 cambios» y encontrarlos entre 1936 cartas era problema del usuario. */
