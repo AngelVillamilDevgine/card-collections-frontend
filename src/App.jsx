@@ -867,6 +867,11 @@ export default function App() {
        que perderlo seguro. Medido: sin esto, irse con un PUT en vuelo hacía que el
        último toque ni siquiera saliera a la red. */
     if (seVa) {
+      /* Y lo que esperaba turno en el casillero queda descartado: lo que sale acá es más
+         nuevo. `pagehide` no siempre termina en documento descartado —con bfcache la
+         página vuelve—, así que si el encadenado despertara, mandaría el número viejo
+         encima del que acabamos de mandar. */
+      porSalir.current.delete(clave)
       guardarCarta(clave, ultimo.cantidad, ultimo.estado, { keepalive: true }).catch(() => {})
       return null
     }
@@ -915,7 +920,21 @@ export default function App() {
      cubría antes. */
   function vaciar(seVa) {
     for (const clave of [...pendientes.current.keys()]) enviar(clave, seVa)
-    if (seVa) return Promise.resolve() // la página se va: no hay nada que esperar
+    if (seVa) {
+      /* Y NO ALCANZA CON `pendientes`: el último toque puede no estar ahí. Cuando ya
+         había un PUT de esa carta en vuelo, `enviar` le cumplió la espera de 250 ms, lo
+         sacó de `pendientes` y lo dejó en el casillero encadenado atrás de ese viaje —que
+         en un teléfono con datos son entre 300 y 3000 ms—. Yéndose la página, ese
+         `.then()` no corre nunca: el valor se quedaba en el casillero y NI SIQUIERA SALÍA
+         A LA RED, que es exactamente el bug que el encadenado por carta vino a arreglar y
+         que acá volvía por la puerta de al lado. Sale por el mismo camino de emergencia:
+         `keepalive` y sin encadenar. */
+      for (const [clave, v] of [...porSalir.current]) {
+        porSalir.current.delete(clave)
+        guardarCarta(clave, v.cantidad, v.estado, { keepalive: true }).catch(() => {})
+      }
+      return Promise.resolve() // la página se va: no hay nada que esperar
+    }
     return Promise.all([...enVuelo.current.values()].map((p) => p.catch(() => {})))
   }
 
