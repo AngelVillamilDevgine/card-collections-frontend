@@ -318,7 +318,7 @@ function Cuerpo({ d, colecciones }) {
         )}
       </p>
       <div className="tablon">
-        <table className="gente">
+        <table className="gente grande">
           <thead>
             <tr>
               <th>Cuenta</th><th>Alta</th><th>Última</th><th title="Días distintos en que usó la app">Días</th>

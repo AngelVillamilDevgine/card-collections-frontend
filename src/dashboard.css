@@ -202,14 +202,56 @@
    en su propia caja, que es el único lugar de la app donde eso está permitido. El
    `min-width` es para que no se apelmacen en cuatro columnas ilegibles antes de scrollear. */
 .numeros .tablon { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-.numeros .tablon table { min-width: 460px; }
+/* SÓLO la tabla de «uno por uno», que tiene una columna de correo y una por colección.
+   La de cohortes son cuatro columnas cortas y entra en un teléfono: obligándola a 460 px
+   salía cortada, con «VOLVIERON» fuera de pantalla y una barra de scroll, que es
+   exactamente lo que este panel dejó de hacer cuando se fue el popup. */
+.numeros .tablon table.grande { min-width: 460px; }
+
+/* Una nota vacía no puede ocupar un renglón. En el teléfono cada barra se apila y la
+   nota es su propia fila: sin esto, las barras sin nota dejaban un hueco. */
+.numeros .renglon-nota:empty { display: none; }
 
 @media (max-width: 560px) {
   .panel-cuerpo { padding-inline: 14px; }
-  /* El rótulo de cada barra ocupaba 116 px fijos de un ancho de 360: el riel quedaba en
-     nada y los números se comían el resto. Acá el rótulo manda y el riel se acomoda. */
-  .numeros .renglon { grid-template-columns: minmax(0, 1fr) 68px 38px 40px; }
-  .numeros .renglon.flaca { grid-template-columns: 42px minmax(0, 1fr) 34px 0; }
-  .numeros .renglon-rotulo { white-space: normal; }
+
+  /* EN EL TELÉFONO CADA BARRA SE APILA, y no es una preferencia: en cuatro columnas la
+     nota se partía letra por letra. «3 por la app» salía como «3 / po / la / ap» en una
+     columna de 40 px — y en las barras flacas, de 0 px — y cada fila pasaba a medir 150
+     px de alto. Medido a 412 px, que es un Pixel 7.
+
+     Tres filas: rótulo y valor arriba, el riel a todo el ancho, y la nota abajo. El riel
+     ancho además se lee mejor que uno de 68 px. */
+  .numeros .renglon {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "rotulo valor"
+      "riel   riel"
+      "nota   nota";
+    gap: 3px 10px;
+    margin-bottom: 4px;
+  }
+
+  /* Las barras por día sí entran en un renglón: el rótulo es «27/09» y el valor un
+     dígito. Apilarlas también hacía que los dos gráficos de catorce días midieran el
+     doble, y ahí lo que se pierde es poder comparar los días de un vistazo, que es para
+     lo único que sirve un gráfico de barras. La nota baja sola cuando la hay. */
+  .numeros .renglon.flaca {
+    grid-template-columns: 46px minmax(0, 1fr) auto;
+    grid-template-areas:
+      "rotulo riel  valor"
+      "nota   nota  nota";
+    gap: 2px 10px;
+    margin-bottom: 2px;
+  }
+  .numeros .renglon-rotulo { grid-area: rotulo; white-space: normal; }
+  .numeros .renglon b { grid-area: valor; }
+  .numeros .riel { grid-area: riel; }
+  .numeros .renglon-nota { grid-area: nota; }
+
   .numeros .sueltos { gap: 4px 14px; }
+
+  /* La cuenta es lo único que puede ser larguisimo y no se puede cortar en dos renglones
+     sin que la tabla se deforme. */
+  .numeros table.gente .quien { max-width: 132px; }
 }
