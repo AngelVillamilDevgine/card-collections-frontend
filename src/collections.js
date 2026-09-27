@@ -266,7 +266,12 @@ export function slotName(clave, catalogos) {
   const nombre = cardLabel(hueco.exp, hueco.n)
   if (!hueco.variantId) return nombre
   const v = hueco.exp.variantes.find((x) => x.id === hueco.variantId)
-  return `${nombre} ${v?.corto ?? v?.nombre ?? hueco.variantId.toUpperCase()}`
+  /* El nombre ENTERO y no el `corto`, y es el mismo criterio que el prefijo: esto se usa
+     en una frase —«Son la 824 Dorado»— y ahí hay lugar. El `corto` es para la esquina de
+     la carta, donde entran dos letras y la banda de arriba da el contexto; suelto en un
+     cartel, «824 DO» no le dice nada a nadie. Medido contra las trece variantes que hay
+     cargadas en producción: DO, PL, NA, HO y CY. */
+  return `${nombre} ${v?.nombre ?? v?.corto ?? hueco.variantId.toUpperCase()}`
 }
 
 /* Cómo nombrar una clave HUÉRFANA, que por definición no apunta a ningún hueco.

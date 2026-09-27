@@ -298,7 +298,8 @@ test('slotName: EL PIE IMPRIMÍA LA CLAVE INTERNA cuando era una variante', () =
      ley-6-dor 824», en el único cartel que aparece cuando algo salió mal. */
   assert.equal(slotName('exp-1:1', CATALOGOS), '1')
   assert.equal(slotName('ley-6:824', CATALOGOS), '824')
-  assert.equal(slotName('ley-6-dor:824', CATALOGOS), '824 Dor', 'la variante se nombra, no se imprime el id')
+  assert.equal(slotName('ley-6-dor:824', CATALOGOS), '824 Dorado',
+    'el nombre ENTERO: esto va en una frase, y ahi «824 DO» no dice nada')
   /* Y un sufijo que el catálogo no declara sale en mayúscula, igual que al dibujarlo. */
   assert.equal(slotName('ley-6-hgl:824', CATALOGOS), '824 HGL')
   assert.equal(slotName('exp-1:999', CATALOGOS), null, 'lo que no es un hueco no tiene nombre de carta')
