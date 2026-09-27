@@ -199,19 +199,71 @@ export function drawableVariants(catalogo, cantidades) {
    único que pasó es que el catálogo dejó de saber cómo se llama ese fondo. Editar un
    JSON no puede ofrecer borrar cartas de verdad. */
 export function pointsToASlot(clave, catalogos) {
+  return !!slotOf(clave, catalogos)
+}
+
+/* A QUÉ HUECO APUNTA UNA CLAVE, mirando TODAS las colecciones: `{ exp, n, variantId }`, o
+   `null` si no apunta a ninguno.
+
+   Mirar todas y no sólo la que estás viendo importa para lo que no se pudo guardar: si
+   tocaste una de Leyenda y te cambiaste a Cromeros, el pie tiene que poder nombrarla.
+
+   Y la parte de la expansión **no se puede partir por guion**: los ids llevan guiones
+   (`ley-2-3`) y el sufijo de variante también es un guion. Se busca contra el catálogo, que
+   es quien sabe, y de más largo a más corto para que gane el id más específico. */
+function partir(clave, catalogos) {
+  if (typeof clave !== 'string') return null
   const corte = clave.lastIndexOf(':')
-  if (corte < 0) return false
+  if (corte < 0 || corte === clave.length - 1) return null
   const expParte = clave.slice(0, corte)
   const n = Number(clave.slice(corte + 1))
-  if (!Number.isFinite(n)) return false
-  for (const col of Object.values(catalogos ?? {})) {
-    for (const exp of col?.expansiones ?? []) {
-      const esLaBase = expParte === exp.id
-      const esUnaVariante = expParte.startsWith(exp.id + '-')
-      if ((esLaBase || esUnaVariante) && exp.lista.includes(n)) return true
-    }
+  if (!Number.isFinite(n)) return null
+
+  const todas = []
+  for (const col of Object.values(catalogos ?? {})) for (const exp of col?.expansiones ?? []) todas.push(exp)
+  todas.sort((a, b) => b.id.length - a.id.length)
+
+  for (const exp of todas) {
+    const esLaBase = expParte === exp.id
+    if (!(esLaBase || expParte.startsWith(exp.id + '-'))) continue
+    return { exp, n, variantId: esLaBase ? null : expParte.slice(exp.id.length + 1) }
   }
-  return false
+  return { exp: null, n, variantId: null }
+}
+
+export function slotOf(clave, catalogos) {
+  const partes = partir(clave, catalogos)
+  if (!partes?.exp || !partes.exp.lista.includes(partes.n)) return null
+  return partes
+}
+
+/* Cómo se le dice a un casillero a una persona: el rótulo de la carta y, si es de una
+   variante, cómo se llama esa variante.
+
+   Existe porque el pie imprimía **la clave interna**: `ley-6-dor:824` se partía por los dos
+   puntos, `ley-6-dor` no figuraba en la tabla de rótulos —ahí sólo están los ids de
+   expansión— y salía tal cual. «No se pudo guardar ley-6-dor 824» no le dice nada a nadie.
+   Un sufijo que el catálogo no declara sale en mayúscula, igual que en `drawableVariants`. */
+export function slotName(clave, catalogos) {
+  const hueco = slotOf(clave, catalogos)
+  if (!hueco) return null
+  const nombre = cardLabel(hueco.exp, hueco.n)
+  if (!hueco.variantId) return nombre
+  const v = hueco.exp.variantes.find((x) => x.id === hueco.variantId)
+  return `${nombre} ${v?.corto ?? v?.nombre ?? hueco.variantId.toUpperCase()}`
+}
+
+/* Cómo nombrar una clave HUÉRFANA, que por definición no apunta a ningún hueco.
+   Su expansión puede existir igual —es el caso típico: un `"hasta"` mal tipeado deja
+   `exp-1:9999`— así que se la busca por prefijo y se usa su rótulo corto. Sólo si ni la
+   expansión existe se cae a la clave cruda, que ahí sí es lo único que hay para decir.
+   Importa porque este es el diálogo que BORRA: la lista es con lo que se decide. */
+export function orphanName(clave, catalogos) {
+  const partes = partir(clave, catalogos)
+  if (!partes) return clave
+  if (!partes.exp) return clave
+  const nombre = cardLabel(partes.exp, partes.n)
+  return partes.exp.corto ? `${partes.exp.corto} ${nombre}` : nombre
 }
 
 /* Los números de una expansión: un rango, o una lista de números sueltos.

@@ -13,7 +13,7 @@ import Exportar from './Exportar'
 const Estadisticas = lazy(() => import('./Estadisticas'))
 import Instalar from './Instalar'
 import { ErrorBoundary } from './boundary'
-import { COLLECTIONS, DEFAULT_COLLECTION, readCollection, rememberCollection, loadCatalogs, slotKey, slotsOf, variantsFor, drawableVariants, pointsToASlot, cardLabel } from './collections'
+import { COLLECTIONS, DEFAULT_COLLECTION, readCollection, rememberCollection, loadCatalogs, slotKey, slotsOf, variantsFor, drawableVariants, pointsToASlot, cardLabel, slotOf, slotName, orphanName } from './collections'
 import {
   ErrorApi,
   descargar, restaurar, quienSoy, salir,
@@ -311,7 +311,7 @@ function AskVariant({ nombre, variantes, cuentas, onElegir, onCerrar }) {
    Muestra los NÚMEROS y no sólo la cantidad: es lo que deja ver de un vistazo que son
    «las 129 de la Expansión 1» y no cartas sueltas, o sea que el problema está en el
    catálogo y no en la colección. */
-function OrphansDialog({ keys, corTos, onConfirmar, onCerrar }) {
+function OrphansDialog({ keys, catalogos, onConfirmar, onCerrar }) {
   const caja = useRef(null)
   const abrio = useRef(document.activeElement)
 
@@ -320,12 +320,13 @@ function OrphansDialog({ keys, corTos, onConfirmar, onCerrar }) {
 
   /* El `corto` de la expansión y no el número pelado: con dos colecciones, «551» no dice
      de cuál álbum es, y el diálogo existe justamente para que se vea de un vistazo que el
-     problema es el catálogo y no la colección. */
-  const numeros = keys.map((c) => {
-    const [exp, n] = c.split(':')
-    const corto = corTos?.[exp]
-    return corto ? `${corto} ${n}` : c
-  })
+     problema es el catálogo y no la colección.
+
+     Va por `orphanName` y no partiendo la clave por los dos puntos: con un sufijo de
+     variante, `ley-6-dor:99999` no encontraba rótulo —la tabla sólo tenía ids de
+     expansión— y se imprimía la clave cruda. Acá eso pesa más que en el pie, porque **este
+     es el diálogo que borra**: la lista es con lo que se decide. */
+  const numeros = keys.map((c) => orphanName(c, catalogos))
   const MUESTRA = 24
   const lista = numeros.slice(0, MUESTRA).join(', ')
 
@@ -1115,15 +1116,6 @@ export default function App() {
     return Object.keys(cantidades).filter((c) => !pointsToASlot(c, catalogos))
   }, [catalogos, cantidades])
 
-  /* id de expansión -> su rótulo corto, de TODAS las colecciones: lo usa el diálogo de
-     huérfanas y el listado de lo que no se pudo guardar. */
-  const cortosPorExpansion = useMemo(() => {
-    const m = {}
-    for (const col of Object.values(catalogos ?? {}))
-      for (const exp of col?.expansiones ?? []) m[exp.id] = exp.corto
-    return m
-  }, [catalogos])
-
   /* Se borran de a una, con el mismo camino que usa cada toque (cantidad 0 = no tener
      fila). A propósito NO va por el reemplazo masivo: ése es el único camino que borra
      en masa y no hace falta abrirlo para esto. */
@@ -1211,15 +1203,31 @@ export default function App() {
      seis: más que eso no se lee, y con esa cantidad el problema ya no es encontrarlas. */
   /* Con dos colecciones, «la 551» es ambiguo: hay una 551 en cada álbum. Así que a la
      que NO es de la colección que estás mirando se le antepone el rótulo corto de su
-     expansión. A las de acá no, que son la mayoría y el número pelado se lee mejor. */
+     expansión. A las de acá no, que son la mayoría y el número pelado se lee mejor.
+
+     LA CLAVE NO SE PARTE POR LOS DOS PUNTOS, y eso era un bug que se veía: con una
+     variante, `ley-6-dor:824` daba `exp = 'ley-6-dor'`, que no figura en la tabla de
+     rótulos —ahí sólo están los ids de expansión— y salía tal cual. El pie decía **«No se
+     pudo guardar ley-6-dor 824»**: la clave interna, en la cara del usuario, en el único
+     cartel que aparece cuando algo salió mal. Hoy lo resuelve `slotName`, que busca contra
+     el catálogo y nombra también la variante. */
   const listaFallidas = useMemo(() => {
     if (!fallidas.size) return ''
     const deAca = new Set((catalogo ?? []).map((e) => e.id))
     const nombres = [...fallidas]
       .map((c) => {
-        const [exp, n] = c.split(':')
-        if (!Number.isFinite(Number(n))) return null
-        return { n: Number(n), texto: deAca.has(exp) ? n : `${cortosPorExpansion[exp] ?? exp} ${n}` }
+        const hueco = slotOf(c, catalogos)
+        /* Si no apunta a ningún hueco conocido —un catálogo que no cargó— se cae al
+           número, que es lo único seguro. Nunca a la clave. */
+        if (!hueco) {
+          const n = Number(c.slice(c.lastIndexOf(':') + 1))
+          return Number.isFinite(n) && c.includes(':') ? { n, texto: String(n) } : null
+        }
+        const nombre = slotName(c, catalogos)
+        return {
+          n: hueco.n,
+          texto: deAca.has(hueco.exp.id) ? nombre : `${hueco.exp.corto} ${nombre}`,
+        }
       })
       .filter(Boolean)
       .sort((a, b) => a.n - b.n)
@@ -1227,7 +1235,7 @@ export default function App() {
     if (!nombres.length) return ''
     if (nombres.length <= 6) return `Son la ${nombres.join(', la ')}.`
     return `Son la ${nombres.slice(0, 6).join(', la ')} y ${nombres.length - 6} más.`
-  }, [fallidas, catalogo, cortosPorExpansion])
+  }, [fallidas, catalogo, catalogos])
 
   useEffect(() => {
     if (!hayQueExportar) return
@@ -1796,7 +1804,7 @@ export default function App() {
         {sacando && huerfanas.length > 0 && (
           <OrphansDialog
             keys={huerfanas}
-            corTos={cortosPorExpansion}
+            catalogos={catalogos}
             onConfirmar={sacarHuerfanas}
             onCerrar={() => setSacando(false)}
           />

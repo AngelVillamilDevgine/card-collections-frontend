@@ -195,8 +195,15 @@ export function descargar(datos, nombre = 'mi-coleccion-dbz.json') {
    del archivo, porque un respaldo puede ser viejo. Devuelve `null` si no es una copia. */
 const esMapa = (v) => !!v && typeof v === 'object' && !Array.isArray(v)
 
-// La forma de una clave de carta, para reconocer la forma más vieja del archivo.
-const PARECE_CARTA = /^[a-z0-9-]{1,40}:\d{1,5}$/
+/* La forma de una clave de carta, para reconocer la forma más vieja del archivo.
+
+   34 Y NO 40, que es lo que aceptaba: tiene que ser la misma que `claveValida` del
+   servidor, que son 34 + `:` + 5 dígitos = los 40 justos de la columna. Con 40 acá, un
+   archivo con claves de entre 35 y 40 caracteres pasaba por copia válida, el front
+   preguntaba «vas a perder N» y recién el servidor lo rechazaba con un 400 — en el único
+   camino de la app que se usa para RECUPERAR algo. Es la misma clase de desacuerdo que ya
+   costó un 500: la validación tiene que cerrar con el ancho de la columna. */
+const PARECE_CARTA = /^[a-z0-9-]{1,34}:\d{1,5}$/
 
 export function normalizar(datos) {
   if (!esMapa(datos)) return null

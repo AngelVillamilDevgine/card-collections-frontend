@@ -14,6 +14,7 @@ import fs from 'node:fs'
 import {
   COLLECTIONS, DEFAULT_COLLECTION, readCollection, albumNames, cardLabel,
   withVariants, variantsFor, slotKey, slotsOf, drawableVariants, pointsToASlot, numbersOf,
+  slotOf, slotName, orphanName,
 } from '../src/collections.js'
 
 /* Una expansión como sale de un json, para no depender de los catálogos de verdad: lo que
@@ -199,10 +200,10 @@ test('drawableVariants: sin catálogo y sin cantidades no revienta', () => {
 // ---------------------------------------------------------------- pointsToASlot
 
 const CATALOGOS = {
-  cromeros: { expansiones: [armar({ id: 'exp-1', desde: 1, hasta: 129 })] },
+  cromeros: { expansiones: [armar({ id: 'exp-1', corto: 'E1', desde: 1, hasta: 129 })] },
   leyenda: {
     expansiones: [armar({
-      id: 'ley-6', desde: 727, hasta: 902,
+      id: 'ley-6', corto: 'E6', desde: 727, hasta: 902,
       grupos: [{ cartas: [824], variantes: [DORADO] }],
     })],
   },
@@ -242,6 +243,47 @@ test('pointsToASlot: una colección que NO cargó no hace que todo sea huérfano
   assert.equal(pointsToASlot('exp-1:1', conUnaCaida), true)
   assert.equal(pointsToASlot('ley-6:824', conUnaCaida), false)
   assert.equal(pointsToASlot('exp-1:1', null), false)
+})
+
+// ---------------------------------------------------------------- slotOf / slotName
+
+test('slotOf: dice de qué hueco es una clave, mirando TODAS las colecciones', () => {
+  /* Mirar todas y no sólo la que estás viendo importa para el pie: si tocaste una de
+     Leyenda y te cambiaste a Cromeros, tiene que poder nombrarla. */
+  assert.deepEqual(
+    { id: slotOf('exp-1:1', CATALOGOS).exp.id, n: slotOf('exp-1:1', CATALOGOS).n, v: slotOf('exp-1:1', CATALOGOS).variantId },
+    { id: 'exp-1', n: 1, v: null }
+  )
+  const conVariante = slotOf('ley-6-dor:824', CATALOGOS)
+  assert.equal(conVariante.exp.id, 'ley-6')
+  assert.equal(conVariante.variantId, 'dor', 'la parte de la expansión NO se parte por guion')
+  assert.equal(slotOf('exp-1:200', CATALOGOS), null, 'fuera de la corrida no es un hueco')
+  assert.equal(slotOf('exp-1:', CATALOGOS), null)
+  assert.equal(slotOf('exp-1', CATALOGOS), null)
+  assert.equal(slotOf(null, CATALOGOS), null)
+})
+
+test('slotName: EL PIE IMPRIMÍA LA CLAVE INTERNA cuando era una variante', () => {
+  /* `ley-6-dor:824` se partía por los dos puntos, `ley-6-dor` no figuraba en la tabla de
+     rótulos —ahí sólo hay ids de expansión— y salía tal cual: «No se pudo guardar
+     ley-6-dor 824», en el único cartel que aparece cuando algo salió mal. */
+  assert.equal(slotName('exp-1:1', CATALOGOS), '1')
+  assert.equal(slotName('ley-6:824', CATALOGOS), '824')
+  assert.equal(slotName('ley-6-dor:824', CATALOGOS), '824 Dor', 'la variante se nombra, no se imprime el id')
+  /* Y un sufijo que el catálogo no declara sale en mayúscula, igual que al dibujarlo. */
+  assert.equal(slotName('ley-6-hgl:824', CATALOGOS), '824 HGL')
+  assert.equal(slotName('exp-1:999', CATALOGOS), null, 'lo que no es un hueco no tiene nombre de carta')
+})
+
+test('orphanName: una huérfana se nombra por su expansión, no por su clave', () => {
+  /* Éste es el diálogo que BORRA: la lista es con lo que se decide. Una huérfana no apunta
+     a ningún hueco, pero su expansión casi siempre existe —el caso típico es un `"hasta"`
+     mal tipeado— así que hay algo mejor que decir que la clave cruda. */
+  assert.equal(orphanName('exp-1:9999', CATALOGOS), 'E1 9999')
+  assert.equal(orphanName('ley-6-dor:9999', CATALOGOS), 'E6 9999')
+  /* Y si ni la expansión existe, la clave es lo único que hay. */
+  assert.equal(orphanName('exp-99:1', CATALOGOS), 'exp-99:1')
+  assert.equal(orphanName('cualquier-cosa', CATALOGOS), 'cualquier-cosa')
 })
 
 // ---------------------------------------------------------------- la elección del álbum
