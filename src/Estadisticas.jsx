@@ -4,7 +4,7 @@
 // vuelve: arriba el embudo de "se anotó" a "volvió otro día", y recién después el
 // detalle. Si alguna vez se cobra algo, se le cobra a los que vuelven.
 import { useEffect, useRef, useState } from 'react'
-import { atraparFoco, usarEscape } from './foco'
+import { usarEscape } from './foco'
 import { estadisticas } from './almacenamiento'
 import './dashboard.css'
 
@@ -98,7 +98,7 @@ function Barra({ rotulo, valor, techo, nota, flaca }) {
 export default function Estadisticas({ onCerrar, onSesionMuerta, colecciones }) {
   const [datos, setDatos] = useState(null)
   const [error, setError] = useState(null)
-  const caja = useRef(null)
+  const titulo = useRef(null)
   /* Quién tenía el foco antes de abrir, leído en el render: para cuando corren los
      efectos, el autoFocus del diálogo ya se lo llevó. */
   const abrio = useRef(document.activeElement)
@@ -116,18 +116,42 @@ export default function Estadisticas({ onCerrar, onSesionMuerta, colecciones }) 
 
   usarEscape(onCerrar)
 
-  /* Una sola vez, al abrir: si colgara de `onCerrar` —una flecha nueva en cada render—
-     volvería a capturar el foco de antes y al cerrar lo devolvería acá adentro. */
-  useEffect(() => atraparFoco(caja.current, abrio.current), [])
+  /* UNA PÁGINA NO ATRAPA EL FOCO, un diálogo sí. Esto era un `.dialogo` y usaba
+     `atraparFoco`, que cicla el Tab adentro — correcto para algo que flota encima de otra
+     cosa, y molesto para algo que ES la pantalla. Lo que sí hace falta es mover el foco al
+     título, para que un lector de pantalla anuncie que cambió de vista, y devolverlo al
+     botón de donde vino al cerrar. */
+  useEffect(() => {
+    titulo.current?.focus()
+    const antes = abrio.current
+    return () => { if (antes?.isConnected) antes.focus() }
+  }, [])
 
+  /* PÁGINA Y NO POPUP. Era un `.dialogo` centrado con techo de alto encima de las 1936
+     cartas, y en un teléfono eso es lo peor posible: una tabla de siete columnas metida en
+     una caja de 620 px con scroll propio adentro de otro scroll. Angel: «ese pop up me
+     tiene cansado, me corta todo en celular».
+
+     LA RUTA NO CAMBIA: sigue siendo el hash `#panel`, porque el argumento de siempre sigue
+     en pie — Atás tiene que cerrarlo, y eso ya anda. Lo que cambia es que ocupa la
+     pantalla entera y scrollea como una página, sin techo y sin ancho de diálogo. */
   return (
-    <div className="telon" onClick={onCerrar}>
-      <div className="dialogo numeros" role="dialog" aria-modal="true" aria-label="Estadísticas" ref={caja} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
-        <h3>Los números</h3>
+    <div className="pagina-panel">
+      <header className="panel-cabecera">
+        <button className="volver" onClick={onCerrar}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+          Volver
+        </button>
+        {/* `tabIndex={-1}` para poder enfocarlo al entrar sin meterlo en el orden del Tab. */}
+        <h1 tabIndex={-1} ref={titulo}>Los números</h1>
+      </header>
+      <div className="panel-cuerpo numeros">
         {error && <p className="nada">{error}</p>}
         {!datos && !error && <p className="nada">Buscando…</p>}
         {datos && <Cuerpo d={datos} colecciones={colecciones ?? []} />}
-        <button className="cancelar" onClick={onCerrar}>Cerrar</button>
       </div>
     </div>
   )

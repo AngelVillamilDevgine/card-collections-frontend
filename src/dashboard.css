@@ -18,19 +18,80 @@
    El panel del administrador. Sobrio a propósito: filas y barras, nada de
    tarjetitas con sombras — la app no tiene ese aire en ningún otro lado. */
 
-/* Sólo el ancho. El techo de alto y el scroll ya los pone `.dialogo` en estilos.css, y
-   repetirlos acá los ROMPÍA: aquella regla declara `max-height` dos veces a propósito
-   —`vh` de respaldo y `dvh` encima, porque en el teléfono `vh` cuenta la barra del
-   navegador como si no estuviera— y esta copia, con más especificidad y ahora además en
-   una hoja que Vite inyecta después, ganaba con el `vh` pelado. O sea que el panel era el
-   único diálogo sin el arreglo, y en apaisado el título y el botón Cerrar quedaban fuera
-   de la pantalla. Es la tercera vez en este proyecto que una regla anula a otra sin que
-   nada avise; antes de repetir una declaración, buscarla. */
-.dialogo.numeros {
-  width: min(620px, 100%);
+/* EL PANEL ES UNA PÁGINA, no un diálogo.
+ *
+ * Fue un `.dialogo` centrado con techo de alto, encima de las 1936 cartas. En el teléfono
+ * eso significaba una tabla de siete columnas dentro de una caja de 620 px con su propio
+ * scroll, adentro de otro scroll, con el fondo oscurecido: «me corta todo en celular, es
+ * muy fea la view». Ahora ocupa la pantalla entera y scrollea como cualquier página.
+ *
+ * `position: fixed` y no un bloque normal porque la app sigue montada debajo — así al
+ * cerrar la grilla vuelve con su scroll donde estaba, que en 1936 cartas importa. El
+ * z-index va por encima de las barras fijas del teléfono (filtros y «instalala»), que
+ * si no se dibujan flotando sobre el panel.
+ *
+ * El `env(safe-area-inset-*)` no es opcional: sin él, la cabecera se mete debajo de la
+ * isla del iPhone y el último renglón debajo de la barra de gestos. */
+.pagina-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  background: var(--papel);
+  padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px));
 }
 
-.dialogo.numeros h4 {
+/* Pegajosa: en una tabla larga, «Volver» tiene que estar siempre a mano. */
+.panel-cabecera {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  padding-top: calc(10px + env(safe-area-inset-top, 0px));
+  background: var(--papel);
+  border-bottom: 1px solid var(--linea);
+}
+
+.panel-cabecera h1 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.panel-cabecera h1:focus { outline: none; }
+.panel-cabecera h1:focus-visible { outline: 2px solid var(--acento); outline-offset: 3px; }
+
+.panel-cabecera .volver {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 12px 7px 9px;
+  border: 1px solid var(--linea2);
+  border-radius: 999px;
+  background: var(--blanco);
+  color: var(--tinta2);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.panel-cabecera .volver:hover { border-color: var(--acento); color: var(--acento); }
+
+/* El cuerpo con un ancho cómodo de lectura y su canaleta a los costados. La canaleta va
+   acá y no en `.pagina-panel`, para que la cabecera pegajosa llegue de borde a borde. */
+.panel-cuerpo {
+  max-width: 760px;
+  margin: 0 auto;
+  padding-inline: 16px;
+  padding-block: 18px 0;
+}
+
+.numeros h4 {
   margin: 22px 0 10px;
   font-size: 12px;
   letter-spacing: 0.08em;
@@ -135,3 +196,20 @@
 
 /* Quien no cargó ninguna carta se anotó y se fue: que se note de un vistazo. */
 .numeros table.gente .apagada { color: var(--tinta3); }
+
+/* ---------------------------- en el teléfono ----------------------------- */
+/* Las tablas tienen siete columnas y ahí no hay ancho que alcance: scrollean de costado
+   en su propia caja, que es el único lugar de la app donde eso está permitido. El
+   `min-width` es para que no se apelmacen en cuatro columnas ilegibles antes de scrollear. */
+.numeros .tablon { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.numeros .tablon table { min-width: 460px; }
+
+@media (max-width: 560px) {
+  .panel-cuerpo { padding-inline: 14px; }
+  /* El rótulo de cada barra ocupaba 116 px fijos de un ancho de 360: el riel quedaba en
+     nada y los números se comían el resto. Acá el rótulo manda y el riel se acomoda. */
+  .numeros .renglon { grid-template-columns: minmax(0, 1fr) 68px 38px 40px; }
+  .numeros .renglon.flaca { grid-template-columns: 42px minmax(0, 1fr) 34px 0; }
+  .numeros .renglon-rotulo { white-space: normal; }
+  .numeros .sueltos { gap: 4px 14px; }
+}

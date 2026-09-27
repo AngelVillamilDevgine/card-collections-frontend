@@ -1780,9 +1780,23 @@ export default function App() {
              así un panel que no baja se queda en su diálogo y no se lleva puesta la
              colección. `onReset` cierra el panel, que es volver a donde se estaba. */
           <ErrorBoundary aviso="No se pudo abrir el panel." onReset={closeDashboard}>
+          {/* El fallback tiene que tener la MISMA forma que el panel — página, no diálogo —
+              o al llegar el chunk la pantalla salta de una caja centrada a una página
+              completa. Y dice «Buscando…», que es lo mismo que muestra el panel mientras
+              esperan los datos, así que al montar no cambia el texto. */}
           <Suspense fallback={
-            <div className="telon">
-              <div className="dialogo"><p className="nada">Buscando…</p></div>
+            <div className="pagina-panel">
+              <header className="panel-cabecera">
+                <button className="volver" onClick={closeDashboard}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                       strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M15 18l-6-6 6-6" />
+                  </svg>
+                  Volver
+                </button>
+                <h1>Los números</h1>
+              </header>
+              <div className="panel-cuerpo numeros"><p className="nada">Buscando…</p></div>
             </div>
           }>
             <Estadisticas onCerrar={closeDashboard} onSesionMuerta={sesionMuerta}
