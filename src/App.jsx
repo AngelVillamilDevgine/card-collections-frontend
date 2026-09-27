@@ -1711,6 +1711,9 @@ export default function App() {
                tenés cargada con un id que el catálogo dejó de declarar sigue siendo una
                carta que tenés, y el texto no puede pedirla. */
             variantes={dibujables}
+            /* Leyenda no usa condición: ahí «las que ya tengo» no pregunta en qué estado,
+               porque habría una sola respuesta posible. */
+            condicion={album?.condicion !== false}
             /* Sólo las colecciones que NO son la de siempre se anuncian. Cromeros sigue
                exportando exactamente el mismo texto que antes. */
             encabezado={coleccionViva === DEFAULT_COLLECTION ? null : (album?.coleccion ?? null)}

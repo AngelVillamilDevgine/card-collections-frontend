@@ -5,12 +5,28 @@
 import { useEffect, useRef, useState } from 'react'
 import { atraparFoco, usarEscape } from './foco'
 import { slotsOf } from './collections'
+import { ESTADOS } from './estados'
 
 const OPCIONES = [
   { id: 'falta',     label: 'Las que me faltan' },
   { id: 'repetidas', label: 'Las repetidas' },
   { id: 'ambas',     label: 'Las dos cosas' },
+  { id: 'tengo',     label: 'Las que ya tengo' },
 ]
+
+/* Cómo se lee cada condición adentro del título. No es el `label` del selector: ahí dice
+   «Perfecta» porque califica a una carta, y acá tiene que caer después de «las que tengo».
+   Son tres frases y viven al lado del título que las usa. */
+const COMO = {
+  bien: 'EN BUEN ESTADO',
+  perfecta: 'PERFECTAS',
+  reemplazar: 'PARA REEMPLAZAR',
+}
+
+/* Una carta que tenés sin condición cargada cuenta como «buen estado», que es lo mismo
+   que hace `resumen` en App.jsx con `cuenta[est ?? 'bien']++`. Si no, las que vienen de
+   una copia vieja —y todo Leyenda— no caerían en ningún cajón. */
+const condicionDe = (e) => (ESTADOS.some((x) => x.id === e) ? e : 'bien')
 
 /* EL NÚMERO QUE SE IMPRIME LLEVA EL PREFIJO DE SU EXPANSIÓN, y sin eso el texto miente.
    En Leyenda, `ley-f` va de 504 a 513 y `ley-4` de 385 a 550: sin prefijo, dos cartas
@@ -65,6 +81,32 @@ function repetidasDe(exp, cantidades, variantes) {
   return { textos, total }
 }
 
+/* LAS QUE YA TENGO. Es la lista que se pega para ofrecer, no para pedir, así que lo que
+   importa es poder acotarla por condición: nadie ofrece las que tiene para reemplazar
+   junto con las perfectas.
+
+   Un hueco entra si ALGUNO de sus casilleros tiene algo y pasa el filtro — la misma
+   cuenta que `faltantesDe`, dada vuelta. `filtro` en `null` es «todas», y es también lo
+   que llega de una colección que no usa condición, como Leyenda. */
+function tengoDe(exp, cantidades, variantes, filtro, estados) {
+  const textos = []
+  for (const n of exp.lista) {
+    const hay = slotsOf(exp, n, variantes ?? exp.variantes ?? [], cantidades).some((s) => {
+      if (!((cantidades[s.clave] ?? 0) > 0)) return false
+      return !filtro || filtro.has(condicionDe(estados?.[s.clave]))
+    })
+    if (hay) textos.push(rotulo(exp, n))
+  }
+  return { textos, total: textos.length }
+}
+
+/* El título dice CUÁLES, porque el que lo lee no tiene forma de saberlo de otro modo. */
+const tituloTengo = (filtro) => {
+  if (!filtro) return 'LAS QUE TENGO'
+  const cuales = ESTADOS.filter((e) => filtro.has(e.id)).map((e) => COMO[e.id])
+  return `LAS QUE TENGO ${cuales.join(' Y ')}`
+}
+
 /* Una estrella a cada lado del titulo de cada bloque. El texto se pega en un grupo de
    WhatsApp o de Facebook, donde un muro de numeros sin nada que lo corte no se lee.
 
@@ -91,34 +133,37 @@ const SECCIONES = {
   repetidas: [{ titulo: 'REPETIDAS', de: repetidasDe }],
   ambas:     [{ titulo: 'ME FALTAN', de: faltantesDe },
               { titulo: 'REPETIDAS', de: repetidasDe }],
+  tengo:     [{ titulo: tituloTengo, de: tengoDe }],
 }
 
 /* Para el paso 2: sólo las expansiones que tienen algo que listar, con cuántas. */
-function expansionesCon(modo, catalogo, cantidades, variantes) {
+function expansionesCon(modo, catalogo, cantidades, variantes, filtro, estados) {
   const salida = []
   for (const exp of catalogo) {
     let cuenta = 0
-    for (const s of SECCIONES[modo]) cuenta += s.de(exp, cantidades, variantes?.[exp.id]).total
+    for (const s of SECCIONES[modo]) cuenta += s.de(exp, cantidades, variantes?.[exp.id], filtro, estados).total
     if (cuenta) salida.push({ exp, cuenta })
   }
   return salida
 }
 
 /* Las cartas van una por una, sin agrupar en rangos: así se pega y se lee derecho. */
-function armar(modo, elegidas, catalogo, cantidades, encabezado, variantes) {
+function armar(modo, elegidas, catalogo, cantidades, encabezado, variantes, filtro, estados) {
   const partes = []
   for (const s of SECCIONES[modo]) {
     const lineas = []
     let total = 0
     for (const exp of catalogo) {
       if (!elegidas.has(exp.id)) continue
-      const { textos, total: suma } = s.de(exp, cantidades, variantes?.[exp.id])
+      const { textos, total: suma } = s.de(exp, cantidades, variantes?.[exp.id], filtro, estados)
       if (!textos.length) continue
       total += suma
       lineas.push(`${exp.nombre}: ${textos.join(', ')}`)
     }
-    if (lineas.length)
-      partes.push(`${ESTRELLA} ${s.titulo} (${total}) ${ESTRELLA}\n${lineas.join('\n')}`)
+    if (lineas.length) {
+      const titulo = typeof s.titulo === 'function' ? s.titulo(filtro) : s.titulo
+      partes.push(`${ESTRELLA} ${titulo} (${total}) ${ESTRELLA}\n${lineas.join('\n')}`)
+    }
   }
   if (!partes.length) return 'No hay nada para listar.'
   /* Una línea al principio diciendo de qué álbum es. Hace falta desde que hay dos: «me
@@ -140,8 +185,12 @@ const Tilde = ({ marcada }) => (
   </span>
 )
 
-export default function Exportar({ catalogo, datos, variantes, encabezado, onCerrar }) {
+export default function Exportar({ catalogo, datos, variantes, condicion, encabezado, onCerrar }) {
   const [modo, setModo] = useState(null)
+  /* Arrancan las tres marcadas: lo más común es querer todo, y desmarcar es menos trabajo.
+     `eligiendoCondicion` es el paso de más que sólo tiene «las que ya tengo». */
+  const [condiciones, setCondiciones] = useState(new Set(ESTADOS.map((e) => e.id)))
+  const [eligiendoCondicion, setEligiendoCondicion] = useState(false)
   const [elegidas, setElegidas] = useState(new Set())
   const [mostrando, setMostrando] = useState(false)
   const [aviso, setAviso] = useState(null)
@@ -162,17 +211,66 @@ export default function Exportar({ catalogo, datos, variantes, encabezado, onCer
   useEffect(() => atraparFoco(caja.current, abrio.current), [])
   useEffect(() => () => clearTimeout(relojAviso.current), [])
 
-  const { cantidades } = datos
-  const expansiones = modo ? expansionesCon(modo, catalogo, cantidades, variantes) : []
+  const { cantidades, estados } = datos
+
+  /* `null` es «todas»: cuando están las tres marcadas, y siempre en una colección que no
+     usa condición. Así el título no aclara algo que no acota nada. */
+  const filtro = modo === 'tengo' && condicion && condiciones.size < ESTADOS.length
+    ? condiciones
+    : null
+
+  const expansiones = modo && !eligiendoCondicion
+    ? expansionesCon(modo, catalogo, cantidades, variantes, filtro, estados)
+    : []
   const marcadas = expansiones.filter(({ exp }) => elegidas.has(exp.id))
   const enTotal = marcadas.reduce((a, e) => a + e.cuenta, 0)
-  const texto = mostrando ? armar(modo, elegidas, catalogo, cantidades, encabezado, variantes) : ''
+  const texto = mostrando
+    ? armar(modo, elegidas, catalogo, cantidades, encabezado, variantes, filtro, estados)
+    : ''
+
+  /* Cuántos huecos hay en cada condición, para que el selector no sea a ciegas. */
+  const cuantasCon = (id) => {
+    const solo = new Set([id])
+    let n = 0
+    for (const exp of catalogo) n += tengoDe(exp, cantidades, variantes?.[exp.id], solo, estados).total
+    return n
+  }
 
   /* Al elegir la lista arrancan todas marcadas: lo más común es querer todo, y
      desmarcar las que sobran es menos trabajo que marcar quince. */
+  /* Al elegir las expansiones arrancan todas marcadas. Se calcula con las MISMAS
+     variantes y el mismo filtro con que se va a dibujar la lista; sin eso, una expansión
+     cuyas cartas tenés sólo en variante arrancaba desmarcada. */
+  const marcarTodasLasQueTienen = (id, elFiltro) =>
+    setElegidas(new Set(
+      expansionesCon(id, catalogo, cantidades, variantes, elFiltro, estados).map((e) => e.exp.id)
+    ))
+
   function elegirModo(id) {
     setModo(id)
-    setElegidas(new Set(expansionesCon(id, catalogo, cantidades).map((e) => e.exp.id)))
+    /* «Las que ya tengo» pregunta primero en qué condición — pero sólo si la colección
+       tiene condición. En Leyenda no la hay: preguntar tendría una sola respuesta. */
+    if (id === 'tengo' && condicion) {
+      setEligiendoCondicion(true)
+      return
+    }
+    setEligiendoCondicion(false)
+    marcarTodasLasQueTienen(id, null)
+  }
+
+  function alternarCondicion(id) {
+    setCondiciones((antes) => {
+      const ahora = new Set(antes)
+      if (ahora.has(id)) ahora.delete(id)
+      else ahora.add(id)
+      return ahora
+    })
+  }
+
+  function seguirDesdeCondicion() {
+    const elFiltro = condiciones.size < ESTADOS.length ? condiciones : null
+    setEligiendoCondicion(false)
+    marcarTodasLasQueTienen('tengo', elFiltro)
   }
 
   function alternar(id) {
@@ -230,7 +328,40 @@ export default function Exportar({ catalogo, datos, variantes, encabezado, onCer
           </>
         )}
 
-        {modo && !mostrando && (
+        {eligiendoCondicion && (
+          <>
+            <p>¿En qué estado? Tocá para marcar y desmarcar.</p>
+            <div className="opciones">
+              {ESTADOS.map((e, i) => {
+                const marcada = condiciones.has(e.id)
+                return (
+                  <button
+                    key={e.id}
+                    className={`opcion simple elegible${marcada ? ' marcada' : ''}`}
+                    onClick={() => alternarCondicion(e.id)}
+                    aria-pressed={marcada}
+                    autoFocus={i === 0}
+                  >
+                    <Tilde marcada={marcada} />
+                    {e.label}
+                    <b>{cuantasCon(e.id)}</b>
+                  </button>
+                )
+              })}
+            </div>
+            <button className="ver" onClick={seguirDesdeCondicion} disabled={!condiciones.size}>
+              {condiciones.size ? 'Seguir' : 'Marcá al menos uno'}
+            </button>
+            <div className="salidas">
+              <button className="cancelar" onClick={() => { setEligiendoCondicion(false); setModo(null) }}>
+                Elegir otra lista
+              </button>
+              <button className="cancelar" onClick={onCerrar}>Cerrar</button>
+            </div>
+          </>
+        )}
+
+        {modo && !eligiendoCondicion && !mostrando && (
           <>
             <p>¿De qué expansiones? Tocá para marcar y desmarcar.</p>
             {expansiones.length ? (
@@ -269,7 +400,12 @@ export default function Exportar({ catalogo, datos, variantes, encabezado, onCer
               <p className="nada">No hay ninguna para listar.</p>
             )}
             <div className="salidas">
-              <button className="cancelar" onClick={() => setModo(null)}>Elegir otra lista</button>
+              <button
+                className="cancelar"
+                onClick={() => (modo === 'tengo' && condicion ? setEligiendoCondicion(true) : setModo(null))}
+              >
+                {modo === 'tengo' && condicion ? 'Elegir otro estado' : 'Elegir otra lista'}
+              </button>
               <button className="cancelar" onClick={onCerrar}>Cerrar</button>
             </div>
           </>
