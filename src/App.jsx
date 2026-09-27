@@ -13,7 +13,7 @@ import Exportar from './Exportar'
 const Estadisticas = lazy(() => import('./Estadisticas'))
 import Instalar from './Instalar'
 import { ErrorBoundary } from './boundary'
-import { COLLECTIONS, DEFAULT_COLLECTION, readCollection, rememberCollection, loadCatalogs, slotKey, slotsOf, variantsFor, drawableVariants, pointsToASlot } from './collections'
+import { COLLECTIONS, DEFAULT_COLLECTION, readCollection, rememberCollection, loadCatalogs, slotKey, slotsOf, variantsFor, drawableVariants, pointsToASlot, cardLabel } from './collections'
 import {
   ErrorApi,
   descargar, restaurar, quienSoy, salir,
@@ -94,7 +94,7 @@ const DESLIZ = 10
    cada render. Por eso la carta les pasa su clave al llamarlos, en vez de recibir dos
    flechas que ya la tengan adentro: una flecha nueva por carta es una prop nueva por
    carta, y el memo no ahorraría nada. */
-const Carta = memo(function Carta({ clave, numero, variante, estado, cantidad, sinGuardar, onTocar, onMantener }) {
+const Carta = memo(function Carta({ clave, numero, nombre, variante, estado, cantidad, sinGuardar, onTocar, onMantener }) {
   const reloj = useRef(null)
   const fueLargo = useRef(false)  // ya pasaron los 420 ms: el click que venga no cuenta
   const cobrable = useRef(false)  // ...y además todavía se puede cobrar al soltar
@@ -173,8 +173,13 @@ const Carta = memo(function Carta({ clave, numero, variante, estado, cantidad, s
     ? `${etiqueta(estado, cantidad)} · tenés ${cantidad}`
     : 'Me falta'
   /* El nombre de la variante va en la etiqueta hablada y el rótulo corto en la esquina.
-     Con lector de pantalla, «Carta 551» dos veces seguidas no distingue nada. */
-  const comoSeLlama = variante ? `Carta ${numero}, ${variante.nombre}` : `Carta ${numero}`
+     Con lector de pantalla, «Carta 551» dos veces seguidas no distingue nada.
+
+     Y el número va con el prefijo de su expansión (`nombre`), no pelado: mirando la
+     pantalla la banda de arriba dice de qué expansión es, pero hablado no hay banda, y
+     en Leyenda hay 19 huecos donde el mismo número es dos cartas distintas. En la CARA de
+     la carta sigue yendo pelado: ahí la banda está a la vista y «Leyenda 1» no entra. */
+  const comoSeLlama = variante ? `Carta ${nombre}, ${variante.nombre}` : `Carta ${nombre}`
 
   /* Sin `title`: decía lo mismo que el aria-label, y varios lectores de pantalla leen la
      etiqueta y después la descripción, o sea «Carta 5. Me falta. Me falta» — 1936 veces.
@@ -206,7 +211,7 @@ const Carta = memo(function Carta({ clave, numero, variante, estado, cantidad, s
 
 /* -------------------------------- diálogo --------------------------------- */
 
-function Pregunta({ numero, onElegir, onCerrar }) {
+function Pregunta({ nombre, onElegir, onCerrar }) {
   const caja = useRef(null)
   /* Quién tenía el foco antes de abrir, leído en el render: para cuando corren los
      efectos, el autoFocus del diálogo ya se lo llevó. */
@@ -221,8 +226,8 @@ function Pregunta({ numero, onElegir, onCerrar }) {
 
   return (
     <div className="telon" onClick={onCerrar}>
-      <div className="dialogo" role="dialog" aria-modal="true" aria-label={`Carta ${numero}`} ref={caja} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
-        <h3>Carta {numero}</h3>
+      <div className="dialogo" role="dialog" aria-modal="true" aria-label={`Carta ${nombre}`} ref={caja} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
+        <h3>Carta {nombre}</h3>
         <p>¿En qué estado está?</p>
         {ESTADOS.map((e) => (
           <button key={e.id} className={`opcion ${e.id}`} onClick={() => onElegir(e.id)} autoFocus={e.id === 'bien'}>
@@ -264,7 +269,7 @@ function Pregunta({ numero, onElegir, onCerrar }) {
 
    Cada opción muestra cuántas tenés de esa: sin eso, con tres fondos parecidos, no hay
    forma de acordarse de cuál ya cargaste. */
-function AskVariant({ numero, variantes, cuentas, onElegir, onCerrar }) {
+function AskVariant({ nombre, variantes, cuentas, onElegir, onCerrar }) {
   const caja = useRef(null)
   const abrio = useRef(document.activeElement)
 
@@ -280,9 +285,9 @@ function AskVariant({ numero, variantes, cuentas, onElegir, onCerrar }) {
 
   return (
     <div className="telon" onClick={onCerrar}>
-      <div className="dialogo" role="dialog" aria-modal="true" aria-label={`Carta ${numero}`}
+      <div className="dialogo" role="dialog" aria-modal="true" aria-label={`Carta ${nombre}`}
            ref={caja} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
-        <h3>Carta {numero}</h3>
+        <h3>Carta {nombre}</h3>
         <p>¿Cuál tenés?</p>
         {variantes.map((v, i) => fila(v.id, v.nombre, i === 0))}
         <p className="salidas">
@@ -1283,7 +1288,7 @@ export default function App() {
       /* Sin variantes y sin condición —el resto de Leyenda— hay una sola respuesta
          posible, así que no se pregunta: la deja en 1. */
       if (!album?.condicion) return aplicar(clave, 1, null)
-      return setPreguntando({ clave, numero })
+      return setPreguntando({ clave, nombre: cardLabel(hueco?.exp, numero) })
     }
     aplicar(clave, tiene + 1, vivo.current.estados[clave])
   }
@@ -1731,6 +1736,7 @@ export default function App() {
                       key={clave}
                       clave={clave}
                       numero={n}
+                      nombre={cardLabel(exp, n)}
                       variante={variante}
                       estado={estados[clave]}
                       cantidad={cantidades[clave] ?? 0}
@@ -1770,7 +1776,7 @@ export default function App() {
 
         {preguntandoVariante && (
           <AskVariant
-            numero={preguntandoVariante.n}
+            nombre={cardLabel(preguntandoVariante.exp, preguntandoVariante.n)}
             variantes={variantsFor(preguntandoVariante.exp, preguntandoVariante.n)}
             cuentas={Object.fromEntries([
               ...variantsFor(preguntandoVariante.exp, preguntandoVariante.n).map((v) => [
@@ -1842,7 +1848,7 @@ export default function App() {
 
         {preguntando && (
           <Pregunta
-            numero={preguntando.numero}
+            nombre={preguntando.nombre}
             onElegir={responder}
             onCerrar={() => setPreguntando(null)}
           />

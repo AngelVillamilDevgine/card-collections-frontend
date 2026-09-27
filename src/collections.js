@@ -17,6 +17,18 @@ export const COLLECTIONS = [
 
 export const DEFAULT_COLLECTION = 'cromeros'
 
+/* Los álbumes, en prosa, para la bajada de la pantalla de entrada. Sale de la lista de
+   arriba y no está escrito a mano porque ahí decía «Cartas Cromeros · 2007–2008» y quedó
+   sin cambiar el día que entró Leyenda —que la hace Flash Gondor y es de 2025-2026—: o
+   sea que lo primero que leía alguien que llegaba era el nombre de la mitad de la app. El
+   encabezado de adentro no tiene el problema porque su subtítulo se fue y lo reemplazó el
+   selector, que dice lo mismo y además sirve para algo. */
+export function albumNames() {
+  const nombres = COLLECTIONS.map((c) => c.nombre)
+  if (nombres.length < 2) return nombres.join('')
+  return nombres.slice(0, -1).join(', ') + ' y ' + nombres.at(-1)
+}
+
 /* Qué álbum estás mirando es una preferencia de ESTE aparato, igual que qué expansiones
    dejaste plegadas: la compu y el celular se acuerdan cada uno del suyo. Por eso va en
    `localStorage` y no en la cuenta.
@@ -103,6 +115,19 @@ export function variantsFor(exp, n) {
    Y por eso el id de la variante va corto: entra en los 34 caracteres que `claveValida`
    acepta antes de los dos puntos. Hay un test que lo obliga (`leyenda.test.js`). */
 export const slotKey = (expId, n, variantId) => `${expId}${variantId ? `-${variantId}` : ''}:${n}`
+
+/* CÓMO SE LLAMA UNA CARTA, y no es sólo su número.
+ *
+ * En Leyenda hay dos expansiones que repiten números de otra: `ley-f` va de 504 a 513 y
+ * `ley-4` de 385 a 550, así que 504 existe dos veces; `ley-unicas` va de 1 a 9 y
+ * `ley-inicial` de 1 a 176, otras nueve. Son 19 huecos con dos cartas distintas cada uno,
+ * y lo que las separa es el prefijo impreso: `F504` contra `504`.
+ *
+ * Existía sólo en el texto que se comparte. En la grilla y en el diálogo el número salía
+ * pelado, así que el lector de pantalla decía «Carta 504» dos veces y el diálogo se
+ * titulaba «Carta 1» para la Leyenda 1 y para la 1 del mazo inicial. Mirando la pantalla
+ * la banda de la expansión te lo dice; hablado y en el título del diálogo, no había nada. */
+export const cardLabel = (exp, n) => `${exp?.prefijo ?? ''}${n}`
 
 /* Los casilleros que hay que dibujar para un hueco del álbum: SIEMPRE el base, y cada
    variante de la que tengas al menos una.

@@ -10,8 +10,9 @@
 // justa, para que aparezca.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import fs from 'node:fs'
 import {
-  COLLECTIONS, DEFAULT_COLLECTION, readCollection,
+  COLLECTIONS, DEFAULT_COLLECTION, readCollection, albumNames, cardLabel,
   withVariants, variantsFor, slotKey, slotsOf, drawableVariants, pointsToASlot, numbersOf,
 } from '../src/collections.js'
 
@@ -249,6 +250,50 @@ test('readCollection: sin localStorage se cae a la de siempre en vez de reventar
   /* Modo privado, o acá mismo: en Node no hay `localStorage` y el acceso tira. */
   assert.equal(readCollection(), DEFAULT_COLLECTION)
   assert.ok(COLLECTIONS.some((c) => c.id === DEFAULT_COLLECTION), 'la de omisión tiene que existir')
+})
+
+// ---------------------------------------------------------------- cardLabel
+
+test('cardLabel: el número va con el prefijo de su expansión', () => {
+  assert.equal(cardLabel({ id: 'ley-f', prefijo: 'F' }, 504), 'F504')
+  assert.equal(cardLabel({ id: 'ley-unicas', prefijo: 'Leyenda ' }, 3), 'Leyenda 3')
+  /* Cromeros no tiene prefijo en ninguna expansión y su texto sale byte por byte igual
+     que antes: son 28 personas que ya leen ese formato. */
+  assert.equal(cardLabel({ id: 'exp-1' }, 5), '5')
+  assert.equal(cardLabel(null, 5), '5', 'sin expansión no revienta')
+})
+
+test('cardLabel: LOS 19 HUECOS QUE REPITEN NÚMERO quedan distinguidos', () => {
+  /* `ley-f` va de 504 a 513 sobre el tramo de `ley-4`, y `ley-unicas` de 1 a 9 sobre el de
+     `ley-inicial`. Sin prefijo, la etiqueta hablada y el título del diálogo decían lo
+     mismo para dos cartas distintas. Se lee del catálogo de verdad: el día que alguien le
+     saque el `prefijo` a una de las dos, esto se pone rojo. */
+  const crudo = JSON.parse(fs.readFileSync(new URL('../public/data/leyenda.json', import.meta.url), 'utf8'))
+  const exps = crudo.expansiones.map((e) => withVariants(e, crudo))
+  const por = (id) => exps.find((e) => e.id === id)
+
+  const choques = []
+  for (const a of exps) for (const b of exps) {
+    if (a.id >= b.id) continue
+    for (const n of a.lista) if (b.lista.includes(n)) choques.push([a, b, n])
+  }
+  assert.equal(choques.length, 19, 'son 19 huecos con dos cartas cada uno')
+  for (const [a, b, n] of choques)
+    assert.notEqual(cardLabel(a, n), cardLabel(b, n),
+      `${a.id} y ${b.id} llaman igual a la ${n}: hablado no hay banda que los separe`)
+
+  assert.equal(cardLabel(por('ley-f'), 504), 'F504')
+  assert.equal(cardLabel(por('ley-4'), 504), '504')
+  assert.equal(cardLabel(por('ley-unicas'), 1), 'Leyenda 1')
+  assert.equal(cardLabel(por('ley-inicial'), 1), '1')
+})
+
+test('albumNames: los nombra en prosa y sale de la lista, no escrito a mano', () => {
+  /* La bajada de la pantalla de entrada decía «Cartas Cromeros · 2007–2008» y quedó sin
+     cambiar el día que entró Leyenda. Sacándolo de acá, agregar una tercera no lo deja
+     viejo. */
+  assert.equal(albumNames(), 'Cromeros y Leyenda')
+  for (const c of COLLECTIONS) assert.ok(albumNames().includes(c.nombre), `${c.nombre} no aparece`)
 })
 
 test('cada colección tiene id, nombre y archivo, y ningún id repetido', () => {

@@ -5,6 +5,7 @@
 // abajo, hay una sola cosa y va en el medio de la pantalla.
 import { useState } from 'react'
 import { entrar, registrarse } from './almacenamiento'
+import { albumNames } from './collections'
 
 /* Quien se olvida la clave no tiene ningún camino solo: no hay mail de recupero ni
    cambio de clave (la app no manda correo, y el servidor tampoco puede: rebota antes de
@@ -39,7 +40,10 @@ export default function Entrar({ onEntro, aviso }) {
       <div className="entrada-caja">
         <img className="entrada-logo" src="./logo.png" alt="Dragon Ball Z"
              width="660" height="168" />
-        <p className="entrada-bajada">Mi colección · Cartas Cromeros · 2007–2008</p>
+        {/* Los álbumes salen de `COLLECTIONS`: acá decía «Cartas Cromeros · 2007–2008» y
+            quedó sin cambiar el día que entró Leyenda, que es de otra editorial y de otra
+            década. Es lo primero que lee alguien que llega. */}
+        <p className="entrada-bajada">Mi colección · {albumNames()}</p>
 
         <form className="entrar" onSubmit={enviar}>
           <label>

@@ -4,7 +4,7 @@
 // qué lista, de qué expansiones (se marcan varias), y el texto con el botón de copiar.
 import { useEffect, useRef, useState } from 'react'
 import { atraparFoco, usarEscape } from './foco'
-import { slotsOf, slotKey, variantsFor } from './collections'
+import { slotsOf, slotKey, variantsFor, cardLabel } from './collections'
 import { ESTADOS } from './estados'
 
 const OPCIONES = [
@@ -38,8 +38,11 @@ const condicionDe = (e) => (ESTADOS.some((x) => x.id === e) ? e : 'bien')
    TOTAL— así que su prefijo es la palabra entera: «Leyenda 3».
 
    En Cromeros ninguna expansión tiene `prefijo`, así que su texto sale byte por byte igual
-   que antes. Eso importa: son 28 personas que ya leen ese formato. */
-const rotulo = (exp, n) => `${exp.prefijo ?? ''}${n}`
+   que antes. Eso importa: son 28 personas que ya leen ese formato.
+
+   Vive en `collections.js` porque la grilla y el diálogo dicen lo mismo: cómo se llama una
+   carta es una sola respuesta, y tenerla en dos lados es como se desincronizó `numbersOf`. */
+const rotulo = cardLabel
 
 /* LAS DOS LISTAS SE ARMAN SOBRE LOS CASILLEROS DEL HUECO, NO SOBRE LA CLAVE BASE, y eso
    no es un detalle: leyendo sólo `${exp.id}:${n}`, **una carta que tenés en variante
