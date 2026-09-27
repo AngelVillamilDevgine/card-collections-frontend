@@ -591,10 +591,23 @@ button { cursor: pointer; }
 /* Los filtros que no están elegidos muestran el color de lo que listan, así el código
    de colores de las cartas queda siempre a la vista. Todos del mismo tipo: contorno y
    sin relleno, como "Todas". Con relleno quedaban dos distintos de los otros dos. */
-.filtro.f-todas      { border-color: var(--linea2); }
-.filtro.f-falta      { border-color: var(--falta-tinta); color: var(--falta-tinta); }
-.filtro.f-repetidas  { border-color: var(--acento);      color: var(--acento); }   /* el del globito */
-.filtro.f-reemplazar { border-color: var(--reem-linea);  color: var(--reem-tinta); }
+/* EL COLOR PROPIO ES SÓLO CUANDO NO ESTÁ ELEGIDO, y el `:not(.activo)` no es un adorno.
+   Sin él, estas tres reglas le ganaban a `.filtro.activo { color: #fff }` —misma
+   especificidad y 400 líneas más abajo— mientras el fondo activo seguía siendo
+   `--acento`. Medido: «Repetidas» elegido daba texto y fondo del MISMO color, 1.00:1;
+   «Me faltan» 1.06 y «Para reemplazar» 1.32. Tres de los cuatro filtros ilegibles justo
+   cuando están puestos.
+
+   Es la TERCERA vez que en este archivo una regla anula a otra sólo por el orden —ya pasó
+   con `.filtro b` y con `.dialogo.numeros`—. Por eso va acá y no como un parche al final:
+   un parche se vuelve a perder cuando alguien mueva un bloque. */
+.filtro.f-todas                  { border-color: var(--linea2); }
+.filtro.f-falta                  { border-color: var(--falta-tinta); }
+.filtro.f-repetidas              { border-color: var(--acento); }   /* el del globito */
+.filtro.f-reemplazar             { border-color: var(--reem-linea); }
+.filtro:not(.activo).f-falta      { color: var(--falta-tinta); }
+.filtro:not(.activo).f-repetidas  { color: var(--acento); }
+.filtro:not(.activo).f-reemplazar { color: var(--reem-tinta); }
 /* Elegido gana el relleno naranja: el contorno de color es para los otros. */
 .filtro.activo { background: var(--acento); border-color: var(--acento); }
 
