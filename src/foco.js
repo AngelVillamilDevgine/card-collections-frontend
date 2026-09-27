@@ -1,5 +1,48 @@
 import { useEffect, useRef } from 'react'
 
+/* ATRÁS TIENE QUE CERRAR EL DIÁLOGO, NO LA APP.
+ *
+ * En un teléfono, el botón de volver es lo primero que aprieta cualquiera para cerrar
+ * algo que ocupa la pantalla. Con los diálogos no había nada escuchando, así que ese
+ * gesto se iba del sitio: *«cuando estoy en un pop up y toco el botón de volver, me
+ * cierra la app o se va atrás en el navegador»*. Perdías la página, el scroll de las 1936
+ * cartas y, si estabas eligiendo, lo que hubieras elegido.
+ *
+ * Es el mismo argumento por el que el panel vive en el hash, y acá la solución es la
+ * misma idea sin tocar la dirección: al abrirse, el diálogo empuja una entrada al
+ * historial; Atrás se la come y lo cierra. Si en cambio lo cerrás con el botón o con
+ * Escape, la entrada se saca sola — si no, quedarían entradas invisibles y el Atrás
+ * siguiente no haría nada en pantalla, que es justo lo que se quiere evitar.
+ *
+ * NO cambia el hash a propósito: `#panel` es una vista y se puede compartir; un diálogo a
+ * medio llenar no. Y así un diálogo abierto sobre el panel no se lleva puesto su hash.
+ *
+ * `nuestra` distingue las dos formas de cerrar: si la entrada ya se la comió el navegador
+ * no hay que pedir otro `back()`, o se saltaría una entrada de más. */
+export function usarAtras(abierto, cerrar) {
+  const alCerrar = useRef(cerrar)
+  alCerrar.current = cerrar
+  const nuestra = useRef(false)
+
+  useEffect(() => {
+    if (!abierto) return undefined
+    history.pushState({ dbzDialogo: true }, '')
+    nuestra.current = true
+    const volvio = () => {
+      nuestra.current = false
+      alCerrar.current?.()
+    }
+    window.addEventListener('popstate', volvio)
+    return () => {
+      window.removeEventListener('popstate', volvio)
+      if (nuestra.current) {
+        nuestra.current = false
+        history.back()
+      }
+    }
+  }, [abierto])
+}
+
 // Atrapar el foco adentro de un diálogo, y devolverlo al cerrar.
 //
 // Sin esto pasaban dos cosas: con un diálogo abierto, los 1936 botones de atrás seguían

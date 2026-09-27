@@ -1,6 +1,6 @@
 import { lazy, memo, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ESTADOS, etiqueta, claseDe } from './estados'
-import { atraparFoco, usarEscape } from './foco'
+import { atraparFoco, usarEscape, usarAtras } from './foco'
 import Entrar from './Entrar'
 import Exportar from './Exportar'
 /* El panel del administrador se baja aparte y recién cuando se abre.
@@ -603,6 +603,22 @@ export default function App() {
   const [cambiandoClave, setCambiandoClave] = useState(false)
   const [sacando, setSacando] = useState(false)
   const [preguntandoVariante, setPreguntandoVariante] = useState(null)
+
+  /* Los seis diálogos, con un solo mecanismo: en esta app no hay dos abiertos a la vez
+     —el telón se come los clicks de atrás— así que alcanza con «hay alguno» y «cerrá el
+     que sea». Si algún día se pueden apilar, esto pasa a ser uno por diálogo. */
+  const hayDialogo =
+    exportando || cambiandoClave || sacando ||
+    !!preguntando || !!preguntandoVariante || !!porRestaurar
+  const cerrarDialogo = useCallback(() => {
+    setExportando(false)
+    setCambiandoClave(false)
+    setSacando(false)
+    setPreguntando(null)
+    setPreguntandoVariante(null)
+    setPorRestaurar(null)
+  }, [])
+  usarAtras(hayDialogo, cerrarDialogo)
 
   /* Atrás y adelante del navegador mueven el hash, y de ahí sale si el panel está
      abierto. Un solo oyente para los dos sentidos. */
