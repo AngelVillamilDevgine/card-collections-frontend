@@ -12,7 +12,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import {
-  COLLECTIONS, DEFAULT_COLLECTION, readCollection, albumNames, cardLabel,
+  COLLECTIONS, DEFAULT_COLLECTION, readCollection, albumNames, cardLabel, cardDetail,
   withVariants, variantsFor, slotKey, slotsOf, drawableVariants, pointsToASlot, numbersOf,
   slotOf, slotName, orphanName,
 } from '../src/collections.js'
@@ -243,6 +243,35 @@ test('pointsToASlot: una colección que NO cargó no hace que todo sea huérfano
   assert.equal(pointsToASlot('exp-1:1', conUnaCaida), true)
   assert.equal(pointsToASlot('ley-6:824', conUnaCaida), false)
   assert.equal(pointsToASlot('exp-1:1', null), false)
+})
+
+// ---------------------------------------------------------------- cardDetail
+
+test('cardDetail: devuelve lo que el catálogo sabe de esa carta, o nada', () => {
+  const e = armar({
+    id: 'ley-unicas', corto: 'CU', desde: 1, hasta: 9, prefijo: 'Leyenda ',
+    detalle: { 1: { nombre: 'Goku (Báculo)', copias: 1500 }, 9: { nombre: 'Shenron', copias: 500 } },
+  })
+  assert.deepEqual(cardDetail(e, 1), { nombre: 'Goku (Báculo)', copias: 1500 })
+  assert.equal(cardDetail(e, 9).copias, 500, 'Shenron es la única de 500')
+  assert.equal(cardDetail(e, 5), null, 'sin entrada, nada')
+  /* Las claves del json son cadenas y el número viene como número: el acceso las iguala,
+     y si eso dejara de ser cierto la grilla se dibujaría vacía sin que nada avise. */
+  assert.equal(cardDetail(e, Number('1')).nombre, 'Goku (Báculo)')
+})
+
+test('cardDetail: una expansión sin detalle no revienta, que son todas menos una', () => {
+  assert.equal(cardDetail(armar({ id: 'exp-1', desde: 1, hasta: 129 }), 5), null)
+  assert.equal(cardDetail(null, 5), null)
+  assert.equal(cardDetail(undefined, 5), null)
+})
+
+test('cardDetail: la MISMA referencia en cada llamada, que es lo que deja vivo el memo', () => {
+  /* `Carta` va con React.memo y el CLAUDE.md dice que las props tienen que ser estables.
+     `cardDetail` devuelve el objeto del catálogo tal cual — si armara uno nuevo, las 1936
+     cartas se volverían a renderizar en cada toque. */
+  const e = armar({ id: 'x', desde: 1, hasta: 2, detalle: { 1: { nombre: 'Uno', copias: 10 } } })
+  assert.ok(cardDetail(e, 1) === cardDetail(e, 1))
 })
 
 // ---------------------------------------------------------------- slotOf / slotName

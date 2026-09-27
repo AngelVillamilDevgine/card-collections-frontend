@@ -129,6 +129,22 @@ export const slotKey = (expId, n, variantId) => `${expId}${variantId ? `-${varia
  * la banda de la expansión te lo dice; hablado y en el título del diálogo, no había nada. */
 export const cardLabel = (exp, n) => `${exp?.prefijo ?? ''}${n}`
 
+/* LO QUE SE SABE DE UNA CARTA EN PARTICULAR, cuando el catálogo lo sabe: `{ nombre,
+ * copias }`. Hoy lo usan las nueve «Cartas únicas» de Leyenda y nada más.
+ *
+ * El número solo no alcanza ahí, y es el único lugar del álbum donde pasa: esas nueve no
+ * llevan número impreso —van con LOTE / EDICIÓN LIMITADA Nº / TOTAL, numeradas a mano—,
+ * así que «Leyenda 3» es una etiqueta nuestra y no algo que puedas leer en la carta. Lo
+ * que la identifica es el personaje. Y la tirada es el dato que hace que no sean todas
+ * iguales: ocho son de 1500 y Shenron de 500.
+ *
+ * Va en el catálogo y no en el código porque se lee en caliente: corregir un nombre es
+ * editar un json. Es la misma razón por la que las variantes viven ahí.
+ *
+ * Que sea un campo del DATO y no un caso especial del código importa: el día que otra
+ * expansión quiera nombres, se los pone en el json y aparecen. */
+export const cardDetail = (exp, n) => exp?.detalle?.[n] ?? null
+
 /* Los casilleros que hay que dibujar para un hueco del álbum: SIEMPRE el base, y cada
    variante de la que tengas al menos una.
 

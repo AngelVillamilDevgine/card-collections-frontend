@@ -13,7 +13,7 @@ import Exportar from './Exportar'
 const Estadisticas = lazy(() => import('./Estadisticas'))
 import Instalar from './Instalar'
 import { ErrorBoundary } from './boundary'
-import { COLLECTIONS, DEFAULT_COLLECTION, readCollection, rememberCollection, loadCatalogs, slotKey, slotsOf, variantsFor, drawableVariants, pointsToASlot, cardLabel, slotOf, slotName, orphanName } from './collections'
+import { COLLECTIONS, DEFAULT_COLLECTION, readCollection, rememberCollection, loadCatalogs, slotKey, slotsOf, variantsFor, drawableVariants, pointsToASlot, cardLabel, cardDetail, slotOf, slotName, orphanName } from './collections'
 import {
   ErrorApi,
   descargar, restaurar, quienSoy, salir,
@@ -94,7 +94,7 @@ const DESLIZ = 10
    cada render. Por eso la carta les pasa su clave al llamarlos, en vez de recibir dos
    flechas que ya la tengan adentro: una flecha nueva por carta es una prop nueva por
    carta, y el memo no ahorraría nada. */
-const Carta = memo(function Carta({ clave, numero, nombre, variante, estado, cantidad, sinGuardar, onTocar, onMantener }) {
+const Carta = memo(function Carta({ clave, numero, nombre, detalle, variante, estado, cantidad, sinGuardar, onTocar, onMantener }) {
   const reloj = useRef(null)
   const fueLargo = useRef(false)  // ya pasaron los 420 ms: el click que venga no cuenta
   const cobrable = useRef(false)  // ...y además todavía se puede cobrar al soltar
@@ -179,7 +179,11 @@ const Carta = memo(function Carta({ clave, numero, nombre, variante, estado, can
      pantalla la banda de arriba dice de qué expansión es, pero hablado no hay banda, y
      en Leyenda hay 19 huecos donde el mismo número es dos cartas distintas. En la CARA de
      la carta sigue yendo pelado: ahí la banda está a la vista y «Leyenda 1» no entra. */
-  const comoSeLlama = variante ? `Carta ${nombre}, ${variante.nombre}` : `Carta ${nombre}`
+  /* Y si el catálogo sabe cómo se llama esa carta, se dice: en las «Cartas únicas» el
+     número es una etiqueta nuestra —esas nueve no llevan número impreso— y lo que la
+     identifica de verdad es el personaje. */
+  const quien = detalle ? `${nombre}, ${detalle.nombre}` : nombre
+  const comoSeLlama = variante ? `Carta ${quien}, ${variante.nombre}` : `Carta ${quien}`
 
   /* Sin `title`: decía lo mismo que el aria-label, y varios lectores de pantalla leen la
      etiqueta y después la descripción, o sea «Carta 5. Me falta. Me falta» — 1936 veces.
@@ -202,7 +206,17 @@ const Carta = memo(function Carta({ clave, numero, nombre, variante, estado, can
       onKeyDown={alTeclado}
       onClick={() => { if (!fueLargo.current) onTocar(clave, numero) }}
     >
-      {numero}
+      {/* Con detalle la carta muestra tres cosas y no una: el rótulo chico arriba —que
+          acá es «Leyenda 3» y no un número pelado—, el personaje, que es lo que de verdad
+          la identifica, y la tirada, que es lo que separa a Shenron (500) de las otras
+          ocho (1500). Sin detalle no cambia nada: el número solo, como siempre. */}
+      {detalle ? (
+        <>
+          <span className="rotulo-detalle">{nombre}</span>
+          <span className="nombre-detalle">{detalle.nombre}</span>
+          {detalle.copias > 0 && <span className="copias-detalle">{detalle.copias.toLocaleString('es-AR')} copias</span>}
+        </>
+      ) : numero}
       {variante && <b className="marca-variante">{variante.corto ?? variante.id.toUpperCase()}</b>}
       {cantidad > 1 && <b className="repes">{cantidad}</b>}
     </button>
@@ -1732,6 +1746,13 @@ export default function App() {
                   </svg>
                 </button>
                 <h2>{exp.nombre}</h2>
+                {/* EL RANGO VA SIN PREFIJO, y se probó con prefijo. El prefijo existe para
+                    cuando el número se lee FUERA de contexto —la etiqueta hablada, el
+                    título del diálogo, el texto que se pega en un grupo—; acá el contexto
+                    es el nombre de la expansión, que está a diez píxeles. Y medido a 320,
+                    360 y 412 px, «Leyenda 1–Leyenda 9» lleva la banda de 35 a 54 px en los
+                    tres, y a 320 se corta. El CLAUDE.md ya avisaba que ahí estaba al
+                    límite: hacen falta 311 px de texto en 292 de ancho útil. */}
                 <span className="rango">{exp.desde}–{exp.hasta}</span>
                 {/* Completa es tener todas, estén en el estado que estén: las "para reemplazar"
                     también cuentan, y ya tienen su propio filtro. */}
@@ -1748,7 +1769,11 @@ export default function App() {
                 )}
               </div>
               {!plegada && (
-              <div className="grilla">
+              /* Si el catálogo trae `detalle` para esta expansión, sus casilleros dejan de
+                 ser cuadraditos de 54 px y pasan a fichas anchas: adentro entran el
+                 personaje y la tirada. Lo decide el DATO, no una lista de expansiones
+                 especiales escrita en el código. */
+              <div className={`grilla${exp.detalle ? ' con-detalle' : ''}`}>
                 {visibles.flatMap((n) =>
                   slotsOf(exp, n, dibujables[exp.id], cantidades).map(({ clave, variante }) => (
                     <Carta
@@ -1756,6 +1781,7 @@ export default function App() {
                       clave={clave}
                       numero={n}
                       nombre={cardLabel(exp, n)}
+                      detalle={cardDetail(exp, n)}
                       variante={variante}
                       estado={estados[clave]}
                       cantidad={cantidades[clave] ?? 0}

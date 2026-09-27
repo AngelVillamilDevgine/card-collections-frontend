@@ -1276,6 +1276,44 @@
       "desde": 1,
       "hasta": 9,
       "prefijo": "Leyenda ",
+      "detalle": {
+        "1": {
+          "nombre": "Goku (Báculo)",
+          "copias": 1500
+        },
+        "2": {
+          "nombre": "Piccolo",
+          "copias": 1500
+        },
+        "3": {
+          "nombre": "Vegeta",
+          "copias": 1500
+        },
+        "4": {
+          "nombre": "Gotenks",
+          "copias": 1500
+        },
+        "5": {
+          "nombre": "Trunks del Futuro",
+          "copias": 1500
+        },
+        "6": {
+          "nombre": "Maestro Roshi",
+          "copias": 1500
+        },
+        "7": {
+          "nombre": "Goku Super Saiyajin",
+          "copias": 1500
+        },
+        "8": {
+          "nombre": "Vegetto",
+          "copias": 1500
+        },
+        "9": {
+          "nombre": "Shenron",
+          "copias": 500
+        }
+      },
       "fuera": true,
       "grupos": [
         {

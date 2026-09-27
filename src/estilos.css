@@ -275,6 +275,59 @@ button { cursor: pointer; }
 .carta:active { transform: scale(0.96); }
 .carta:focus-visible { outline: 2px solid var(--acento); outline-offset: 1px; }
 
+/* UNA GRILLA DE FICHAS, cuando el catálogo sabe algo más que el número.
+   Hoy son las nueve «Cartas únicas» de Leyenda: no llevan número impreso, así que
+   «Leyenda 3» es una etiqueta nuestra y lo que las identifica es el personaje. Con nueve
+   casilleros sobra lugar de resto — el cuadradito de 54 px es para las 1936 de Cromeros,
+   no para esto.
+
+   Lo enciende el DATO (`exp.detalle`), no una lista de expansiones escrita en el código:
+   el día que otra quiera nombres, se los pone en el json. */
+.grilla.con-detalle {
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: 8px;
+}
+.grilla.con-detalle .carta {
+  aspect-ratio: auto;
+  min-height: 74px;
+  padding: 9px 10px 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  text-align: left;
+  /* Sin el zoom del hover: en un cuadradito de 54 px agranda un número, acá movería una
+     ficha entera con tres renglones adentro. */
+  transition: none;
+}
+.grilla.con-detalle .carta:hover { transform: none; border-color: var(--tinta3); }
+.grilla.con-detalle .carta:active { transform: none; }
+.rotulo-detalle {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 1;
+}
+.nombre-detalle {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.25;
+  /* Que «Goku Super Saiyajin» entre en dos renglones y no empuje la ficha de al lado. */
+  overflow-wrap: anywhere;
+}
+/* La tirada es el dato de después, igual que el rótulo de la variante: se lee cuando la
+   buscás, no cuando barrés la grilla con el ojo. Va en tamaño chico y NO con `opacity`,
+   que es la regla de contraste de este proyecto. */
+.copias-detalle {
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+/* El contador de repetidas y la marca de variante siguen en sus esquinas, así que hay que
+   dejarles el lugar para que no se monten sobre el texto. */
+.grilla.con-detalle .carta .marca-variante { bottom: 6px; right: 8px; left: auto; }
+.grilla.con-detalle .carta > span { padding-right: 20px; }
+
 .carta.bien       { background: var(--bien-fondo); border-color: var(--bien-linea); color: var(--bien-tinta); }
 .carta.perfecta   { background: var(--perf-fondo); border-color: var(--perf-linea); color: var(--perf-tinta); font-weight: 600; }
 .carta.reemplazar { background: var(--reem-fondo); border-color: var(--reem-linea); color: var(--reem-tinta); }

@@ -296,6 +296,42 @@ test('las Expansiones 2 y 3 tienen dos acabados y ninguna carta con version comu
   assert.ok(variantesDe(porId('ley-inicial')).some((v) => v.id === 'gli'))
 })
 
+/* LAS NUEVE CARTAS ÚNICAS TIENEN NOMBRE Y TIRADA. Son el único lugar del álbum donde el
+   número no alcanza: esas nueve no llevan número impreso —van con LOTE / EDICIÓN LIMITADA
+   Nº / TOTAL, numeradas a mano— así que «Leyenda 3» es una etiqueta nuestra y lo que la
+   identifica es el personaje. El dato salió del tracker de Ismael López, leído el
+   2026-09-26. */
+test('las nueve únicas tienen nombre, y la tirada que las separa', () => {
+  const u = normal('ley-unicas')
+  assert.ok(u.detalle, 'sin esto la grilla vuelve a ser nueve cuadraditos con un número')
+  assert.deepEqual(
+    Object.keys(u.detalle).map(Number).sort((a, b) => a - b),
+    u.lista,
+    'una entrada por hueco: con una sola faltando, esa ficha queda muda al lado de ocho que hablan'
+  )
+  for (const n of u.lista) {
+    const d = u.detalle[n]
+    assert.ok(d.nombre && d.nombre.trim(), `Leyenda ${n}: sin nombre`)
+    assert.ok(Number.isInteger(d.copias) && d.copias > 0, `Leyenda ${n}: la tirada tiene que ser un entero`)
+  }
+  assert.equal(u.detalle[9].nombre, 'Shenron')
+  assert.equal(u.detalle[9].copias, 500, 'Shenron es la única de 500; las otras ocho son de 1500')
+  assert.equal(new Set(u.lista.map((n) => u.detalle[n].nombre)).size, 9, 'no hay dos con el mismo nombre')
+})
+
+test('si una expansión trae detalle, lo trae para TODAS sus cartas', () => {
+  /* La grilla se ensancha para la expansión ENTERA, así que una carta sin detalle queda
+     como una ficha grande con sólo un número adentro. Es la trampa de agregar el campo a
+     medias. */
+  for (const e of comoLoVeLaApp) {
+    if (!e.detalle) continue
+    const claves = Object.keys(e.detalle).map(Number)
+    for (const n of claves)
+      assert.ok(e.lista.includes(n), `${e.id}: el detalle habla de la ${n}, que no existe en esa expansión`)
+    assert.equal(claves.length, e.lista.length, `${e.id}: el detalle no cubre todas sus cartas`)
+  }
+})
+
 test('esta colección no usa la condición: lo que se pregunta es la variante', () => {
   assert.equal(crudo.condicion, false)
 })
