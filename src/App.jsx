@@ -1686,8 +1686,15 @@ export default function App() {
       <main className="hoja" id="cartas" tabIndex={-1}>
         {/* Fuera de la barra fija: son instrucciones, se leen una vez y pueden irse con
             el scroll. Adentro ocupaban dos renglones fijos en el celular. */}
+          {/* «otra» y no «otra igual»: en una expansión con variantes el segundo toque
+              NO es una repetida de la misma, te pregunta cuál tenés — y la respuesta
+              puede ser otro fondo. La palabra «igual» dejó de ser cierta el día que entró
+              Leyenda. Se arregla sacándola y no partiendo la frase en dos según el álbum:
+              una sola que sea verdad en los dos es mejor que dos que haya que mantener, y
+              además en Leyenda sólo 271 de 1097 cartas preguntan, así que ninguna versión
+              condicional sería cierta para toda la colección tampoco. */}
           <p className="ayuda">
-            Tocá para marcar · de nuevo si tenés otra igual · mantené apretado para restar
+            Tocá para marcar · de nuevo si tenés otra · mantené apretado para restar
             {/* Con el teclado no hay «mantener apretado», así que si el atajo no se dice
                 acá no se entera nadie. Se muestra sólo cuando hay teclado de verdad: en
                 un teléfono es ruido. */}
