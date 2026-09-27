@@ -510,7 +510,19 @@ button { cursor: pointer; }
   box-shadow: 0 0 0 3px rgb(168 89 13 / 0.15); /* el mismo naranja que --acento */
 }
 
-.entrar .principal {
+/* SIN `.entrar` ADELANTE, y no es una limpieza: había dos botones sin ningún estilo.
+   Estas dos clases nacieron en la pantalla de entrada y se quedaron colgadas de ella, pero
+   después se usaron en otros dos lados que NO están adentro de un `.entrar`:
+
+     - el «Listo» del final de «Cambiar mi clave», que está fuera del `<form className=
+       "entrar">` — o sea que el único botón de la pantalla que te confirma que la clave
+       cambió era un botón gris del navegador, en medio de un diálogo pintado;
+     - el «Salir» de la pantalla de error, al lado de «Reintentar», que sí tiene estilo: uno
+       naranja y el otro gris de fábrica, en la misma línea.
+
+   Ninguna otra cosa de la app usa estas clases, así que bajarles la especificidad no le
+   pisa nada a nadie. */
+.principal {
   /* 46px de alto: un dedo no acierta cómodo en menos. */
   min-height: 46px;
   margin-top: 4px;
@@ -522,8 +534,8 @@ button { cursor: pointer; }
   padding: 11px 14px;
   font-size: 16px;
 }
-.entrar .principal:hover { filter: brightness(1.06); }
-.entrar .principal:disabled {
+.principal:hover { filter: brightness(1.06); }
+.principal:disabled {
   background: var(--papel);
   border-color: var(--linea2);
   color: var(--tinta3);
@@ -531,7 +543,7 @@ button { cursor: pointer; }
   cursor: default;
 }
 
-.entrar .secundario {
+.secundario {
   min-height: 44px;
   background: none;
   border: none;
@@ -539,7 +551,7 @@ button { cursor: pointer; }
   font-size: 14px;
   padding: 4px;
 }
-.entrar .secundario:hover { color: var(--acento); }
+.secundario:hover { color: var(--acento); }
 
 /* Un enlace y no un botón: lleva a otro lado (WhatsApp), no hace algo acá. Discreto a
    propósito — es el camino de excepción, no una de las dos acciones de la pantalla. */

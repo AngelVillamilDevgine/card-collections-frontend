@@ -406,6 +406,11 @@ function Reemplazar({ mias, copia, onConfirmar, onCerrar }) {
    sesiones abiertas no echa a nadie —el token no sabe nada de la clave— y cerrar
    sesiones sin cambiarla deja entrar de nuevo al que la sabe. Por separado, cada mitad
    da una falsa sensación de haber resuelto algo. */
+const queSeCerro = (n) =>
+  n === 0 ? 'No había ninguna otra sesión abierta.'
+    : n === 1 ? 'Se cerró la sesión que había en otro aparato.'
+      : `Se cerraron las ${n} sesiones que había en otros aparatos.`
+
 function CambiarClave({ onCerrar, onSesionMuerta }) {
   const [actual, setActual] = useState('')
   const [nueva, setNueva] = useState('')
@@ -438,11 +443,20 @@ function CambiarClave({ onCerrar, onSesionMuerta }) {
       <div className="dialogo" role="dialog" aria-modal="true" aria-label="Cambiar mi clave"
            ref={caja} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
         <h3>Cambiar mi clave</h3>
+        {/* UNA SOLA nota, siempre en el DOM, y lo que cambia es el texto de adentro. Es el
+            mismo patrón que el pie, y por el mismo motivo: un `role="status"` que NACE con
+            su texto no se anuncia. Una región viva se anuncia cuando CAMBIA, y para eso
+            tiene que estar puesta de antes; un nodo que aparece ya escrito muchas veces no
+            se lee. Acá eso importaba: el aviso de que la clave cambió y cuántas sesiones se
+            cerraron —el resultado de una acción de seguridad— aparecía junto con el botón
+            «Listo», que es lo único que se llevaba el foco y lo único que se leía. */}
+        <p className="nota-dialogo" role="status">
+          {listo === null
+            ? 'Al cambiarla se cierran las sesiones abiertas en otros aparatos. En éste seguís adentro.'
+            : `Listo, ya es la nueva. ${queSeCerro(listo)}`}
+        </p>
         {listo === null ? (
           <form className="entrar" onSubmit={enviar}>
-            <p className="nota-dialogo">
-              Al cambiarla se cierran las sesiones abiertas en otros aparatos. En éste seguís adentro.
-            </p>
             <label>
               Tu clave de ahora
               <input type="password" value={actual} onChange={(e) => setActual(e.target.value)}
@@ -460,17 +474,7 @@ function CambiarClave({ onCerrar, onSesionMuerta }) {
             <button type="button" className="secundario" onClick={onCerrar}>Mejor no</button>
           </form>
         ) : (
-          <>
-            <p className="nota-dialogo" role="status">
-              Listo, ya es la nueva.{' '}
-              {listo === 0
-                ? 'No había ninguna otra sesión abierta.'
-                : listo === 1
-                  ? 'Se cerró la sesión que había en otro aparato.'
-                  : `Se cerraron las ${listo} sesiones que había en otros aparatos.`}
-            </p>
-            <button className="principal" onClick={onCerrar} autoFocus>Listo</button>
-          </>
+          <button className="principal" onClick={onCerrar} autoFocus>Listo</button>
         )}
       </div>
     </div>
@@ -1891,7 +1895,16 @@ export default function App() {
               </button>
             </span>
           </div>
-          <div className="pie-copias">
+          {/* `aria-live` acá y no un `role="status"` en cada aviso, por lo mismo que la
+              nota del diálogo: una región viva tiene que estar puesta ANTES de que
+              aparezca lo que hay que leer, y esos dos spans nacían con su texto. Va en el
+              contenedor —que siempre está— y no en un envoltorio nuevo, porque esto es un
+              flex con `gap: 20px` y un hijo vacío permanente deja un hueco visible.
+              Adentro no cambia ninguna otra cosa: los tres botones dicen siempre lo mismo.
+
+              Y es el atributo y no el rol: la fila NO es un mensaje de estado, sólo puede
+              contener uno. */}
+          <div className="pie-copias" aria-live="polite">
             <span className="pie-rotulo">Tu colección</span>
             <button onClick={exportar} className="enlace">Exportar</button>
             <button onClick={() => descargar(datos)} className="enlace">Bajar una copia</button>
@@ -1907,12 +1920,12 @@ export default function App() {
               }}
             />
             <button onClick={() => archivoRef.current.click()} className="enlace">Restaurar una copia</button>
-            {avisoArchivo && <span className="aviso-archivo" role="status">{avisoArchivo}</span>}
+            {avisoArchivo && <span className="aviso-archivo">{avisoArchivo}</span>}
             {/* Sólo aparece si de verdad hay huérfanas, que hoy es nunca. No es un botón
                 más de la app: es la única forma de sacar algo que quedó sin carta a la
                 que tocarle. */}
             {huerfanas.length > 0 && (
-              <span className="aviso-archivo" role="status">
+              <span className="aviso-archivo">
                 {huerfanas.length === 1
                   ? 'Tenés 1 carta que ya no está en el catálogo.'
                   : `Tenés ${huerfanas.length} cartas que ya no están en el catálogo.`}{' '}
