@@ -181,8 +181,15 @@ export function slotsOf(exp, n, variantes, cantidades) {
   /* Y SI TENÉS LA VARIANTE PERO NO LA BASE, el casillero base NO se dibuja. Se llega ahí
      bajando la base a cero después de clasificar, y sin esta línea quedaba una carta en
      blanco diciendo «me falta» justo al lado de la misma carta que sí tenés — y el
-     filtro «Me faltan» la contaba. Para volver a tener una sin clasificar se toca
-     cualquier casillero del hueco y se baja a cero la variante. */
+     filtro «Me faltan» la contaba.
+
+     Acá decía que para «volver a tener una sin clasificar» se bajaba la variante a cero.
+     Eso dejó de ser cierto y se corrigió el 2026-09-27: bajando la variante a cero el
+     hueco vuelve a estar VACÍO, no con una carta sin clasificar. En una expansión con
+     variantes ya no se puede tener una sin clasificar, porque todos los toques preguntan
+     cuál es y el diálogo no ofrece ninguna fila «común» — Angel mandó sacarla. Las que
+     hay en el casillero base son de antes de eso, o de cartas que no están en ninguna
+     planilla, que son las que no preguntan nada. */
   return conBase ? [{ clave: base, variante: null }, ...deVariantes] : deVariantes
 }
 

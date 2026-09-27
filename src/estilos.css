@@ -57,14 +57,14 @@ button { cursor: pointer; }
 
 
 
-.encabezado h1 { margin: 0 0 10px; }
-
-.encabezado h1 img {
-  display: block;
-  width: 330px;
-  max-width: 78%;
-  height: auto;
-}
+/* EL TAMAÑO DEL LOGO ESTÁ UNA SOLA VEZ, más abajo, junto al resto del encabezado.
+   Acá había un segundo `.encabezado h1 img` con `width: 330px`, muerto: la regla de abajo
+   tiene la misma especificidad y gana por venir después. No era sólo ruido — el
+   `CLAUDE.md` razona el peso del PNG sobre los **240 px** a los que se muestra («660
+   alcanza hasta para pantallas de 3x»), y con 330 esa cuenta deja de cerrar. Un valor
+   muerto que contradice a la documentación es el que después se despierta al mover un
+   bloque. */
+.encabezado h1 img { display: block; height: auto; }
 
 .encabezado p { margin: 0; color: var(--tinta2); font-size: 14px; }
 
@@ -148,17 +148,17 @@ button { cursor: pointer; }
    En un renglón que se arrastra de costado baja a ~58 px. Es el único lugar de la app
    donde se mete scroll horizontal a propósito, y es preferible a perder un tercio de la
    pantalla en la parte que más se mira. */
-@media (max-width: 460px) {
-  .filtros {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    scrollbar-width: none;
-    /* Que el último chip no quede pegado al borde al llegar al final. */
-    padding-right: 4px;
-  }
-  .filtros::-webkit-scrollbar { display: none; }
-  .filtro { flex: none; }
-}
+/* ACÁ HABÍA UN `@media (max-width: 460px)` QUE NO PODÍA APLICAR NUNCA, y se borró el
+   2026-09-27. Hacía que la barra de filtros se arrastrara de costado, que es como fue
+   hasta el 2026-09-25; desde entonces el `@media (max-width: 560px)` del final la convierte
+   en la barra de abajo con cinco lugares fijos, y 560 es más ancho que 460, así que a
+   cualquier ancho donde el bloque viejo aplicara el nuevo aplicaba también — y ganaba, por
+   venir después y por ser más específico (`.herramientas .filtros`).
+
+   Lo peligroso no era que sobrara: era que el día que alguien moviera el bloque de 560 más
+   arriba en el archivo —que es exactamente la trampa que este proyecto ya se comió dos
+   veces con `.filtro b`— el muerto revivía y rompía la barra de abajo en los teléfonos más
+   angostos. */
 
 .filtro {
   display: flex;
@@ -1162,6 +1162,14 @@ button { cursor: pointer; }
     font-weight: 600;
     line-height: 1.1;
   }
+  /* EL GUIÑO TIENE QUE SEGUIR CAMBIANDO DE COLOR ACÁ. La regla de arriba pinta el botón de
+     gris con la misma especificidad que `.compartir.guiña` y gana por venir después, así
+     que en el teléfono el guiño quedaba en un zoom sin color — y el teléfono es justo
+     donde el botón es un ícono entre cinco y más falta hace que se note. El borde no se
+     repone: acá el botón no tiene ninguno, y dárselo sólo al guiñar lo movería de tamaño
+     y correría a los cuatro filtros de al lado. */
+  .herramientas .compartir.guiña { color: var(--acento); }
+
   .filtro .icono,
   .compartir .icono { display: block; flex: none; }
   .filtro .largo { display: none; }

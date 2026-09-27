@@ -734,6 +734,9 @@ export default function App() {
   /* Para leer las fallidas desde un efecto que no depende de ellas. */
   const fallidasRef = useRef(fallidas)
   fallidasRef.current = fallidas
+  /* Cómo se llaman esas cartas. Se asigna más abajo, cuando el catálogo ya está resuelto;
+     `sesionMuerta` la lee de acá porque se declara antes. */
+  const nombrarRef = useRef(null)
 
   useEffect(() => {
     /* Con corte, igual que todos los pedidos de `almacenamiento.js`. Era el unico
@@ -872,7 +875,7 @@ export default function App() {
            —no se perdió un cambio: se reemplazó a propósito—. `null` es justamente
            «no mandé nada» y quien llama ya lo distingue. */
         if (generacion.current !== gen) return null
-        if (e?.sesion) { sesionMuerta(); return false }
+        if (e?.sesion) { sesionMuerta(undefined, clave); return false }
         if (seVa || intento >= REINTENTOS) return false
         await new Promise((r) => setTimeout(r, ESPERA_REINTENTO * (intento + 1)))
         if (generacion.current !== gen) return null
@@ -987,9 +990,30 @@ export default function App() {
     enVuelo.current.clear()
   }
 
-  function sesionMuerta(aviso) {
+  /* SI QUEDABA ALGO SIN GUARDAR, SE DICE CUÁL. Al volver a entrar, el efecto que lee la
+     colección hace `setFallidas(new Set())` —tiene que hacerlo: la colección se relee del
+     servidor y podría ser otra cuenta— así que esos cambios desaparecían **en silencio**.
+     El pie dejaba de avisar y no quedaba rastro de qué cartas habían sido.
+
+     No se reintentan a propósito: después de una sesión muerta el que vuelve a entrar
+     puede ser OTRA persona en la misma compu, y mandar las cartas de uno a la cuenta de
+     otro es exactamente lo que el oyente de `storage` vino a evitar. Lo único honesto es
+     decir cuáles fueron, que es lo mismo que hace `beforeunload` al irse con algo perdido. */
+  function sesionMuerta(aviso, tambien) {
+    const perdidas = new Set(fallidasRef.current)
+    /* La carta cuyo 401 mató la sesión también se perdió, y todavía no está en el
+       conjunto: `despachar` llama acá ANTES de anotar el fallo, y después `matarCola` se
+       lleva la cola. Sin esto, el toque que destapó el problema era justo el que no se
+       nombraba. */
+    if (tambien) perdidas.add(tambien)
     matarCola()
-    setAvisoSesion(aviso ?? 'Se venció tu sesión. Entrá de nuevo para seguir.')
+    const base = aviso ?? 'Se venció tu sesión. Entrá de nuevo para seguir.'
+    const cuales = perdidas.size ? nombrarRef.current?.(perdidas) ?? '' : ''
+    setAvisoSesion(
+      perdidas.size
+        ? `${base} Quedaron ${perdidas.size} ${perdidas.size === 1 ? 'cambio' : 'cambios'} sin guardar${cuales ? `: ${cuales.replace(/^Son la /, 'la ').replace(/\.$/, '')}` : ''}. Vas a tener que marcar${perdidas.size === 1 ? 'la' : 'las'} de nuevo.`
+        : base
+    )
     setCuenta(null)
   }
 
@@ -1230,10 +1254,12 @@ export default function App() {
      pudo guardar ley-6-dor 824»**: la clave interna, en la cara del usuario, en el único
      cartel que aparece cuando algo salió mal. Hoy lo resuelve `slotName`, que busca contra
      el catálogo y nombra también la variante. */
-  const listaFallidas = useMemo(() => {
-    if (!fallidas.size) return ''
+  /* Sale del `useMemo` porque hace falta en otro lado: cuando muere la sesión hay que
+     decir CUÁLES quedaron sin guardar, y ahí no hay render del que colgarse. */
+  const nombrarFallidas = useCallback((claves) => {
+    if (!claves.size) return ''
     const deAca = new Set((catalogo ?? []).map((e) => e.id))
-    const nombres = [...fallidas]
+    const nombres = [...claves]
       .map((c) => {
         const hueco = slotOf(c, catalogos)
         /* Si no apunta a ningún hueco conocido —un catálogo que no cargó— se cae al
@@ -1252,7 +1278,11 @@ export default function App() {
     if (!nombres.length) return ''
     if (nombres.length <= 6) return `Son la ${nombres.join(', la ')}.`
     return `Son la ${nombres.slice(0, 6).join(', la ')} y ${nombres.length - 6} más.`
-  }, [fallidas, catalogo, catalogos])
+  }, [catalogo, catalogos])
+
+  const listaFallidas = useMemo(() => nombrarFallidas(fallidas), [fallidas, nombrarFallidas])
+  /* Por ref, como `vaciarRef`: `sesionMuerta` se declara más arriba y la necesita. */
+  nombrarRef.current = nombrarFallidas
 
   useEffect(() => {
     if (!hayQueExportar) return
