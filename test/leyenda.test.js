@@ -187,21 +187,42 @@ test('una carta que no está en ninguna planilla NO tiene variantes', () => {
   assert.deepEqual(deLaCarta(porId('ley-6'), 857), [], 'la 857 la tiene Angel como comun')
 })
 
-test('la 957 ofrece las SEIS de su bloque, no las de toda la expansion', () => {
-  assert.deepEqual(deLaCarta(porId('ley-personajes'), 957),
-    ['Plata', 'Dorado', 'Holográfica', 'Naranja', 'Azul viento', 'Cyan'])
-  /* Y la 953, que es el otro bloque de la MISMA planilla y de la misma expansion. */
-  assert.deepEqual(deLaCarta(porId('ley-personajes'), 953),
-    ['Plata', 'Dorado', 'Holográfica', 'Naranja', 'Violeta', 'Verde'])
+test('cada carta ofrece lo que dice el dato, no el vocabulario del tramo entero', () => {
+  /* La 957 es la que reporto Angel: «en la 957 la app tiene muchas mas variantes de las
+     que corresponde». Son siete, y no las trece que llego a ofrecer. */
+  assert.deepEqual(deLaCarta(porId('ley-personajes'), 957).sort(),
+    ['Azul', 'Azul viento', 'Cyan', 'Dorado', 'Holográfica', 'Naranja', 'Plata'])
+  /* Y la 953, que es de la MISMA expansion, ofrece otras seis. Ese es todo el punto. */
+  assert.deepEqual(deLaCarta(porId('ley-personajes'), 953).sort(),
+    ['Dorado', 'Fucsia', 'Holográfica', 'Naranja', 'Plata', 'Verde'])
 })
 
-test('los dos bloques de Personajes son 18 y 18, y no se pisan', () => {
-  const g = porId('ley-personajes').grupos
-  assert.equal(g.length, 2)
-  assert.equal(g[0].cartas.length, 18)
-  assert.equal(g[1].cartas.length, 18)
-  const juntas = [...g[0].cartas, ...g[1].cartas]
-  assert.equal(new Set(juntas).size, 36, 'una carta en los dos bloques saldria en las ocho')
+test('ningún grupo ofrece una sola respuesta posible', () => {
+  /* La regla de la app es «se pregunta cuando hay mas de una respuesta posible». Un grupo
+     de una sola variante abre un dialogo con una sola opcion, que es preguntar al pedo.
+     Pasa sobre todo con «Comun»: el dato del tracker lista Normal como un acabado mas, y
+     en Personajes hay 92 cartas cuyo unico acabado es ese — esas no tienen variantes y se
+     marcan de un toque en el casillero base, que ES la comun. */
+  for (const e of catalogo) {
+    for (const g of e.grupos ?? []) {
+      assert.ok(g.variantes.length > 1,
+        `${e.id}: un grupo con una sola variante (${g.variantes.map((v) => v.nombre)}) abre un dialogo de una opcion`)
+      assert.ok(!(g.variantes.length === 1 && g.variantes[0].id === 'com'),
+        `${e.id}: un grupo que es solo «Comun» no es un grupo`)
+    }
+  }
+})
+
+test('«Holográfica» es UNA sola cosa: no volvieron hgl ni el Diamante de la 6ta', () => {
+  /* Estuvieron separadas y se unificaron con el dato del tracker, que no tiene ninguna
+     «holografica» suelta: tiene Holo Glitter, y usa la palabra para decir que la carta ES
+     holografica. Si alguien las vuelve a partir, esto lo dice. */
+  const ids = new Set(catalogo.flatMap((e) => variantesDe(e).map((v) => v.id)))
+  assert.ok(!ids.has('hgl'), 'hgl volvio: Holografica y Holo glitter son la misma')
+  assert.ok(ids.has('hol'))
+  assert.ok(!deLaCarta(porId('ley-6'), 824).includes('Diamantes'),
+    'el «Diamante» de la Expansion 6 era Holografica')
+  assert.ok(deLaCarta(porId('ley-6'), 824).includes('Holográfica'))
 })
 
 test('las cartas de un grupo caen dentro del rango de su expansion', () => {
@@ -250,17 +271,35 @@ test('las variantes que Angel ya cargo siguen estando ofrecidas', () => {
   }
 })
 
-/* Si alguien las borra sin querer, esto lo dice. */
-test('las variantes que estan cargadas son las de las planillas', () => {
-  const dela = (id) => variantesDe(porId(id)).map((v) => v.nombre)
-  assert.deepEqual(dela('ley-6'),
-    ['Naranja', 'Diamante', 'Dorado', 'Verde', 'Plata', 'Rojo', 'Azul'])
-  assert.deepEqual(dela('ley-5'),
-    ['Dorado', 'Plata', 'Azul', 'Fucsia', 'Verde', 'Naranja', 'Holográfica'])
-  assert.deepEqual(dela('ley-2-3'), ['Plata', 'Dorado'])
-  assert.equal(dela('ley-inicial').length, 9)
-  assert.equal(dela('ley-4').length, 6)
-  assert.equal(dela('ley-personajes').length, 8, 'las dos planillas juntas, sin repetir')
+/* CUANTAS CARTAS DE CADA TRAMO TIENEN ACABADO. Salen del dato carta por carta que
+   publica el tracker de Ismael (leido el 2026-09-26) y son el resumen de todo el archivo:
+   si alguien lo regenera mal, o vuelve a aplicar el encabezado de una planilla a todas
+   las cartas del tramo, estos seis numeros se mueven. */
+test('cuantas cartas tienen acabado en cada tramo', () => {
+  const cuantas = (id) => (porId(id).grupos ?? []).reduce((a, g) => a + g.cartas.length, 0)
+  assert.equal(cuantas('ley-inicial'), 40)
+  assert.equal(cuantas('ley-2-3'), 52)
+  assert.equal(cuantas('ley-4'), 47)
+  assert.equal(cuantas('ley-5'), 44)
+  assert.equal(cuantas('ley-6'), 44)
+  assert.equal(cuantas('ley-personajes'), 44)
+  /* De las 1078 numeradas, 271: lo normal es que una carta NO tenga variantes. */
+  const total = ['ley-inicial', 'ley-2-3', 'ley-4', 'ley-5', 'ley-6', 'ley-personajes']
+    .reduce((a, id) => a + cuantas(id), 0)
+  assert.equal(total, 271)
+})
+
+test('las Expansiones 2 y 3 tienen dos acabados y ninguna carta con version comun', () => {
+  /* La guia del tracker: «Las cartas metalizadas NO poseen su variante comun». Es lo que
+     confirma que el dialogo no lleve una fila «Comun» puesta de oficio. */
+  assert.deepEqual(variantesDe(porId('ley-2-3')).map((v) => v.nombre), ['Dorado', 'Plata'])
+  for (const id of ['ley-2-3', 'ley-5', 'ley-6']) {
+    const tiene = variantesDe(porId(id)).some((v) => v.id === 'com')
+    assert.ok(!tiene, `${id} no deberia tener ninguna carta con version comun`)
+  }
+  /* Y el Mazo inicial si: sus 40 cartas con acabado existen tambien en comun y en glitter. */
+  assert.ok(variantesDe(porId('ley-inicial')).some((v) => v.id === 'com'))
+  assert.ok(variantesDe(porId('ley-inicial')).some((v) => v.id === 'gli'))
 })
 
 test('esta colección no usa la condición: lo que se pregunta es la variante', () => {

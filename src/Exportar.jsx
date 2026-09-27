@@ -74,6 +74,18 @@ function repetidasDe(exp, cantidades, variantes) {
    dragon se cuentan por estrellas. */
 const ESTRELLA = '⭐'
 
+/* EL PIE, que es la única parte del texto que no habla de cartas.
+   Este texto se pega en un grupo de WhatsApp o de Facebook, donde lo lee gente que no
+   sabe que la app existe: el pie es lo único que se lo dice. Va solo, en su propio
+   renglón y al final, para que no compita con los números — y sin ninguna frase
+   alrededor, porque cualquier cosa que le agregue es publicidad y la dirección sola ya
+   dice todo lo que hay que decir. WhatsApp la convierte en enlace sin hacerle nada.
+
+   Esto CAMBIA el texto de Cromeros, que hasta ahora salía byte por byte como siempre.
+   Lo pidió Angel y es a propósito: son 28 personas que ya leen ese formato y ahora
+   además ven de dónde sale. */
+const PIE = 'www.cromeros.com.ar'
+
 const SECCIONES = {
   falta:     [{ titulo: 'ME FALTAN', de: faltantesDe }],
   repetidas: [{ titulo: 'REPETIDAS', de: repetidasDe }],
@@ -113,7 +125,8 @@ function armar(modo, elegidas, catalogo, cantidades, encabezado, variantes) {
      falta la 551» no significa lo mismo en uno que en otro. Cromeros no la lleva — su
      texto tiene que salir idéntico al de siempre. */
   const cuerpo = partes.join('\n\n')
-  return encabezado ? `${encabezado}\n\n${cuerpo}` : cuerpo
+  const conEncabezado = encabezado ? `${encabezado}\n\n${cuerpo}` : cuerpo
+  return `${conEncabezado}\n\n${PIE}`
 }
 
 const Tilde = ({ marcada }) => (
