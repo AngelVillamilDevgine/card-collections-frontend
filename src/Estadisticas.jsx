@@ -36,6 +36,7 @@ function Salud({ salud }) {
   const dias = (m) => (m == null ? Infinity : m / 60 / 24)
   const r = salud.respaldo
   const d = salud.despliegue
+  const p = salud.restauracion
 
   const cosas = [
     {
@@ -44,6 +45,21 @@ function Salud({ salud }) {
       dice: r
         ? `${cuando(r.hace)} · ${Math.round((r.valor?.bytes ?? 0) / 1024)} KB · ${r.valor?.copias ?? '?'} guardadas`
         : 'nunca se anotó ninguna',
+    },
+    {
+      /* TENER COPIAS NO ES LO MISMO QUE PODER RESTAURARLAS, y ése es el renglón que
+         faltaba. El de arriba dice que el archivo se escribió; éste dice que se
+         restauró de verdad, en una base aparte, con todas sus tablas y ninguna vacía.
+
+         El timer es semanal, así que el umbral son 10 días: uno saltado no alarma, dos
+         sí. Y `dbz-probar-restauracion.sh` anota SÓLO cuando la prueba pasa — si falla,
+         no toca la fecha, así que esto se pone rojo solo. Un fracaso anotado con la
+         fecha de hoy dejaría el panel en verde con una copia que no sirve. */
+      que: 'Se restaura de verdad',
+      mal: !p || dias(p.hace) > 10,
+      dice: p
+        ? `${cuando(p.hace)} · ${p.valor?.tablas ?? '?'} tablas · ${(p.valor?.cartas ?? 0).toLocaleString('es-AR')} cartas`
+        : 'nunca se probó',
     },
     {
       que: 'Último despliegue',
