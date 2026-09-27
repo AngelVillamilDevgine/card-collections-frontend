@@ -904,8 +904,19 @@ export default function App() {
   }
 
   /* La sesión murió: lo encolado ya no se puede mandar, y si se mandara podría salir con
-     el token de OTRA cuenta que entre en esta misma pestaña. Se tira. */
+     el token de OTRA cuenta que entre en esta misma pestaña. Se tira.
+
+     Y NO ALCANZA CON VACIAR LA COLA. Un reintento programado a 900 o 1800 ms no vive en
+     `pendientes` —vive en el `await` de `despachar`, que ya salió de la cola— así que
+     limpiar los tres mapas no lo toca: se despierta, vuelve a leer el token de
+     `localStorage`, y si en el medio entró otra cuenta en esta misma pestaña **sale con
+     ese token**. El servidor hace lo correcto con la credencial que le llega, así que no
+     hay 401 que lo frene: es una carta de una persona escrita en la cuenta de otra.
+
+     Subir `generacion` es justamente el freno que ya existe para eso: `despachar` guarda
+     el valor al empezar y se rinde con `null` en los dos puntos donde vuelve del await. */
   function matarCola() {
+    generacion.current += 1
     for (const { reloj } of pendientes.current.values()) clearTimeout(reloj)
     pendientes.current.clear()
     porSalir.current.clear()
@@ -1696,6 +1707,10 @@ export default function App() {
           <Exportar
             catalogo={catalogo}
             datos={datos}
+            /* Las mismas que dibuja la grilla, no sólo las declaradas: una variante que
+               tenés cargada con un id que el catálogo dejó de declarar sigue siendo una
+               carta que tenés, y el texto no puede pedirla. */
+            variantes={dibujables}
             /* Sólo las colecciones que NO son la de siempre se anuncian. Cromeros sigue
                exportando exactamente el mismo texto que antes. */
             encabezado={coleccionViva === DEFAULT_COLLECTION ? null : (album?.coleccion ?? null)}

@@ -4,6 +4,7 @@
 // qué lista, de qué expansiones (se marcan varias), y el texto con el botón de copiar.
 import { useEffect, useRef, useState } from 'react'
 import { atraparFoco, usarEscape } from './foco'
+import { slotsOf } from './collections'
 
 const OPCIONES = [
   { id: 'falta',     label: 'Las que me faltan' },
@@ -23,18 +24,40 @@ const OPCIONES = [
    que antes. Eso importa: son 28 personas que ya leen ese formato. */
 const rotulo = (exp, n) => `${exp.prefijo ?? ''}${n}`
 
-function faltantesDe(exp, cantidades) {
-  const numeros = exp.lista.filter((n) => !cantidades[`${exp.id}:${n}`])
+/* LAS DOS LISTAS SE ARMAN SOBRE LOS CASILLEROS DEL HUECO, NO SOBRE LA CLAVE BASE, y eso
+   no es un detalle: leyendo sólo `${exp.id}:${n}`, **una carta que tenés en variante
+   salía en «ME FALTAN»**. O sea que el texto que se pega en el grupo de WhatsApp pedía
+   cartas que ya tenés, y las repetidas de una variante no salían nunca — justo las que
+   sirven para cambiar. En Leyenda, que es donde hay variantes, eso es casi todo.
+
+   La cuenta es la misma que hace `resumen` en App.jsx, y tiene que serlo o los números
+   del diálogo no coinciden con los de la barra de filtros:
+
+   - **falta** el hueco entero: ningún casillero con cantidad mayor que cero;
+   - **sobran** POR CASILLERO: la 551 mate una y la 551 estrellada una son cero sobrantes,
+     que es la verdad — no te sobra nada, tenés las dos.
+
+   En Cromeros no hay variantes, así que `slotsOf` devuelve el único casillero de siempre
+   y el texto sale byte por byte igual que antes. */
+function faltantesDe(exp, cantidades, variantes) {
+  const numeros = exp.lista.filter((n) =>
+    slotsOf(exp, n, variantes ?? exp.variantes ?? [], cantidades)
+      .every((s) => !((cantidades[s.clave] ?? 0) > 0))
+  )
   return { textos: numeros.map((n) => rotulo(exp, n)), total: numeros.length }
 }
 
-function repetidasDe(exp, cantidades) {
+function repetidasDe(exp, cantidades, variantes) {
   const textos = []
   let total = 0
   for (const n of exp.lista) {
     // Tener 3 es que me sobran 2. Es lo mismo que cuenta el contador de "repetidas"
     // de arriba, así que los números coinciden.
-    const sobran = (cantidades[`${exp.id}:${n}`] ?? 0) - 1
+    let sobran = 0
+    for (const s of slotsOf(exp, n, variantes ?? exp.variantes ?? [], cantidades)) {
+      const cant = cantidades[s.clave] ?? 0
+      if (cant > 0) sobran += cant - 1
+    }
     if (sobran <= 0) continue
     total += sobran
     textos.push(sobran > 1 ? `${rotulo(exp, n)}x${sobran}` : rotulo(exp, n))
@@ -59,25 +82,25 @@ const SECCIONES = {
 }
 
 /* Para el paso 2: sólo las expansiones que tienen algo que listar, con cuántas. */
-function expansionesCon(modo, catalogo, cantidades) {
+function expansionesCon(modo, catalogo, cantidades, variantes) {
   const salida = []
   for (const exp of catalogo) {
     let cuenta = 0
-    for (const s of SECCIONES[modo]) cuenta += s.de(exp, cantidades).total
+    for (const s of SECCIONES[modo]) cuenta += s.de(exp, cantidades, variantes?.[exp.id]).total
     if (cuenta) salida.push({ exp, cuenta })
   }
   return salida
 }
 
 /* Las cartas van una por una, sin agrupar en rangos: así se pega y se lee derecho. */
-function armar(modo, elegidas, catalogo, cantidades, encabezado) {
+function armar(modo, elegidas, catalogo, cantidades, encabezado, variantes) {
   const partes = []
   for (const s of SECCIONES[modo]) {
     const lineas = []
     let total = 0
     for (const exp of catalogo) {
       if (!elegidas.has(exp.id)) continue
-      const { textos, total: suma } = s.de(exp, cantidades)
+      const { textos, total: suma } = s.de(exp, cantidades, variantes?.[exp.id])
       if (!textos.length) continue
       total += suma
       lineas.push(`${exp.nombre}: ${textos.join(', ')}`)
@@ -104,7 +127,7 @@ const Tilde = ({ marcada }) => (
   </span>
 )
 
-export default function Exportar({ catalogo, datos, encabezado, onCerrar }) {
+export default function Exportar({ catalogo, datos, variantes, encabezado, onCerrar }) {
   const [modo, setModo] = useState(null)
   const [elegidas, setElegidas] = useState(new Set())
   const [mostrando, setMostrando] = useState(false)
@@ -127,10 +150,10 @@ export default function Exportar({ catalogo, datos, encabezado, onCerrar }) {
   useEffect(() => () => clearTimeout(relojAviso.current), [])
 
   const { cantidades } = datos
-  const expansiones = modo ? expansionesCon(modo, catalogo, cantidades) : []
+  const expansiones = modo ? expansionesCon(modo, catalogo, cantidades, variantes) : []
   const marcadas = expansiones.filter(({ exp }) => elegidas.has(exp.id))
   const enTotal = marcadas.reduce((a, e) => a + e.cuenta, 0)
-  const texto = mostrando ? armar(modo, elegidas, catalogo, cantidades, encabezado) : ''
+  const texto = mostrando ? armar(modo, elegidas, catalogo, cantidades, encabezado, variantes) : ''
 
   /* Al elegir la lista arrancan todas marcadas: lo más común es querer todo, y
      desmarcar las que sobran es menos trabajo que marcar quince. */
