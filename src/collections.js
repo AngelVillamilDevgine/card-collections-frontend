@@ -189,8 +189,20 @@ export function pointsToASlot(clave, catalogos) {
   return false
 }
 
-/* Los números de una expansión. Un rango, que es lo único que usan los dos catálogos. */
+/* Los números de una expansión: un rango, o una lista de números sueltos.
+ *
+ * LA LISTA HACE FALTA AUNQUE HOY NINGUNA EXPANSIÓN LA USE, y la razón es un agujero que
+ * estuvo abierto: los dos archivos de test traían su propia copia de esta función y ESÍA
+ * copia sí leía `numeros`, mientras que la app sólo leía `desde`/`hasta`. O sea que un
+ * catálogo con un set de números sueltos —que es exactamente la forma que pide, por
+ * ejemplo, meter las 13 cartas que repiten número— **pasaba los tests en verde y la app
+ * no dibujaba ninguna de esas cartas**. Y peor: las filas que ya estuvieran guardadas con
+ * esas claves dejaban de apuntar a un hueco, así que el pie las anunciaba como huérfanas
+ * y ofrecía borrarlas. Editar el catálogo es el flujo que este proyecto llama normal.
+ *
+ * Hoy los tests importan ESTA función, así que no se pueden volver a separar. */
 export function numbersOf(exp) {
+  if (Array.isArray(exp.numeros)) return exp.numeros
   const out = []
   for (let n = exp.desde; n <= exp.hasta; n++) out.push(n)
   return out

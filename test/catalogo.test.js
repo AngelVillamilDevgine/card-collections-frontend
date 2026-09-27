@@ -12,20 +12,17 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
+/* LA MISMA función que usa la app, importada y no copiada. Tenía una copia acá que
+   aceptaba `exp.numeros` cuando la app no lo leía: los tests daban verde sobre un
+   catálogo que la app no podía dibujar. */
+import { numbersOf } from '../src/collections.js'
 
 const TOTAL = 1936
 const catalogo = JSON.parse(
   fs.readFileSync(new URL('../public/data/expansiones.json', import.meta.url), 'utf8')
 ).expansiones
 
-/* Mismo cálculo que hace la app en `numerosDe`: cada expansión es un rango, salvo las
-   que traen una lista de números sueltos. */
-function numerosDe(exp) {
-  if (Array.isArray(exp.numeros)) return exp.numeros
-  const salida = []
-  for (let n = exp.desde; n <= exp.hasta; n++) salida.push(n)
-  return salida
-}
+const numerosDe = numbersOf
 
 const todos = catalogo.flatMap(numerosDe)
 

@@ -17,6 +17,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
+/* La misma función que la app, importada y no copiada: ver el comentario en collections.js. */
+import { numbersOf } from '../src/collections.js'
 
 const crudo = JSON.parse(
   fs.readFileSync(new URL('../public/data/leyenda.json', import.meta.url), 'utf8')
@@ -49,12 +51,7 @@ const todasLasVariantes = catalogo.flatMap(variantesDe)
 // La misma que usa el backend. Duplicada porque son dos repos; si una cambia, la otra también.
 const CLAVE_VALIDA = /^[a-z0-9-]{1,34}:\d{1,5}$/
 
-function numerosDe(exp) {
-  if (Array.isArray(exp.numeros)) return exp.numeros
-  const salida = []
-  for (let n = exp.desde; n <= exp.hasta; n++) salida.push(n)
-  return salida
-}
+const numerosDe = numbersOf
 
 const enLaCorrida = catalogo.filter((e) => !e.fuera)
 const afuera = catalogo.filter((e) => e.fuera)
