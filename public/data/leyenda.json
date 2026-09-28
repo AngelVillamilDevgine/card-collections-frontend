@@ -28,6 +28,68 @@
       "hasta": 176,
       "grupos": [
         {
+          "_de": "las cartas de Angel, 2026-09-28",
+          "variantes": [
+            { "id": "com", "corto": "CO", "nombre": "Común" },
+            { "id": "nar", "corto": "NA", "nombre": "Naranja" }
+          ],
+          "cartas": [11]
+        },
+        {
+          "_de": "las cartas de Angel, 2026-09-28",
+          "variantes": [
+            { "id": "com", "corto": "CO", "nombre": "Común" },
+            { "id": "nar", "corto": "NA", "nombre": "Naranja" },
+            { "id": "vio", "corto": "VI", "nombre": "Violeta" },
+            { "id": "vcl", "corto": "VM", "nombre": "Verde manzana" }
+          ],
+          "cartas": [12, 14]
+        },
+        {
+          "_de": "las cartas de Angel, 2026-09-28",
+          "variantes": [
+            { "id": "nar", "corto": "NA", "nombre": "Naranja" },
+            { "id": "vio", "corto": "VI", "nombre": "Violeta" },
+            { "id": "vcl", "corto": "VM", "nombre": "Verde manzana" }
+          ],
+          "cartas": [18]
+        },
+        {
+          "_de": "las cartas de Angel, 2026-09-28",
+          "variantes": [
+            { "id": "com", "corto": "CO", "nombre": "Común" },
+            { "id": "vio", "corto": "VI", "nombre": "Violeta" }
+          ],
+          "cartas": [20]
+        },
+        {
+          "_de": "las cartas de Angel, 2026-09-28",
+          "variantes": [
+            { "id": "com", "corto": "CO", "nombre": "Común" },
+            { "id": "nar", "corto": "NA", "nombre": "Naranja" },
+            { "id": "vio", "corto": "VI", "nombre": "Violeta" }
+          ],
+          "cartas": [23]
+        },
+        {
+          "_de": "las cartas de Angel, 2026-09-28",
+          "variantes": [
+            { "id": "nar", "corto": "NA", "nombre": "Naranja" },
+            { "id": "vio", "corto": "VI", "nombre": "Violeta" }
+          ],
+          "cartas": [25]
+        },
+        {
+          "_de": "las cartas de Angel, 2026-09-28",
+          "variantes": [
+            { "id": "dor", "corto": "DO", "nombre": "Dorado" },
+            { "id": "nar", "corto": "NA", "nombre": "Naranja" },
+            { "id": "vio", "corto": "VI", "nombre": "Violeta" },
+            { "id": "vcl", "corto": "VM", "nombre": "Verde manzana" }
+          ],
+          "cartas": [27]
+        },
+        {
           "variantes": [
             {
               "id": "azu",

@@ -265,22 +265,54 @@ test('las variantes que Angel ya cargo siguen estando ofrecidas', () => {
   }
 })
 
-/* CUANTAS CARTAS DE CADA TRAMO TIENEN ACABADO. Salen del dato carta por carta que
+/* CUANTAS CARTAS DE CADA TRAMO TIENEN VARIANTES. Salen del dato carta por carta que
    publica el tracker de Ismael (leido el 2026-09-26) y son el resumen de todo el archivo:
    si alguien lo regenera mal, o vuelve a aplicar el encabezado de una planilla a todas
-   las cartas del tramo, estos seis numeros se mueven. */
-test('cuantas cartas tienen acabado en cada tramo', () => {
+   las cartas del tramo, estos seis numeros se mueven.
+
+   EL MAZO INICIAL SON 48 Y NO 40, Y LA DIFERENCIA NO ES UN ERROR NUESTRO: EL TRACKER ESTA
+   INCOMPLETO. El 2026-09-28 Angel miro sus propias cartas y paso las variantes de ocho que
+   el tracker lista SIN NINGUNA (su campo de acabados viene vacio en las ocho): la 11, 12,
+   14, 18, 20, 23, 25 y 27. Son cartas «de caja», y dos de los fondos que aparecen ahi
+   -violeta y verde claro- son justamente de los que sus propias notas dicen que salen solo
+   en el mazo de la caja y nunca en sobre.
+
+   Es la regla que este proyecto ya tenia escrita y que conviene no olvidar: el tracker
+   sirve para VERIFICAR lo nuestro, no es la verdad. Cuando Angel mira una carta que tiene
+   en la mano, esa es la fuente. */
+test('cuantas cartas tienen variantes en cada tramo', () => {
   const cuantas = (id) => (porId(id).grupos ?? []).reduce((a, g) => a + g.cartas.length, 0)
-  assert.equal(cuantas('ley-inicial'), 40)
+  assert.equal(cuantas('ley-inicial'), 48, '40 del tracker + las 8 que Angel corrigio con sus cartas')
   assert.equal(cuantas('ley-2-3'), 52)
   assert.equal(cuantas('ley-4'), 47)
   assert.equal(cuantas('ley-5'), 44)
   assert.equal(cuantas('ley-6'), 44)
   assert.equal(cuantas('ley-personajes'), 44)
-  /* De las 1078 numeradas, 271: lo normal es que una carta NO tenga variantes. */
+  /* De las 1078 numeradas, 279: lo normal sigue siendo que una carta NO tenga variantes. */
   const total = ['ley-inicial', 'ley-2-3', 'ley-4', 'ley-5', 'ley-6', 'ley-personajes']
     .reduce((a, id) => a + cuantas(id), 0)
-  assert.equal(total, 271)
+  assert.equal(total, 279)
+})
+
+/* LAS OCHO QUE ANGEL CORRIGIO, una por una. No alcanza con que el total cierre: lo que
+   importa es QUE variantes ofrece cada una, que es lo que el tracker tenia mal. */
+test('las ocho que Angel corrigio con sus propias cartas', () => {
+  const esperado = {
+    11: ['Común', 'Naranja'],
+    12: ['Común', 'Naranja', 'Violeta', 'Verde manzana'],
+    14: ['Común', 'Naranja', 'Violeta', 'Verde manzana'],
+    18: ['Naranja', 'Violeta', 'Verde manzana'],
+    20: ['Común', 'Violeta'],
+    23: ['Común', 'Naranja', 'Violeta'],
+    25: ['Naranja', 'Violeta'],
+    27: ['Dorado', 'Naranja', 'Violeta', 'Verde manzana'],
+  }
+  for (const [n, quiero] of Object.entries(esperado))
+    assert.deepEqual(deLaCarta(porId('ley-inicial'), Number(n)).sort(), [...quiero].sort(),
+      `la ${n} no ofrece lo que Angel tiene en la mano`)
+  /* La 22 NO se toca: Angel dijo que tiene variantes pero que solo tiene la comun, asi que
+     no puede decir cuales son. Se queda con lo que traia el tracker. */
+  assert.ok(deLaCarta(porId('ley-inicial'), 22).length > 1)
 })
 
 test('las Expansiones 2 y 3 tienen dos acabados y ninguna carta con version comun', () => {
