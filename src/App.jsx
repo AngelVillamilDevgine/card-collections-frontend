@@ -12,6 +12,8 @@ import Exportar from './Exportar'
    cuántos kilobytes le cuesta al que sólo marca cartas. */
 const Estadisticas = lazy(() => import('./Estadisticas'))
 import Instalar from './Instalar'
+import Reinstalar from './Reinstalar'
+import { pathFor, syncPath } from './routes'
 import { ErrorBoundary } from './boundary'
 import { COLLECTIONS, DEFAULT_COLLECTION, readCollection, rememberCollection, loadCatalogs, slotKey, slotsOf, variantsFor, drawableVariants, pointsToASlot, cardLabel, cardDetail, albumPercent, slotOf, slotName, orphanName } from './collections'
 import {
@@ -572,6 +574,15 @@ export default function App() {
   // La cuenta entera, no el nombre: trae además si es administrador.
   const [cuenta, setCuenta] = useState(undefined) // undefined = todavía no sé
   const [datos, setDatos] = useState(VACIA)
+
+  /* LA DIRECCIÓN SIGUE AL ESTADO, y ése es todo el ruteo que hay del lado de la app.
+     Quién se dibuja lo sigue decidiendo `cuenta` tres pantallas más abajo, exactamente
+     igual que antes de que existieran las rutas — así que esto no puede cambiar lo que
+     ves, sólo lo que dice la barra de direcciones. Al revés habría que reescribir el
+     árbol de decisión, que es donde viven los tres estados de carga que ya costaron sus
+     bugs. El porqué de `replaceState` y de que no haya `pushState` está en `routes.js`. */
+  useEffect(() => { syncPath(pathFor(cuenta)) }, [cuenta])
+
   /* Hace falta aparte de `datos` porque `VACIA` es ambiguo: no distingue «todavía no
      llegó» de «este usuario no tiene ninguna carta», y las dos son un objeto vacío. */
   const [coleccionLista, setColeccionLista] = useState(false)
@@ -2041,7 +2052,12 @@ export default function App() {
       )}
 
       {/* Fuera del pie: es una barra fija abajo, y sólo aparece en teléfono. */}
+      {/* Los dos usan la misma barra y NO se pisan: `Instalar` se va apenas `comoApp()` es
+          verdadero y `Reinstalar` no aparece si no lo es. Son excluyentes por construcción,
+          no por orden — si alguna vez se toca una de las dos condiciones, mirar la otra,
+          porque las dos escriben `--alto-instalar` en el body. */}
       <Instalar />
+      <Reinstalar />
     </>
   )
 }

@@ -3,32 +3,42 @@
   <head>
     <meta charset="UTF-8" />
 
-    <!-- Atrapa `beforeinstallprompt`, que se dispara a los ~180 ms y una sola vez. Va
-         `async` porque un script clásico sin eso frena el parseo del HTML, y el bundle es
-         un módulo que sólo ejecuta cuando el parseo termina. El porqué está en el archivo,
-         incluido por qué el adelanto de los pedidos de la API que vivía ahí se fue. -->
-    <script async src="./temprano.js"></script>
+    <!-- ESTA PÁGINA ES TAMBIÉN EL 404 DEL SITIO, y por eso necesita el `<base>`.
+         Cloudflare Pages sirve `index.html` con código 200 en CUALQUIER ruta que no exista
+         —medido: `/algo`, `/a/b/c`, `/noexiste.png`, todas—, así que la landing es lo que
+         ve quien tipea mal la dirección. Con `base: './'`, desde `/a/b/c` un `./logo.png`
+         resuelve a `/a/b/logo.png` y da 404: la landing aparecía sin logo y, peor,
+         sin `reanudar.js`, o sea que a esa persona ya no la redirigía nada.
+         Con el `<base>` los relativos se resuelven contra la raíz venga de donde venga. -->
+    <base href="/" />
 
-    <!-- Abrir la conexión con la API mientras todavía se parsea el HTML: en 3G el apretón
-         de manos (DNS + TCP + TLS) son varios cientos de milisegundos que si no se pagan
-         recién con el primer pedido. Esto NO ejecuta JavaScript ni toca el hilo principal,
-         que es exactamente la diferencia con adelantar los pedidos a mano. -->
-    <link rel="preconnect" href="https://api.cromeros.com.ar" crossorigin />
+    <!-- PRIMERO DE TODO Y BLOQUEANTE. Si el que llega ya tiene sesión —o es la app
+         instalada, cuyo `start_url` puede seguir apuntando acá para siempre en iPhone—,
+         esto redirige antes de que se pinte un pixel. El porqué entero está en el archivo.
+         Es lo que hace que `/` nunca sea un callejón sin salida. -->
+    <script src="./reanudar.js"></script>
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#f4a11d" />
     <link rel="icon" type="image/svg+xml" href="./bola.svg" />
 
-    <!-- Para instalarla en el teléfono. Los de apple- son para iPhone, que ignora casi
-         todo el manifest: el ícono y el nombre los saca de acá. -->
+    <!-- Se quedan acá aunque la app viva en /collection: hay instalaciones cuyo `start_url`
+         es `/`, y en iPhone eso no cambia nunca. Sin el manifest y sin los `apple-`, esas
+         dejarían de reconocerse como la app. -->
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="apple-touch-icon" href="/icono-192.png" />
+    <!-- El estándar primero y el de Apple después: Chrome avisa por consola que
+         `apple-mobile-web-app-capable` está deprecado y pide éste. Los dos conviven porque
+         iPhone sigue leyendo sólo el suyo. -->
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Cromeros" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+
     <title>Mi colección de Dragon Ball Z</title>
 
-    <!-- Sin esto el sitio no dice nada de sí mismo: el HTML que recibe quien no ejecuta JS
-         —un buscador, el robot de la vista previa de WhatsApp— tiene NUEVE caracteres de
+    <!-- Sin esto el sitio no decía nada de sí mismo: el HTML que recibe quien no ejecuta JS
+         —un buscador, el robot de la vista previa de WhatsApp— tenía NUEVE caracteres de
          texto, «Cargando…». La dirección viaja a los grupos en cada lista exportada.
          La imagen es el ícono y no el logo porque el logo es 3,9 a 1 y se recorta; el
          canonical, porque el apex y el www sirven los mismos bytes sin redirección.
@@ -51,28 +61,125 @@
     <meta name="twitter:title" content="Mi colección de Dragon Ball Z" />
     <meta name="twitter:description" content="Marcá las que tenés, las que te faltan y las repetidas, y compartí la lista en tu grupo. Cromeros 2007 y Leyenda." />
     <meta name="twitter:image" content="https://cromeros.com.ar/icono-512.png" />
+
+    <!-- EL CSS VA EN LÍNEA Y ES TODO EL QUE HAY: la landing no carga el bundle ni
+         `estilos.css`, así que es UN solo documento y UN solo pintado. Una hoja aparte
+         sería un pedido bloqueante más en la única página que tiene que ser instantánea.
+         La CSP lo permite (`style-src 'self' 'unsafe-inline'`), que es la concesión que
+         este proyecto ya hace por los estilos en línea de React.
+
+         Los colores son los mismos tokens de `estilos.css`, copiados y no inventados,
+         porque el contraste de cada uno ya está medido contra el papel. -->
+    <style>
+      :root {
+        --papel: #f4f2ee;
+        --tinta: #201d1a;
+        --tinta2: #6f6963;
+        --tinta3: #736d65;
+        --linea2: #d3cec4;
+        --acento: #a8590d;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--papel);
+        color: var(--tinta);
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        font-size: 15px;
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+      }
+      .caja {
+        max-width: 480px;
+        margin: 0 auto;
+        /* El `env()` no es opcional: sin él el último renglón queda debajo de la barra de
+           gestos del iPhone. Es la misma razón que en la barra de filtros de la app. */
+        padding: 40px 20px calc(32px + env(safe-area-inset-bottom, 0px));
+        text-align: center;
+      }
+      .logo { width: 240px; max-width: 100%; height: auto; }
+      h1 {
+        margin: 22px 0 10px;
+        font-size: 25px;
+        line-height: 1.2;
+        letter-spacing: -0.01em;
+        text-wrap: balance;
+      }
+      .bajada {
+        margin: 0 0 26px;
+        color: var(--tinta2);
+        font-size: 16px;
+        text-wrap: pretty;
+      }
+      .acciones { display: flex; flex-direction: column; gap: 10px; }
+      /* Mismos valores que `.principal` y `.secundario` de la app: 46 px de alto porque un
+         dedo no acierta cómodo en menos. */
+      .principal {
+        display: block;
+        min-height: 46px;
+        padding: 12px 14px;
+        background: var(--acento);
+        border: 1px solid var(--acento);
+        border-radius: 6px;
+        color: #fff;
+        font-size: 16px;
+        font-weight: 600;
+        text-decoration: none;
+      }
+      .principal:hover { filter: brightness(1.06); }
+      .secundario {
+        display: block;
+        min-height: 44px;
+        padding: 12px 8px;
+        color: var(--tinta2);
+        font-size: 14px;
+        text-decoration: none;
+      }
+      .secundario:hover { color: var(--acento); }
+      a:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+      .puntos {
+        margin: 30px 0 0;
+        padding: 0;
+        list-style: none;
+        text-align: left;
+        color: var(--tinta2);
+        font-size: 14.5px;
+        border-top: 1px solid var(--linea2);
+      }
+      .puntos li { padding: 14px 0 0; }
+      .puntos b { color: var(--tinta); font-weight: 600; }
+      footer { margin-top: 30px; color: var(--tinta3); font-size: 13px; }
+    </style>
   </head>
   <body>
-    <!-- El cartel de espera va ACÁ y no sólo en React, y es el cambio que más bajó el
-         primer pintado de toda la app.
+    <main class="caja">
+      <img class="logo" src="./logo.png" alt="Dragon Ball Z" width="660" height="168" />
 
-         La app se dibuja del lado del navegador, así que con `#root` vacío no hay
-         literalmente nada que pintar hasta que bajen los 59 KB del bundle, los parsee y
-         React monte. Medido en 3G con la CPU 6 veces más lenta, el primer pintado daba
-         1156 ms, y lo único que aparecía en ese momento era esta misma palabra — el
-         `if (cuenta === undefined)` de App.jsx. O sea que se esperaba el bundle entero
-         para mostrar un cartel de espera.
+      <h1>Tu álbum de Dragon Ball Z, al día</h1>
 
-         El CSS ya está en el head como <link> (lo pone Vite), y es de los que frenan el
-         pintado, así que cuando el navegador puede pintar algo ya tiene `.hoja` y
-         `.cargando`: se ve idéntico a lo que dibuja React, y por eso al montar no hay
-         ningún salto. React limpia lo que haya adentro del contenedor cuando monta, que
-         es lo que corresponde: esto es render del lado del cliente, no hidratación, así
-         que no hay que calzar nada ni agregar `suppressHydrationWarning`.
+      <p class="bajada">
+        Marcá las cartas que tenés y la lista de las que te faltan y de las repetidas se
+        arma sola, lista para pegar en tu grupo.
+      </p>
 
-         TIENE QUE DECIR LO MISMO QUE App.jsx. Si algún día cambia el texto o las clases
-         de ese estado, esto queda desincronizado y se ve un parpadeo al montar. -->
-    <div id="root"><div class="hoja"><p class="cargando">Cargando…</p></div></div>
-    <script type="module" src="/src/main.jsx"></script>
+      <div class="acciones">
+        <a class="principal" href="/login?crear=1">Anotá tus faltantes</a>
+        <a class="secundario" href="/login">Ya tengo cuenta</a>
+      </div>
+
+      <!-- SIN NÚMEROS A PROPÓSITO. Poner «1936 cartas» o «3033» acá sería reponer el
+           `TOTAL_CARTAS` escrito a mano que ya se sacó del panel por esto mismo: el catálogo
+           se lee en caliente y este documento es estático, así que el día que cambie nadie
+           se entera y ningún test puede agarrarlo. Los nombres de las colecciones sí van
+           —cambian mucho más lento y son lo que alguien busca—, pero si entra una tercera
+           hay que acordarse de este renglón. -->
+      <ul class="puntos">
+        <li><b>Se guarda solo.</b> Tocás una carta y ya quedó: no hay botón de guardar.</li>
+        <li><b>Las dos colecciones.</b> Cromeros 2007 y Leyenda.</li>
+        <li><b>Se instala en el teléfono</b> y se abre como una app, sin buscar la página.</li>
+      </ul>
+
+      <footer>www.cromeros.com.ar</footer>
+    </main>
   </body>
 </html>

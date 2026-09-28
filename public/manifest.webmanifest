@@ -7,7 +7,10 @@
   "//": "SIN `id`, la identidad de la app se DERIVA del `start_url`: cambiarlo sería otra app y dejaría huérfanas las instalaciones que ya existen (8 al 2026-09-28), con el icono abriendo la ruta vieja para siempre — y en iPhone sin arreglo, porque Safari congela el manifest al agregarlo. Declarado con el mismo valor que hoy se deriva, no mueve nada y desacopla la identidad de la ruta. El porque largo esta en el CLAUDE.md.",
   "id": "/",
 
-  "start_url": "/",
+  "//start_url": "Abre las cartas y no la landing, que es lo que tiene que hacer el icono de una app ya instalada. Es seguro moverlo SOLO porque arriba esta declarado el `id`: sin el, cambiar esto seria otra aplicacion para el navegador y las instalaciones existentes quedarian huerfanas. Android re-lee el manifest en un chequeo del orden del dia; iPhone no lo re-lee nunca, asi que `/` tiene que seguir funcionando para siempre — de eso se ocupa public/reanudar.js.",
+  "start_url": "/collection",
+
+  "//scope": "SE QUEDA EN `/` Y NO SE ACHICA A `/collection`. Con un scope mas chico, navegar a `/` desde adentro de la app instalada queda FUERA DE SCOPE: Android la abre en una pestana con barra de direcciones y deja de ser `display-mode: standalone`, con lo que `comoApp()` pasa a dar falso y el `?app=1` deja de contarse. Ademas la landing tiene que poder redirigir hacia adentro de la app.",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",

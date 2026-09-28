@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+
+    <!-- Atrapa `beforeinstallprompt`, que se dispara a los ~180 ms y una sola vez. Va
+         `async` porque un script clásico sin eso frena el parseo del HTML, y el bundle es
+         un módulo que sólo ejecuta cuando el parseo termina. -->
+    <script async src="./temprano.js"></script>
+
+    <!-- Abrir la conexión con la API mientras todavía se parsea el HTML. -->
+    <link rel="preconnect" href="https://api.cromeros.com.ar" crossorigin />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f4a11d" />
+    <link rel="icon" type="image/svg+xml" href="./bola.svg" />
+
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icono-192.png" />
+    <!-- El estándar primero y el de Apple después: Chrome avisa por consola que
+         `apple-mobile-web-app-capable` está deprecado y pide éste. Los dos conviven porque
+         iPhone sigue leyendo sólo el suyo. -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Cromeros" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+
+    <!-- `noindex` y no un canonical a `/`: esto no es una versión de la landing, es el
+         cascarón de la app. Sin JavaScript no tiene más contenido que la palabra
+         «Cargando…», así que indexarlo sólo puede ensuciar. La página que se indexa es la
+         landing, que sí dice algo. -->
+    <meta name="robots" content="noindex" />
+    <title>Mi colección de Dragon Ball Z</title>
+  </head>
+  <body>
+    <!-- EL CARTEL DE ESPERA VA ACÁ Y NO SÓLO EN REACT, y es el cambio que más bajó el
+         primer pintado de toda la app: con `#root` vacío no hay nada que pintar hasta que
+         bajen los ~63 KB del bundle, los parsee y React monte.
+
+         TIENE QUE DECIR LO MISMO QUE `App.jsx` Y QUE `login.html`. Las tres copias las
+         ata un test (`test/paginas.test.js`), porque acá el contrato dejó de ser entre dos
+         archivos y pasó a ser entre tres: si se desincronizan, al montar se ve un
+         parpadeo y nadie lo relaciona con esto. -->
+    <div id="root"><div class="hoja"><p class="cargando">Cargando…</p></div></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
