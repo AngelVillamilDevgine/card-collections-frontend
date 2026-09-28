@@ -9,10 +9,6 @@ import { estadisticas } from './almacenamiento'
 import { albumPercent } from './collections'
 import './dashboard.css'
 
-/* Con techo, y hace falta de verdad: `g.cartas` cuenta FILAS de esa persona y una carta
-   que tengas en dos variantes son dos filas, mientras que el total son huecos del álbum.
-   Sin el techo la columna «Álbum» puede pasarse de 100%, que se lee como un bug. */
-const parte = (n, total) => (total ? Math.min(100, Math.round((n / total) * 100)) : 0)
 const dia = (f) => (f ? f.slice(8, 10) + '/' + f.slice(5, 7) : '—')
 
 /* Hace cuánto, en palabras. El panel no tiene que hacer cuentas con husos: el servidor
@@ -85,6 +81,78 @@ function Salud({ salud }) {
           <b>{c.que}:</b> {c.dice}
         </span>
       ))}
+    </div>
+  )
+}
+
+/* UN CUADRO. Lo pidió Angel: «los contadores son unos textos, deberían ser unos cuadros o
+   algo». El número primero y grande, el rótulo abajo explicándolo, y sólo si hay
+   denominador un medidor fino con el «de N» — porque «7» no dice nada sin saber de cuántos.
+
+   Sin sombra, sin gradiente, sin ícono y sin un color por métrica: eso es lo que hacía que
+   la primera versión de la app gritara «hecho con IA», y el CLAUDE.md lo sigue prohibiendo
+   aunque las cajas ahora estén permitidas. Lo que separa un cuadro del papel es un borde
+   de un píxel. */
+function Cuadro({ valor, rotulo, de, pie, chico }) {
+  const parteDe = de ? Math.min(100, (valor / de) * 100) : null
+  return (
+    <div className={`cuadro${chico ? ' chico' : ''}`}>
+      <b>{valor.toLocaleString('es-AR')}</b>
+      <span className="cuadro-rotulo">{rotulo}</span>
+      {parteDe != null && (
+        <>
+          {/* `min-width` para que «1 de 40» se vea: sin eso, una raya de 2.5% no se dibuja
+              y el cuadro parece vacío. El relleno va en `--acento` y no en `--naranja`
+              porque contra el riel tiene que llegar a 3:1, que es lo que pide un elemento
+              no textual que informa. */}
+          <span className="medidor"><span style={{ width: `${parteDe}%` }} /></span>
+          <span className="cuadro-pie">de {de.toLocaleString('es-AR')}</span>
+        </>
+      )}
+      {pie && parteDe == null && <span className="cuadro-pie">{pie}</span>}
+    </div>
+  )
+}
+
+/* LOS CATORCE DÍAS COMO UNA TIRA. Una serie de tiempo se lee de izquierda a derecha, no
+   como catorce renglones apilados — que era además lo que hacía que el panel pareciera no
+   terminar nunca.
+
+   Las catorce columnas son FIJAS y salen de las fechas, no de las filas que devolvió la
+   consulta: el servidor no manda los días en que no entró nadie, así que dibujando sólo lo
+   que viene, dos días separados por una semana quedaban pegados y se leían como
+   consecutivos. Un día sin nadie tiene que ocupar su lugar y verse vacío. */
+function Tira({ dias }) {
+  const porFecha = new Map(dias.map((x) => [x.dia, x]))
+  const hoy = dias.length ? dias[dias.length - 1].dia : null
+  const catorce = []
+  if (hoy) {
+    const base = new Date(`${hoy}T12:00:00Z`)
+    for (let i = 13; i >= 0; i--) {
+      const f = new Date(base)
+      f.setUTCDate(f.getUTCDate() - i)
+      const clave = f.toISOString().slice(0, 10)
+      catorce.push({ dia: clave, ...(porFecha.get(clave) ?? { personas: 0, porApp: 0 }) })
+    }
+  }
+  const pico = Math.max(1, ...catorce.map((x) => x.personas))
+  const ultimo = catorce[catorce.length - 1]
+  return (
+    <div className="tira">
+      {/* El máximo y el de hoy arriba: son los dos números que se miran. Poner el valor
+          encima de cada barra sería catorce números de un dígito, que es de donde venimos. */}
+      <p className="tira-resumen">
+        <b>{ultimo?.personas ?? 0}</b> hoy · máximo <b>{pico}</b> en estos catorce días
+      </p>
+      <div className="tira-barras">
+        {catorce.map((x) => (
+          <span key={x.dia} className={`tira-dia${x.dia === hoy ? ' hoy' : ''}`}
+                title={`${dia(x.dia)}: ${x.personas} ${x.personas === 1 ? 'persona' : 'personas'}${x.porApp ? `, ${x.porApp} por la app` : ''}`}>
+            <span className="tira-barra" style={{ height: `${Math.max(2, (x.personas / pico) * 100)}%` }} />
+            <em>{x.dia.slice(8, 10)}</em>
+          </span>
+        ))}
+      </div>
     </div>
   )
 }
@@ -175,9 +243,7 @@ export default function Estadisticas({ onCerrar, onSesionMuerta, colecciones }) 
 }
 
 function Cuerpo({ d, colecciones }) {
-  const { usuarios: u, cartas, porDia, tramos, gente } = d
-  const pico = Math.max(1, ...porDia.map((x) => x.cuantos))
-  const picoTramo = Math.max(1, ...tramos.map((x) => x.cuantos))
+  const { usuarios: u, cartas,  gente } = d
 
   const actividad = d.actividad ?? []
   const picoActivos = Math.max(1, ...actividad.map((x) => x.personas))
@@ -252,64 +318,47 @@ function Cuerpo({ d, colecciones }) {
     <>
       <Salud salud={d.salud} />
 
-      {/* El embudo: de arriba a abajo se va cayendo gente. Donde más cae es el problema. */}
-      <p>De cada persona que se anota, cuántas llegan hasta el final.</p>
-      <div className="grupo">
-        <Barra rotulo="Se anotaron" valor={u.total} techo={u.total} />
-        <Barra rotulo="Cargaron cartas" valor={u.conCartas} techo={u.total} nota={`${parte(u.conCartas, u.total)}%`} />
-        <Barra rotulo="Volvieron otro día" valor={u.volvieron} techo={u.total} nota={`${parte(u.volvieron, u.total)}%`} />
-        <Barra rotulo="La instalaron" valor={u.conApp} techo={u.total} nota={`${parte(u.conApp, u.total)}%`} />
+      {/* EL EMBUDO, EN CUADROS. Angel: «los contadores son unos textos, deberían ser unos
+          cuadros o algo». Y son los MISMOS cuatro números del embudo de antes: lo que
+          cambia es que ahora el número es lo primero que se ve y el rótulo lo explica,
+          en vez de un rótulo con una barra al lado y el número al final.
+
+          Va primero y sin párrafo que lo introduzca: los cuatro rótulos ya dicen qué es, y
+          el panel existe para esto — «no cuánta gente entra, sino cuánta vuelve».
+
+          Absorbe además cuatro de los seis textos sueltos que estaban más abajo repitiendo
+          parte de esto. Un bloque menos, no uno más. */}
+      <div className="cuadros">
+        <Cuadro valor={u.total} rotulo="Se anotaron" pie={u.altas7 ? `+${u.altas7} esta semana` : 'ninguna esta semana'} />
+        <Cuadro valor={u.conCartas} rotulo="Cargaron cartas" de={u.total} />
+        <Cuadro valor={u.volvieron} rotulo="Volvieron otro día" de={u.total} />
+        <Cuadro valor={u.conApp} rotulo="La instalaron" de={u.total} />
       </div>
 
-      {/* CUATRO RENGLONES DE ACLARACIÓN ERAN TRES DE MÁS. Explicaban por qué «volvieron»
-          se cuenta con `visita` y no con `sesion`, y que lo anterior al 18/09 queda corto.
-          Las dos cosas son ciertas y ninguna cambia una decisión: el porqué del método ya
-          está escrito en el CLAUDE.md, que es donde vive el porqué. Angel: «la aclaración
-          de volvieron es muy larga al pedo, no me hace falta saber tanto».
-
-          Queda lo único que sí cambia cómo se lee el número: que antes del 18/09 los datos
-          son incompletos, así que una caída vieja puede no ser real. */}
-      <p className="nada">Antes del 18/09 los datos son incompletos.</p>
-
-      <div className="sueltos">
-        <span><b>{u.altas7}</b> altas en 7 días</span>
-        <span><b>{u.altasHoy}</b> hoy</span>
-        <span><b>{u.activosHoy}</b> la usaron hoy</span>
-        <span><b>{u.activos7}</b> en la semana</span>
-        <span><b>{cartas.total.toLocaleString('es-AR')}</b> cartas marcadas</span>
-        <span><b>{cartas.repetidas.toLocaleString('es-AR')}</b> repetidas</span>
+      {/* EL PULSO, aparte y más chico. Es el «ahora» y no lo acumulado, así que no puede ir
+          en la misma grilla: seis cuadros iguales se leen como una pared y se pierde cuál
+          contesta qué. El salto de tamaño es lo que dice que son secundarios — no un
+          `opacity`, que en este proyecto está prohibido sobre texto. */}
+      <div className="cuadros chicos">
+        <Cuadro valor={u.activosHoy} rotulo="La usaron hoy" />
+        <Cuadro valor={u.activos7} rotulo="La usaron esta semana" />
       </div>
-
-      {porCol && (
-        <>
-          <h4>Qué colección usan</h4>
-          <div className="grupo">
-            {porCol.map((c) => (
-              /* SIN porcentaje, a propósito: acá `cartas` son las filas de TODA la gente
-                 sumadas, y dividirlas por los huecos de un álbum no significa nada — con
-                 19 personas dan 8026 sobre 1936 y el tope de 100% lo disfrazaba de
-                 «álbum completo». El porcentaje sólo tiene sentido por persona, y ahí
-                 está, en la tabla de abajo. */
-              <Barra key={c.id} rotulo={c.nombre} valor={c.cartas} techo={picoCol}
-                     nota={`${c.personas} ${c.personas === 1 ? 'persona' : 'personas'}${c.repetidas ? ` · ${c.repetidas} ${c.repetidas === 1 ? 'repetida' : 'repetidas'}` : ''}`} />
-            ))}
-          </div>
-          {sueltas.length > 0 && (
-            <p className="nada">
-              Y hay {sueltas.reduce((a, t) => a + t.filas, 0)} cartas guardadas en tramos que
-              no son de ninguna colección ({sueltas.map((t) => t.tramo).join(', ')}): son de un
-              catálogo viejo y el pie de la app ofrece sacarlas.
-            </p>
-          )}
-        </>
-      )}
 
       {cohortes.length > 0 && (
         <>
-          <h4>Cada semana que entró</h4>
-          {/* Un total acumulado no sirve mientras la app crece: cada semana entra gente que
+          <h4>Semana por semana</h4>
+          {/* Sube acá, de sexta a segunda: es lo único del panel que contesta «¿está
+              mejorando?», que es la pregunta que sigue al embudo. Antes estaba debajo de
+              dos bloques de cartas.
+
+              Un total acumulado no sirve mientras la app crece: cada semana entra gente que
               todavía no tuvo tiempo de volver, así que el promedio baja solo aunque nada
-              empeore. Por semana de alta sí se puede comparar una contra otra. */}
+              empeore. Por semana de alta sí se puede comparar una contra otra.
+
+              Y SE LE SACAN LOS PORCENTAJES. Con cohortes de cinco a ocho personas, «43%» es
+              una precisión inventada: el denominador está en la columna de al lado y
+              «7 / 3 / 1» alineado se lee solo. De paso desaparece el lugar donde el número
+              y el porcentaje se veían pegados. */}
           <div className="tablon">
             <table className="gente">
               <thead>
@@ -320,44 +369,81 @@ function Cuerpo({ d, colecciones }) {
                   <tr key={c.semana}>
                     <td>{dia(c.semana)}</td>
                     <td>{c.gente}</td>
-                    <td>{c.cargaron} <i>{parte(c.cargaron, c.gente)}%</i></td>
-                    <td>{c.volvieron} <i>{parte(c.volvieron, c.gente)}%</i></td>
+                    <td>{c.cargaron}</td>
+                    <td>{c.volvieron}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+          <p className="nada">Antes del 18/09 los días de uso quedan cortos.</p>
         </>
       )}
 
+      {/* LOS CATORCE DÍAS, EN UNA TIRA Y NO EN CATORCE RENGLONES. Acá había DOS listas
+          verticales casi idénticas y pegadas —«La usaron, por día» y «Altas por día»— que
+          juntas se comían dos pantallas de teléfono para mostrar veintiocho números de un
+          dígito. Angel: «el "Lo usaron por día" es realmente una poronga» y «el gráfico de
+          altas por día cada vez más largo». Es el mismo problema: catorce barras apiladas
+          verticalmente son la forma equivocada para una serie de tiempo, que se lee de
+          izquierda a derecha.
+
+          SE VA «ALTAS POR DÍA» ENTERO, y es lo que más achica el panel. Mide cuánta gente
+          LLEGA, que es textualmente lo que el CLAUDE.md dice que NO es la pregunta de este
+          panel; hace un pico el día que se comparte el enlace y después nada, o sea catorce
+          renglones para dibujar trece ceros; y lo que de verdad se quiere saber de las
+          altas —cuántas esta semana— ya está en el primer cuadro. El servidor sigue
+          mandando `porDia`: sacar un campo de la respuesta es un cambio en dos pasos, y
+          éste es el primero.
+
+          CATORCE COLUMNAS FIJAS, no una por día que vino, y eso arregla una mentira que
+          había: la consulta no devuelve los días sin nadie, así que la lista los omitía y
+          dos días separados por una semana salían pegados pareciendo consecutivos. Un día
+          sin nadie ahora se dibuja: un tope finito, que se ve. */}
       {actividad.length > 0 && (
         <>
-          <h4>La usaron, por día</h4>
-          {/* Distinto de «altas por día», que está abajo: las altas hacen un pico el día que
-              se comparte el enlace y después nada. Esto dice si alguien sigue ahí. */}
-          <div className="grupo">
-            {actividad.map((x) => (
-              <Barra key={x.dia} flaca rotulo={dia(x.dia)} valor={x.personas} techo={picoActivos}
-                     nota={x.porApp ? `${x.porApp} por la app` : ''} />
-            ))}
-          </div>
+          <h4>La usaron, últimos 14 días</h4>
+          <Tira dias={actividad} />
         </>
       )}
 
-      <h4>Altas por día</h4>
-      {porDia.length ? (
+      <h4>Las cartas</h4>
+      {/* TODO LO DE CARTAS, JUNTO. Antes «Qué colección usan» estaba entre el embudo y las
+          cohortes —o sea en el medio de la parte que habla de gente— y «Cuántas cartas
+          tiene cada uno» cuatro bloques más abajo, hablando de lo mismo. Angel: «"Qué
+          colección usan" está acomodado medio mal». Van juntos y después de la gente,
+          porque el cuello de botella no es cuántas cartas hay. */}
+      {porCol && (
         <div className="grupo">
-          {porDia.map((x) => <Barra key={x.dia} flaca rotulo={dia(x.dia)} valor={x.cuantos} techo={pico} />)}
+          {porCol.map((c) => (
+            /* SIN porcentaje, a propósito: acá `cartas` son las filas de TODA la gente
+               sumadas, y dividirlas por los huecos de un álbum no significa nada — con
+               19 personas dan 8026 sobre 1936 y el tope de 100% lo disfrazaba de
+               «álbum completo». El porcentaje sólo tiene sentido por persona, y ahí
+               está, en la tabla de abajo. */
+            <Barra key={c.id} rotulo={c.nombre} valor={c.cartas} techo={picoCol}
+                   nota={`${c.personas} ${c.personas === 1 ? 'persona' : 'personas'}${c.repetidas ? ` · ${c.repetidas} ${c.repetidas === 1 ? 'repetida' : 'repetidas'}` : ''}`} />
+          ))}
         </div>
-      ) : <p className="nada">Nadie se anotó en estos catorce días.</p>}
-
-      <h4>Cuántas cartas tiene cada uno</h4>
-      <div className="grupo">
-        {tramos.map((x) => (
-          <Barra key={x.tramo} rotulo={x.tramo} valor={x.cuantos} techo={picoTramo}
-                 nota={`${parte(x.cuantos, u.total)}%`} />
-        ))}
-      </div>
+      )}
+      {/* SE VA «CUÁNTAS TIENE CADA UNO», que no era eso. Dibujaba `tramos`, o sea las filas
+          POR EXPANSIÓN, con dos problemas encima: el rótulo era el id crudo —«exp-1», que no
+          le dice nada a nadie— y el porcentaje dividía cartas por USUARIOS. Con 932 cartas y
+          40 cuentas daba 2330%, que el tope de `parte` disfrazaba de un 100% redondo. Es
+          exactamente el «porcentajes inentendibles» que marcó Angel, y el título encima
+          prometía un reparto por persona que ese dato no tiene.
+          Lo que sí se quiere saber está en los dos lugares donde el número significa algo:
+          qué colección se usa, acá arriba; y cuánto tiene cada persona, en la tabla de
+          abajo, que además ahora se ordena por esa columna. */}
+      <p className="nada">
+        {cartas.total.toLocaleString('es-AR')} cartas marcadas
+        {' · '}{cartas.repetidas.toLocaleString('es-AR')} repetidas
+        {sueltas.length > 0 && (
+          <> · y {sueltas.reduce((a, t) => a + t.filas, 0)} en tramos que ya no están en
+            ningún catálogo ({sueltas.map((t) => t.tramo).join(', ')}), que el pie de la app
+            ofrece sacar</>
+        )}
+      </p>
 
       <h4>Uno por uno</h4>
       {/* La tabla va ordenada por cantidad de cartas, que es lo que sirve para decidir.
@@ -421,10 +507,13 @@ function Cuerpo({ d, colecciones }) {
                       const h = suyo?.huecos
                       return (
                         <td key={c.id}>
-                          {/* Por `albumPercent` y no por `parte`: éste es el avance de un
-                              álbum y ahí `Math.round` miente — 1096 de 1097 daría 100%.
-                              `parte` se queda para los porcentajes de gente, donde 100
-                              quiere decir «todos» y redondear está bien. */}
+                          {/* `albumPercent` y NO un `Math.round` cualquiera: éste es el
+                              avance de un álbum, y ahí redondear miente en el único punto
+                              donde importa — 1096 de 1097 daría 100% y se leería
+                              «completo». Tapa a 99 hasta que estén todas.
+                              Ya no queda ningún otro porcentaje en el panel: el que había
+                              se recortaba a 100 y disfrazaba cuentas absurdas de números
+                              redondos. Si hace falta uno nuevo, que no se recorte. */}
                           {/* EL NÚMERO Y EL PORCENTAJE NO PUEDEN IR PEGADOS. Iban, y se
                               leían como uno solo: «1673» y «86%» salían «167386%», un
                               número de seis cifras sin sentido. Angel: «porcentajes

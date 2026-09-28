@@ -105,6 +105,103 @@
 
 .numeros .grupo { display: flex; flex-direction: column; gap: 7px; }
 
+/* ------------------------------- los cuadros ------------------------------ */
+/* Los pidió Angel el 2026-09-28: «los contadores son unos textos, deberían ser unos cuadros
+   o algo». Eran seis textos corridos en un renglón, que es la forma en que menos se lee un
+   número.
+
+   Lo que los separa del papel es UN BORDE DE UN PÍXEL y nada más: ni sombra, ni degradé,
+   ni ícono, ni un color por métrica. Esa estética es la que hacía que la primera versión de
+   la app gritara «hecho con IA», y eso el CLAUDE.md lo sigue prohibiendo — lo que dejó de
+   estar prohibido es la caja, no el brillo. */
+.numeros .cuadros {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin: 0 0 10px;
+}
+.numeros .cuadro {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  background: var(--blanco);
+  border: 1px solid var(--linea);
+  border-radius: 8px;
+}
+/* El número primero y grande: es lo que se viene a ver. */
+.numeros .cuadro b {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.05;
+  color: var(--tinta);
+  font-variant-numeric: tabular-nums;
+}
+/* El rótulo NO va en versalitas: ésas ya son del `h4` y usarlas acá deja dos cosas
+   distintas con la misma voz. */
+.numeros .cuadro-rotulo { font-size: 12px; font-weight: 600; color: var(--tinta2); line-height: 1.25; }
+.numeros .cuadro-pie { font-size: 11px; color: var(--tinta3); font-variant-numeric: tabular-nums; }
+
+/* El medidor: 4 px, sin números encima. Dice de un vistazo si son muchos o pocos; el
+   cuánto ya está arriba en grande. `--acento` sobre `--linea` da 3.80:1, que es lo que
+   pide un elemento no textual que informa (WCAG 1.4.11) — `--naranja` daría 1.88 y no
+   llega, que es la misma razón por la que la barra de progreso de la app lo cambió. */
+.numeros .medidor {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--linea);
+  overflow: hidden;
+  margin-top: 2px;
+}
+/* `min-width` para que «1 de 40» se vea: sin eso son 2.5% y no se dibuja nada. */
+.numeros .medidor > span { display: block; height: 100%; min-width: 3px; border-radius: 2px; background: var(--acento); }
+
+/* Los del pulso: la misma caja con el número más chico. El salto de 26 a 18 es lo que dice
+   que son secundarios — no un `opacity`, que en este proyecto está prohibido sobre texto. */
+.numeros .cuadros.chicos { grid-template-columns: repeat(2, minmax(0, 190px)); margin-bottom: 18px; }
+.numeros .cuadros.chicos .cuadro b { font-size: 18px; }
+
+/* --------------------------------- la tira -------------------------------- */
+/* Catorce días de izquierda a derecha, que es como se lee una serie de tiempo. Antes eran
+   DOS listas verticales de catorce renglones, pegadas y casi iguales, que juntas se comían
+   dos pantallas de teléfono para mostrar veintiocho números de un dígito. */
+.numeros .tira { margin: 0 0 18px; }
+.numeros .tira-resumen { margin: 0 0 8px; font-size: 13px; color: var(--tinta2); }
+.numeros .tira-resumen b { color: var(--tinta); font-variant-numeric: tabular-nums; }
+.numeros .tira-barras { display: flex; align-items: flex-end; gap: 4px; height: 62px; }
+.numeros .tira-dia {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 34px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-end;
+  height: 100%;
+}
+.numeros .tira-barra {
+  display: block;
+  background: var(--acento);
+  border-radius: 2px 2px 0 0;
+  /* Un día sin nadie se dibuja igual, finito: si se omitiera, dos días separados por una
+     semana quedarían pegados y se leerían como consecutivos. */
+  min-height: 2px;
+}
+/* TODAS LAS BARRAS DEL MISMO COLOR. Estuvieron un rato con las de los otros días en gris y
+   sólo la de hoy en naranja, y quedaba al revés del dato: el día del máximo se dibujaba
+   apagado y un día flojo, si era hoy, se dibujaba encendido. El color tiene que decir
+   cuántos, no cuándo; cuál es hoy lo dice el número de abajo, en negrita. */
+.numeros .tira-dia em {
+  font-style: normal;
+  font-size: 10px;
+  color: var(--tinta3);
+  text-align: center;
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+.numeros .tira-dia.hoy em { color: var(--tinta); font-weight: 700; }
+
+
 /* LA COLUMNA DE LA NOTA SE MIDE POR SU CONTENIDO, y ésa es la diferencia entre que esto se
    lea o no. Estaba en 42 px —y en las barras flacas, en CERO— así que «19 personas · 230
    repetidas» y «3 por la app» se partían letra por letra en cuatro o cinco renglones, y
@@ -264,6 +361,14 @@
 
 @media (max-width: 560px) {
   .panel-cuerpo { padding-inline: 14px; }
+
+  /* Cuatro cuadros en fila no entran en un teléfono: a 412 px darían 88 px cada uno y el
+     rótulo «Volvieron otro día» se partiría en tres renglones. De a dos, cada uno mide
+     ~180 px y el rótulo entra en uno o dos. */
+  .numeros .cuadros { grid-template-columns: repeat(2, 1fr); }
+  .numeros .cuadro b { font-size: 22px; }
+  /* Y la tira se achica un poco: a 320 px son 14 columnas de ~18 px. */
+  .numeros .tira-barras { height: 52px; gap: 3px; }
 
   /* EN EL TELÉFONO CADA BARRA SE APILA, y no es una preferencia: en cuatro columnas la
      nota se partía letra por letra. «3 por la app» salía como «3 / po / la / ap» en una
