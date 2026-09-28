@@ -261,12 +261,15 @@ function Cuerpo({ d, colecciones }) {
         <Barra rotulo="La instalaron" valor={u.conApp} techo={u.total} nota={`${parte(u.conApp, u.total)}%`} />
       </div>
 
-      <p className="nada">
-        «Volvieron» se cuenta por días de uso, no por veces que escribieron la clave —
-        la sesión dura 30 días, así que casi nadie vuelve a escribirla. Lo anterior al
-        18/09 queda corto: de antes sólo se sabe el día del alta y los días en que
-        alguien entró de nuevo.
-      </p>
+      {/* CUATRO RENGLONES DE ACLARACIÓN ERAN TRES DE MÁS. Explicaban por qué «volvieron»
+          se cuenta con `visita` y no con `sesion`, y que lo anterior al 18/09 queda corto.
+          Las dos cosas son ciertas y ninguna cambia una decisión: el porqué del método ya
+          está escrito en el CLAUDE.md, que es donde vive el porqué. Angel: «la aclaración
+          de volvieron es muy larga al pedo, no me hace falta saber tanto».
+
+          Queda lo único que sí cambia cómo se lee el número: que antes del 18/09 los datos
+          son incompletos, así que una caída vieja puede no ser real. */}
+      <p className="nada">Antes del 18/09 los datos son incompletos.</p>
 
       <div className="sueltos">
         <span><b>{u.altas7}</b> altas en 7 días</span>
@@ -422,7 +425,12 @@ function Cuerpo({ d, colecciones }) {
                               álbum y ahí `Math.round` miente — 1096 de 1097 daría 100%.
                               `parte` se queda para los porcentajes de gente, donde 100
                               quiere decir «todos» y redondear está bien. */}
-                          {n ? <>{n}{h != null && <i>{albumPercent(h, c.total)}%</i>}</> : '—'}
+                          {/* EL NÚMERO Y EL PORCENTAJE NO PUEDEN IR PEGADOS. Iban, y se
+                              leían como uno solo: «1673» y «86%» salían «167386%», un
+                              número de seis cifras sin sentido. Angel: «porcentajes
+                              inentendibles». El `<i>` estaba, pero sin separación y sin
+                              suficiente diferencia no alcanza para partirlos con el ojo. */}
+                          {n ? <>{n.toLocaleString('es-AR')}{h != null && <i>{albumPercent(h, c.total)}%</i>}</> : '—'}
                         </td>
                       )
                     })
