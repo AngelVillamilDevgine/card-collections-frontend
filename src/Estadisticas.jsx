@@ -3,7 +3,7 @@
 // Está ordenado por la pregunta que importa, que no es cuánta gente entró sino cuánta
 // vuelve: arriba el embudo de "se anotó" a "volvió otro día", y recién después el
 // detalle. Si alguna vez se cobra algo, se le cobra a los que vuelven.
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { usarEscape } from './foco'
 import { estadisticas } from './almacenamiento'
 import './dashboard.css'
@@ -189,10 +189,52 @@ function Cuerpo({ d, colecciones }) {
   const porCol = partido
     ? colecciones.map((c) => ({
         ...c,
-        ...(partido.find((p) => p.col === c.id) ?? { cartas: 0, repetidas: 0, personas: 0 }),
+        ...(partido.find((p) => p.col === c.id) ?? { cartas: 0, repetidas: 0, huecos: 0, personas: 0 }),
       }))
     : null
   const picoCol = Math.max(1, ...(porCol ?? []).map((c) => c.cartas))
+
+  /* LAS COLUMNAS SE ORDENAN, y cada una sabe de qué sacar su valor. Una sola lista para el
+     encabezado y para el criterio: si se separaran, agregar una columna dejaría un botón
+     que ordena por otra cosa. Lo pidió Angel.
+
+     Arranca por la columna de la primera colección, de mayor a menor, que es como venía
+     ordenada del servidor: la tabla no cambia de aspecto hasta que la tocás. */
+  const columnas = useMemo(() => [
+    { id: 'usuario', rotulo: 'Cuenta', valor: (g) => g.usuario.toLowerCase(), texto: true },
+    { id: 'alta', rotulo: 'Alta', valor: (g) => g.alta ?? '' },
+    { id: 'ultima', rotulo: 'Última', valor: (g) => g.ultima ?? '' },
+    { id: 'dias', rotulo: 'Días', ayuda: 'Días distintos en que usó la app', valor: (g) => g.dias },
+    ...(porCol
+      ? porCol.map((c) => ({
+          id: `col:${c.id}`, rotulo: c.nombre, ayuda: `De ${c.total} huecos`,
+          /* Se ordena por HUECOS, que es lo que muestra el porcentaje; si no, la flecha
+             ordenaría por un número distinto del que se está mirando. */
+          valor: (g) => g.porColeccion?.[c.id]?.huecos ?? g.porColeccion?.[c.id]?.cartas ?? 0,
+        }))
+      : [{ id: 'cartas', rotulo: 'Cartas', valor: (g) => g.cartas }, { id: 'album', rotulo: 'Álbum', valor: () => 0 }]),
+    { id: 'repetidas', rotulo: 'Repes', valor: (g) => g.repetidas },
+  ], [porCol])
+
+  const [orden, setOrden] = useState(() => ({ col: null, desc: true }))
+  const ordenarPor = (id) =>
+    setOrden((o) => (o.col === id ? { col: id, desc: !o.desc } : { col: id, desc: true }))
+
+  const ordenada = useMemo(() => {
+    if (!orden.col) return gente
+    const c = columnas.find((x) => x.id === orden.col)
+    if (!c) return gente
+    const signo = orden.desc ? -1 : 1
+    /* Copia: `gente` viene del servidor y ordenar en el lugar lo dejaría revuelto para
+       cualquier otra cosa que lo mire. Y el desempate por nombre es lo que hace que dos
+       renglones con el mismo valor no salten de lugar en cada render. */
+    return [...gente].sort((a, b) => {
+      const va = c.valor(a), vb = c.valor(b)
+      if (va < vb) return -1 * signo
+      if (va > vb) return 1 * signo
+      return a.usuario.localeCompare(b.usuario)
+    })
+  }, [gente, orden, columnas])
 
   /* Tramos que no son de ninguna colección: claves guardadas de un catálogo que ya no
      existe. Es el único lugar donde aparecen, y si alguna vez hay una conviene verla.
@@ -337,15 +379,20 @@ function Cuerpo({ d, colecciones }) {
         <table className="gente grande">
           <thead>
             <tr>
-              <th>Cuenta</th><th>Alta</th><th>Última</th><th title="Días distintos en que usó la app">Días</th>
-              {porCol
-                ? porCol.map((c) => <th key={c.id} title={`De ${c.total} huecos`}>{c.nombre}</th>)
-                : <><th>Cartas</th><th>Álbum</th></>}
-              <th>Repes</th>
+              {columnas.map((c) => (
+                <th key={c.id} title={c.ayuda} aria-sort={orden.col === c.id ? (orden.desc ? 'descending' : 'ascending') : undefined}>
+                  <button type="button" className="ordenar" onClick={() => ordenarPor(c.id)}>
+                    {c.rotulo}
+                    {/* La flecha sólo en la columna por la que se está ordenando: una en
+                        cada encabezado es ruido y no dice cuál manda. */}
+                    <span aria-hidden="true">{orden.col === c.id ? (orden.desc ? ' ↓' : ' ↑') : ''}</span>
+                  </button>
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
-            {gente.map((g) => (
+            {ordenada.map((g) => (
               <tr key={g.usuario}
                   className={[g.cartas ? '' : 'apagada', g.app ? 'con-app' : ''].filter(Boolean).join(' ') || undefined}>
                 <td className="quien" title={g.usuario}>
@@ -357,8 +404,22 @@ function Cuerpo({ d, colecciones }) {
                 <td>{g.dias}</td>
                 {porCol
                   ? porCol.map((c) => {
-                      const n = g.porColeccion?.[c.id]?.cartas ?? 0
-                      return <td key={c.id}>{n ? <>{n} <i>{parte(n, c.total)}%</i></> : '—'}</td>
+                      const suyo = g.porColeccion?.[c.id]
+                      const n = suyo?.cartas ?? 0
+                      /* EL PORCENTAJE VA SOBRE LOS HUECOS, no sobre las filas. Una variante
+                         es una fila propia pero no es un hueco del álbum: contándolas, el
+                         número de arriba incluía variantes y el de abajo no, podía pasarse
+                         de 100% y el tope lo disfrazaba de álbum completo. Ahora es el
+                         mismo par que la persona ve en su propio encabezado.
+
+                         `huecos` puede no venir si el back es más viejo que el front: ahí
+                         no se dibuja el porcentaje, que es mejor que dibujar uno falso. */
+                      const h = suyo?.huecos
+                      return (
+                        <td key={c.id}>
+                          {n ? <>{n}{h != null && <i>{parte(h, c.total)}%</i>}</> : '—'}
+                        </td>
+                      )
                     })
                   : <><td>{g.cartas}</td><td>—</td></>}
                 <td>{g.repetidas}</td>

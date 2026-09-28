@@ -151,6 +151,28 @@
   color: var(--tinta3);
   padding: 0 0 6px 10px;
 }
+/* EL ENCABEZADO ES UN BOTÓN, para poder ordenar por esa columna. Hereda todo del `th` y
+   no se pinta de azul ni se subraya: tiene que seguir leyéndose como un encabezado, no
+   como un enlace. Lo que dice que se puede tocar es el cursor y que al pasar se enciende;
+   lo que dice por cuál se está ordenando es la flecha, que va en una sola columna. */
+.numeros table.gente th .ordenar {
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 4px 0;
+  cursor: pointer;
+  /* Alineado con su columna: a la derecha como los números, a la izquierda el primero. */
+  width: 100%;
+  text-align: inherit;
+}
+.numeros table.gente th .ordenar:hover { color: var(--acento); }
+.numeros table.gente th .ordenar:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+/* La columna por la que se ordena, marcada también sin depender de la flecha. */
+.numeros table.gente th[aria-sort] .ordenar { color: var(--tinta); }
+
 .numeros table.gente td { text-align: right; padding: 5px 0 5px 10px; border-top: 1px solid var(--linea); }
 .numeros table.gente th:first-child, .numeros table.gente td:first-child { text-align: left; padding-left: 0; }
 .numeros table.gente .quien { max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
