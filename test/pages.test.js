@@ -16,7 +16,7 @@
  */
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { readFileSync, existsSync } from 'node:fs'
 import { LOGIN, COLLECTION, pathFor } from '../src/routes.js'
 
 const rootUrl = new URL('../', import.meta.url)
@@ -113,6 +113,29 @@ test('la marca que deja resume.js es la que lee Reinstall.jsx', () => {
   const gotten = reinstall.match(/MARK = '([^']+)'/)?.[1]
   assert.ok(written, 'resume.js no define la marca')
   assert.equal(gotten, written)
+})
+
+test('resume.js y donde-corre.js detectan la app instalada de la MISMA forma', () => {
+  /* `resume.js` es un script clásico de `public/`: no puede importar `comoApp`, así que la
+     detección está duplicada. Si divergen, la app instalada se reconoce de un lado y del
+     otro no: `resume.js` dejaría de redirigir desde la raíz, o `comoApp()` dejaría de mandar
+     el `?app=1` y el cuarto escalón del embudo se desalinea. Ninguna de las dos avisa. */
+  const dondeCorre = read('src/donde-corre.js')
+  for (const senal of ['display-mode: standalone', 'navigator.standalone']) {
+    assert.ok(dondeCorre.includes(senal), `donde-corre.js dejó de mirar ${senal}`)
+    assert.ok(resume.includes(senal), `resume.js dejó de mirar ${senal}`)
+  }
+})
+
+test('los archivos que nombra el manifest existen', () => {
+  /* El manifest lleva comentarios en claves `//` que citan archivos del repo, y una quedó
+     apuntando a `public/reanudar.js` después de renombrarlo: una referencia muerta que
+     ningún build mira, porque es un JSON. */
+  for (const [clave, valor] of Object.entries(manifest)) {
+    if (typeof valor !== 'string') continue
+    for (const ruta of valor.match(/\b(?:public|src|test)\/[\w.-]+\.\w+/g) ?? [])
+      assert.ok(existsSync(new URL(ruta, rootUrl)), `${clave} nombra ${ruta}, que no existe`)
+  }
 })
 
 // ------------------------------------------------------------------ el manifest
