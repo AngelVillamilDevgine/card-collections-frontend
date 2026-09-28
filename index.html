@@ -8,7 +8,7 @@
          —medido: `/algo`, `/a/b/c`, `/noexiste.png`, todas—, así que la landing es lo que
          ve quien tipea mal la dirección. Con `base: './'`, desde `/a/b/c` un `./logo.png`
          resuelve a `/a/b/logo.png` y da 404: la landing aparecía sin logo y, peor,
-         sin `reanudar.js`, o sea que a esa persona ya no la redirigía nada.
+         sin `resume.js`, o sea que a esa persona ya no la redirigía nada.
          Con el `<base>` los relativos se resuelven contra la raíz venga de donde venga. -->
     <base href="/" />
 
@@ -16,7 +16,7 @@
          instalada, cuyo `start_url` puede seguir apuntando acá para siempre en iPhone—,
          esto redirige antes de que se pinte un pixel. El porqué entero está en el archivo.
          Es lo que hace que `/` nunca sea un callejón sin salida. -->
-    <script src="./reanudar.js"></script>
+    <script src="./resume.js"></script>
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#f4a11d" />
@@ -163,7 +163,7 @@
       </p>
 
       <div class="acciones">
-        <a class="principal" href="/login?crear=1">Anotá tus faltantes</a>
+        <a class="principal" href="/login?new=1">Anotá tus faltantes</a>
         <a class="secundario" href="/login">Ya tengo cuenta</a>
       </div>
 

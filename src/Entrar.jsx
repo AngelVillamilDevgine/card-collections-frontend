@@ -20,10 +20,10 @@ export default function Entrar({ onEntro, aviso }) {
   const [usuario, setUsuario] = useState('')
   const [clave, setClave] = useState('')
   /* La landing tiene dos botones que llevan al mismo lugar: «Anotá tus faltantes» viene con
-     `?crear=1` y «Ya tengo cuenta» sin nada. Sale de la dirección y no de otro lado para que
+     `?new=1` y «Ya tengo cuenta» sin nada. Sale de la dirección y no de otro lado para que
      el enlace se pueda pegar en cualquier parte y siga queriendo decir lo mismo. */
   const [nuevo, setNuevo] = useState(() => {
-    try { return new URLSearchParams(location.search).get('crear') === '1' } catch { return false }
+    try { return new URLSearchParams(location.search).get('new') === '1' } catch { return false }
   })
   const [error, setError] = useState(null)
   const [yendo, setYendo] = useState(false)

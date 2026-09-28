@@ -2,9 +2,9 @@
 // de `/` a `/collection`.
 //
 // QUÉ PASÓ, EXACTAMENTE: hay instalaciones cuyo `start_url` quedó apuntando a `/`, que
-// ahora es la landing. No se rompe nada —`public/reanudar.js` las manda a sus cartas antes
+// ahora es la landing. No se rompe nada —`public/resume.js` las manda a sus cartas antes
 // de pintar un pixel— pero se paga un documento de más en cada apertura, y en un teléfono
-// con datos eso se nota.
+// con data eso se nota.
 //
 // Y NO SE ARREGLA IGUAL EN LOS DOS SISTEMAS, que es lo que hace falta saber para escribir
 // el cartel:
@@ -16,7 +16,7 @@
 //     NO LO VUELVE A LEER NUNCA. Ahí no hay arreglo automático posible: el único camino es
 //     borrar el ícono y volver a agregarlo.
 //
-// La marca la deja `reanudar.js` en `sessionStorage`, y eso significa que el cartel
+// La marca la deja `resume.js` en `sessionStorage`, y eso significa que el cartel
 // desaparece solo el día que la instalación se actualiza: si `start_url` ya apunta a
 // `/collection`, ese archivo no corre nunca y acá no llega nada. No hay que acordarse de
 // sacar nada — es lo mismo que hace el aviso de los guardados fallidos, donde el aviso es
@@ -24,28 +24,28 @@
 import { useEffect, useRef, useState } from 'react'
 import { comoApp, esIOS } from './donde-corre.js'
 
-const MARCA = 'dbz-cromeros-desde-la-raiz'
-const CLAVE = 'dbz-cromeros-reinstalar'
-/* Se pide una vez por semana y a lo sumo tres veces. En Android lo más probable es que
+const MARK = 'dbz-cromeros-from-root'
+const KEY = 'dbz-cromeros-reinstall'
+/* Se pide una vez por semana y a lo sumo tres times. En Android lo más probable es que
    para la segunda ya se haya arreglado solo y el cartel no vuelva a aparecer. */
-const DESCANSO = 7 * 24 * 60 * 60 * 1000
-const VECES = 3
+const SNOOZE = 7 * 24 * 60 * 60 * 1000
+const MAX_TIMES = 3
 
-function leer() {
-  try { return JSON.parse(localStorage.getItem(CLAVE)) ?? {} } catch { return {} }
+function read() {
+  try { return JSON.parse(localStorage.getItem(KEY)) ?? {} } catch { return {} }
 }
-function guardar(datos) {
-  try { localStorage.setItem(CLAVE, JSON.stringify(datos)) } catch { /* modo privado */ }
+function save(data) {
+  try { localStorage.setItem(KEY, JSON.stringify(data)) } catch { /* modo privado */ }
 }
 
-const Cruz = () => (
+const Cross = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
        strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
     <path d="M6 6l12 12M18 6L6 18" />
   </svg>
 )
 
-const Compartir = () => (
+const Share = () => (
   <svg className="glifo" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M12 15V3" />
@@ -54,42 +54,42 @@ const Compartir = () => (
   </svg>
 )
 
-export default function Reinstalar() {
+export default function Reinstall() {
   const [visible, setVisible] = useState(false)
-  const caja = useRef(null)
+  const box = useRef(null)
 
   useEffect(() => {
     /* Las dos condiciones, y las dos hacen falta: la marca sola no alcanza porque
        `sessionStorage` es del origen y podría quedar de una pestaña normal. */
     if (!comoApp()) return
-    let vino = false
-    try { vino = sessionStorage.getItem(MARCA) === '1' } catch { /* modo privado */ }
-    if (!vino) return
+    let cameFromRoot = false
+    try { cameFromRoot = sessionStorage.getItem(MARK) === '1' } catch { /* modo privado */ }
+    if (!cameFromRoot) return
 
-    const { visto = 0, veces = 0 } = leer()
-    if (veces >= VECES || Date.now() - visto < DESCANSO) return
+    const { seen = 0, times = 0 } = read()
+    if (times >= MAX_TIMES || Date.now() - seen < SNOOZE) return
 
     /* Después de la carga, no encima: esto no es urgente y la app ya anda. */
-    const reloj = setTimeout(() => setVisible(true), 6000)
-    return () => clearTimeout(reloj)
+    const timer = setTimeout(() => setVisible(true), 6000)
+    return () => clearTimeout(timer)
   }, [])
 
   /* La barra es fija abajo y taparía el final del pie. Mismo mecanismo que `Instalar`:
-     se mide a sí misma y le pasa el alto al body como relleno. */
+     se mide a sí misma y le pasa el height al body como relleno. */
   useEffect(() => {
-    if (!visible || !caja.current) return
-    const alto = caja.current.offsetHeight + 20
-    document.body.style.setProperty('--alto-instalar', alto + 'px')
+    if (!visible || !box.current) return
+    const height = box.current.offsetHeight + 20
+    document.body.style.setProperty('--height-instalar', height + 'px')
     document.body.classList.add('con-instalar')
     return () => {
       document.body.classList.remove('con-instalar')
-      document.body.style.removeProperty('--alto-instalar')
+      document.body.style.removeProperty('--height-instalar')
     }
   }, [visible])
 
-  function cerrar() {
-    const { veces = 0 } = leer()
-    guardar({ visto: Date.now(), veces: veces + 1 })
+  function dismiss() {
+    const { times = 0 } = read()
+    save({ seen: Date.now(), times: times + 1 })
     setVisible(false)
   }
 
@@ -97,13 +97,13 @@ export default function Reinstalar() {
   const ios = esIOS()
 
   return (
-    <aside className="instalar" role="note" ref={caja}>
+    <aside className="instalar" role="note" ref={box}>
       <img src="./icono-192.png" alt="" width="38" height="38" />
       <div className="instalar-texto">
         <b>Tu acceso directo da una vuelta de más</b>
         {ios ? (
           <span>
-            Borralo de la pantalla de inicio y volvé a agregarlo con <Compartir /> «Añadir a
+            Borralo de la pantalla de inicio y volvé a agregarlo con <Share /> «Añadir a
             pantalla de inicio»: va a abrir directo en tus cartas.
           </span>
         ) : (
@@ -113,7 +113,7 @@ export default function Reinstalar() {
           </span>
         )}
       </div>
-      <button className="instalar-no" onClick={cerrar} aria-label="Entendido"><Cruz /></button>
+      <button className="instalar-no" onClick={dismiss} aria-label="Entendido"><Cross /></button>
     </aside>
   )
 }

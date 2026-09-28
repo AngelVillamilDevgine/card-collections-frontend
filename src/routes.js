@@ -45,11 +45,11 @@ export function pathFor(cuenta) {
  * El hash importa: `#panel` vive ahí, así que arrastrarlo es lo que impide que cambiar de
  * pantalla cierre el panel solo.
  *
- * La query se tira porque la única que existe es `?crear=1`, que la landing usa para abrir
+ * La query se tira porque la única que existe es `?new=1`, que la landing usa para abrir
  * el formulario en modo «crear cuenta» y que `Entrar` consume una sola vez al montarse.
  * Conservándola —que es lo que hacía la primera versión— quedaba pegada para siempre: al
- * entrar te dejaba en `/collection?crear=1`, y sobre todo al SALIR te devolvía a
- * `/login?crear=1`, o sea al formulario de crear una cuenta nueva a alguien que acaba de
+ * entrar te dejaba en `/collection?new=1`, y sobre todo al SALIR te devolvía a
+ * `/login?new=1`, o sea al formulario de crear una cuenta nueva a alguien que acaba de
  * cerrar la suya. Lo agarró la prueba con clicks, no el compilador. */
 export function syncPath(path) {
   if (!path) return

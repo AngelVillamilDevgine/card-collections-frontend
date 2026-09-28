@@ -31,7 +31,7 @@ export default defineConfig({
        *
        * `login.html` y `collection.html` son casi iguales, y eso es una deuda conocida: el
        * contrato del cartel de «Cargando…» pasó de ser entre dos archivos a serlo entre
-       * tres. Lo ata `test/paginas.test.js`, que es más de lo que tenía antes. */
+       * tres. Lo ata `test/pages.test.js`, que es más de lo que tenía antes. */
       input: {
         index: resolve(aca, 'index.html'),
         login: resolve(aca, 'login.html'),

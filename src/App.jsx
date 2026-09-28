@@ -12,7 +12,7 @@ import Exportar from './Exportar'
    cuántos kilobytes le cuesta al que sólo marca cartas. */
 const Estadisticas = lazy(() => import('./Estadisticas'))
 import Instalar from './Instalar'
-import Reinstalar from './Reinstalar'
+import Reinstall from './Reinstall'
 import { pathFor, syncPath } from './routes'
 import { ErrorBoundary } from './boundary'
 import { COLLECTIONS, DEFAULT_COLLECTION, readCollection, rememberCollection, loadCatalogs, slotKey, slotsOf, variantsFor, drawableVariants, pointsToASlot, cardLabel, cardDetail, albumPercent, slotOf, slotName, orphanName } from './collections'
@@ -2053,11 +2053,11 @@ export default function App() {
 
       {/* Fuera del pie: es una barra fija abajo, y sólo aparece en teléfono. */}
       {/* Los dos usan la misma barra y NO se pisan: `Instalar` se va apenas `comoApp()` es
-          verdadero y `Reinstalar` no aparece si no lo es. Son excluyentes por construcción,
+          verdadero y `Reinstall` no aparece si no lo es. Son excluyentes por construcción,
           no por orden — si alguna vez se toca una de las dos condiciones, mirar la otra,
           porque las dos escriben `--alto-instalar` en el body. */}
       <Instalar />
-      <Reinstalar />
+      <Reinstall />
     </>
   )
 }

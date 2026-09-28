@@ -24,31 +24,31 @@
   'use strict'
 
   var TOKEN = 'dbz-cromeros-token'
-  /* La marca la lee `Reinstalar.jsx` para ofrecer el arreglo. Va en `sessionStorage` y no
+  /* La marca la lee `Reinstall.jsx` para ofrecer el arreglo. Va en `sessionStorage` y no
      en la dirección: es de esta apertura de la app y no algo que convenga que alguien pegue
      en un chat. */
-  var DESDE_LA_RAIZ = 'dbz-cromeros-desde-la-raiz'
+  var FROM_ROOT = 'dbz-cromeros-from-root'
 
-  var comoApp = false
+  var runningAsApp = false
   try {
-    comoApp =
+    runningAsApp =
       (window.matchMedia && matchMedia('(display-mode: standalone)').matches) ||
       navigator.standalone === true
   } catch (e) { /* un navegador viejo sin matchMedia no es una app instalada */ }
 
-  var hayToken = false
-  try { hayToken = !!localStorage.getItem(TOKEN) } catch (e) { /* modo privado */ }
+  var hasToken = false
+  try { hasToken = !!localStorage.getItem(TOKEN) } catch (e) { /* modo privado */ }
 
   /* Llegar acá corriendo como app quiere decir una sola cosa: esa instalación todavía
      apunta a `/`. No rompe nada —abajo se redirige igual— pero se puede mejorar, así que
      se deja anotado y la app ofrece reinstalar. Si el `start_url` ya se actualizó, este
      archivo no corre nunca y el cartel no aparece jamás. */
-  if (comoApp) { try { sessionStorage.setItem(DESDE_LA_RAIZ, '1') } catch (e) {} }
+  if (runningAsApp) { try { sessionStorage.setItem(FROM_ROOT, '1') } catch (e) {} }
 
-  var resto = location.search + location.hash
+  var rest = location.search + location.hash
 
   /* Con sesión, a las cartas. Sin sesión pero corriendo como app, al formulario: a alguien
      que ya se tomó el trabajo de instalarla no hay nada que venderle. */
-  if (hayToken) location.replace('/collection' + resto)
-  else if (comoApp) location.replace('/login' + resto)
+  if (hasToken) location.replace('/collection' + rest)
+  else if (runningAsApp) location.replace('/login' + rest)
 })()
