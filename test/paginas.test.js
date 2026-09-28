@@ -116,6 +116,20 @@ test('start_url abre las cartas y cae adentro del scope', () => {
     'un start_url fuera del scope abre la app en una pestaña con barra de direcciones')
 })
 
+// --------------------------------------------- la dirección que sale del sitio
+
+test('el pie del texto exportado lleva https://, que es lo que lo hace tocable', () => {
+  /* Ese texto se pega en un grupo de WhatsApp, y es la única vía por la que alguien que no
+     conoce la app llega a ella. Medido por Angel el 2026-09-28 mandándoselo a sí mismo: con
+     la dirección pelada NO ANDUVO — sin el esquema el cliente no arma el enlace ni la
+     tarjeta, o la resuelve como `http://` y se come un 301 (comprobado contra producción).
+     `Exportar.jsx` tiene JSX adentro, así que no se puede importar desde acá; se lee. */
+  const exportar = leer('src/Exportar.jsx')
+  const pie = exportar.match(/const PIE = '([^']+)'/)?.[1]
+  assert.ok(pie, 'no se encontró el pie del texto exportado')
+  assert.ok(pie.startsWith('https://'), `el pie tiene que llevar el esquema: ${pie}`)
+})
+
 // ------------------------------------------------------------------ pathFor
 
 test('pathFor no toca la dirección mientras no se sabe si hay sesión', () => {

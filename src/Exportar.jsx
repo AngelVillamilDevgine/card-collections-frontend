@@ -175,12 +175,20 @@ const ESTRELLA = '⭐'
    sabe que la app existe: el pie es lo único que se lo dice. Va solo, en su propio
    renglón y al final, para que no compita con los números — y sin ninguna frase
    alrededor, porque cualquier cosa que le agregue es publicidad y la dirección sola ya
-   dice todo lo que hay que decir. WhatsApp la convierte en enlace sin hacerle nada.
+   dice todo lo que hay que decir.
+
+   VA CON `https://` Y NO PELADA, y eso lo midió Angel el 2026-09-28 mandándose el mensaje a
+   sí mismo: acá decía que «WhatsApp la convierte en enlace sin hacerle nada» y es falso.
+   Sin el esquema no queda tocable —o queda como texto suelto, o el cliente la resuelve como
+   `http://` y se come un 301 antes de llegar, comprobado contra producción— y encima no se
+   arma la tarjeta con el título y la imagen, que es justo lo que el pie existe para
+   conseguir. Es más feo de leer y vale la pena igual: el pie no está para que se lea, está
+   para que se toque.
 
    Esto CAMBIA el texto de Cromeros, que hasta ahora salía byte por byte como siempre.
    Lo pidió Angel y es a propósito: son 28 personas que ya leen ese formato y ahora
    además ven de dónde sale. */
-const PIE = 'www.cromeros.com.ar'
+const PIE = 'https://www.cromeros.com.ar'
 
 const SECCIONES = {
   falta:     [{ titulo: 'ME FALTAN', de: faltantesDe }],
