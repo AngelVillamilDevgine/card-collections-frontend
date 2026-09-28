@@ -904,7 +904,8 @@ export default function App() {
          página vuelve—, así que si el encadenado despertara, mandaría el número viejo
          encima del que acabamos de mandar. */
       porSalir.current.delete(clave)
-      guardarCarta(clave, ultimo.cantidad, ultimo.estado, { keepalive: true }).catch(() => {})
+      guardarCarta(clave, ultimo.cantidad, ultimo.estado, { keepalive: true })
+        .catch(() => anotarFallo(clave, true))
       return null
     }
 
@@ -961,9 +962,21 @@ export default function App() {
          A LA RED, que es exactamente el bug que el encadenado por carta vino a arreglar y
          que acá volvía por la puerta de al lado. Sale por el mismo camino de emergencia:
          `keepalive` y sin encadenar. */
+      /* SI ESE ENVÍO FALLA, SE ANOTA. El camino de emergencia no pasa por `despachar`, o
+         sea que no tiene los dos reintentos — no hay tiempo — pero eso no es razón para
+         tragarse el fallo. `pagehide` no siempre termina en documento descartado: con
+         bfcache la página vuelve, y ahí un `.catch(() => {})` dejaba la carta en pantalla
+         con el número nuevo, el pie diciendo «Guardando a cada cambio» y nada en
+         `fallidas` — con lo que ni el reintento por `online` ni el refresco al volver la
+         tocaban, y a los 60 s el servidor devolvía el número viejo y el cambio desaparecía
+         también de la pantalla. Sin rastro.
+
+         Si el documento sí se descarta, el `setState` de `anotarFallo` es un no-op y no
+         cuesta nada. No agrega maquinaria: usa el conjunto que el pie ya mira. */
       for (const [clave, v] of [...porSalir.current]) {
         porSalir.current.delete(clave)
-        guardarCarta(clave, v.cantidad, v.estado, { keepalive: true }).catch(() => {})
+        guardarCarta(clave, v.cantidad, v.estado, { keepalive: true })
+          .catch(() => anotarFallo(clave, true))
       }
       return Promise.resolve() // la página se va: no hay nada que esperar
     }

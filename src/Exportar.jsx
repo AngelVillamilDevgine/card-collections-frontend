@@ -12,7 +12,7 @@ const OPCIONES = [
   { id: 'repetidas', label: 'Las repetidas' },
   { id: 'ambas',     label: 'Las dos cosas' },
   { id: 'tengo',     label: 'Las que ya tengo' },
-  { id: 'acabados',  label: 'Me faltan acabados', soloConVariantes: true },
+  { id: 'variantes', label: 'Me faltan variantes', soloConVariantes: true },
 ]
 
 /* Cómo se lee cada condición adentro del título. No es el `label` del selector: ahí dice
@@ -67,11 +67,11 @@ function faltantesDe(exp, cantidades, variantes) {
   return { textos: numeros.map((n) => rotulo(exp, n)), total: numeros.length }
 }
 
-/* Y LAS REPETIDAS DICEN EN QUÉ ACABADO SOBRAN. Una repetida existe para cambiarla, y con
+/* Y LAS REPETIDAS DICEN EN QUÉ VARIANTE SOBRAN. Una repetida existe para cambiarla, y con
    ocho fondos posibles «me sobra una 824» no le sirve a nadie: el fondo es justo lo que
    el otro necesita saber. Es la pregunta simétrica a la de los faltantes.
 
-   EN CROMEROS EL TEXTO NO CAMBIA UNA LETRA. Ahí no hay acabados, así que `slotsOf`
+   EN CROMEROS EL TEXTO NO CAMBIA UNA LETRA. Ahí no hay variantes, así que `slotsOf`
    devuelve el único casillero de siempre, no hay ninguna variante en juego y sale el
    `504x2` de toda la vida. Son 28 personas que ya leen ese formato. */
 function repetidasDe(exp, cantidades, variantes) {
@@ -94,40 +94,40 @@ function repetidasDe(exp, cantidades, variantes) {
       textos.push(sobran > 1 ? `${rotulo(exp, n)}x${sobran}` : rotulo(exp, n))
       continue
     }
-    /* «sin acabado» es el casillero base cuando la carta SÍ tiene acabados declarados:
-       una fila de antes de que el catálogo supiera en cuáles sale. No es un acabado
+    /* «sin variante» es el casillero base cuando la carta SÍ tiene variantes declaradas:
+       una fila de antes de que el catálogo supiera en cuáles sale. No es una variante
        inventado, es decir que no sabemos cuál es. */
     textos.push(`${rotulo(exp, n)} · ` + conSobrante
-      .map((x) => `${x.variante ? x.variante.nombre.toLowerCase() : 'sin acabado'}${x.cuantas > 1 ? ` x${x.cuantas}` : ''}`)
+      .map((x) => `${x.variante ? x.variante.nombre.toLowerCase() : 'sin variante'}${x.cuantas > 1 ? ` x${x.cuantas}` : ''}`)
       .join(', '))
   }
   return { textos, total }
 }
 
-/* ME FALTAN ACABADOS: las que YA TENÉS pero no en todos los fondos en que salieron.
+/* ME FALTAN VARIANTES: las que YA TENÉS pero no en todos los fondos en que salieron.
  *
  * Sin esto, esas cartas no aparecían en ninguna lista. «Me faltan» las deja afuera porque
  * algo tenés, y no había dónde decir que te faltan los otros seis — Angel: *«¿qué pasa si
  * marco una variante de una carta que me viene en 8 variantes cuando comparto mis
- * faltantes?»*. Medido sobre lo que tenía cargado: eran 13 cartas y 78 acabados,
+ * faltantes?»*. Medido sobre lo que tenía cargado: eran 13 cartas y 78 variantes,
  * invisibles en las dos listas.
  *
  * SON DOS PREGUNTAS DISTINTAS Y POR ESO SON DOS LISTAS. «Necesito la carta» y «necesito
  * ese fondo» las contesta gente distinta, y el que lee el mensaje en el grupo no tiene
  * otra forma de saber cuál le estás haciendo. Los dos conjuntos no se pisan: una carta
- * que no tenés en ningún acabado va en «me faltan» y no acá.
+ * que no tenés en ninguna variante va en «me faltan» y no acá.
  *
- * `total` cuenta ACABADOS y no cartas, que es lo que se está pidiendo. */
-function faltanAcabadosDe(exp, cantidades) {
+ * `total` cuenta VARIANTES y no cartas, que es lo que se está pidiendo. */
+function faltanVariantesDe(exp, cantidades) {
   const textos = []
   let total = 0
   for (const n of exp.lista) {
-    const acabados = variantsFor(exp, n)
-    if (!acabados.length) continue
+    const suyas = variantsFor(exp, n)
+    if (!suyas.length) continue
     const tiene = (v) => (cantidades[slotKey(exp.id, n, v?.id)] ?? 0) > 0
     /* Si no tenés ninguno, la carta entera te falta: va en la otra lista. */
-    if (!((cantidades[slotKey(exp.id, n)] ?? 0) > 0) && !acabados.some(tiene)) continue
-    const sinTener = acabados.filter((v) => !tiene(v))
+    if (!((cantidades[slotKey(exp.id, n)] ?? 0) > 0) && !suyas.some(tiene)) continue
+    const sinTener = suyas.filter((v) => !tiene(v))
     if (!sinTener.length) continue
     total += sinTener.length
     textos.push(`${rotulo(exp, n)} · ${sinTener.map((v) => v.nombre.toLowerCase()).join(', ')}`)
@@ -190,7 +190,7 @@ const SECCIONES = {
   tengo:     [{ titulo: tituloTengo, de: tengoDe }],
   /* Un renglón por carta: «821 · azul, dorado, ...» pegado con comas al lado del
      siguiente no se lee. Es la única lista que lo necesita. */
-  acabados:  [{ titulo: 'ME FALTAN ACABADOS', de: faltanAcabadosDe, porRenglon: true,
+  variantes: [{ titulo: 'ME FALTAN VARIANTES', de: faltanVariantesDe, porRenglon: true,
                 aclara: 'éstas ya las tengo, me faltan estos fondos' }],
 }
 
@@ -216,10 +216,10 @@ function armar(modo, elegidas, catalogo, cantidades, encabezado, variantes, filt
       const { textos, total: suma } = s.de(exp, cantidades, variantes?.[exp.id], filtro, estados)
       if (!textos.length) continue
       total += suma
-      /* Un renglón por carta cuando el texto lleva acabados. Pegados con comas,
+      /* Un renglón por carta cuando el texto lleva variantes. Pegados con comas,
          «821 · plata x2, 845 · plata» se lee como si la 845 fuera parte de la 821.
          Se decide MIRANDO EL TEXTO y no la colección: así Cromeros, donde nunca hay
-         acabados, sigue saliendo en un renglón corrido como siempre. */
+         variantes, sigue saliendo en un renglón corrido como siempre. */
       const enRenglones = s.porRenglon || textos.some((t) => t.includes(' · '))
       lineas.push(enRenglones
         ? `${exp.nombre}\n${textos.map((t) => `  ${t}`).join('\n')}`
@@ -280,7 +280,7 @@ export default function Exportar({ catalogo, datos, variantes, condicion, encabe
   useEffect(() => () => clearTimeout(relojAviso.current), [])
 
   const { cantidades, estados } = datos
-  const hayAcabados = catalogo.some((e) => (e.grupos?.length ?? 0) > 0 || (e.variantes?.length ?? 0) > 0)
+  const hayVariantes = catalogo.some((e) => (e.grupos?.length ?? 0) > 0 || (e.variantes?.length ?? 0) > 0)
 
   /* `null` es «todas»: cuando están las tres marcadas, y siempre en una colección que no
      usa condición. Así el título no aclara algo que no acota nada. */
@@ -388,9 +388,9 @@ export default function Exportar({ catalogo, datos, variantes, condicion, encabe
         {!modo && (
           <>
             <p>¿Qué lista querés?</p>
-            {/* «Me faltan acabados» sólo aparece donde hay acabados. En Cromeros sería un
+            {/* «Me faltan variantes» sólo aparece donde hay variantes. En Cromeros sería un
                 botón que siempre contesta «no hay nada para listar». */}
-            {OPCIONES.filter((o) => !o.soloConVariantes || hayAcabados).map((o, i) => (
+            {OPCIONES.filter((o) => !o.soloConVariantes || hayVariantes).map((o, i) => (
               <button key={o.id} className="opcion simple" onClick={() => elegirModo(o.id)} autoFocus={i === 0}>
                 {o.label}
               </button>
