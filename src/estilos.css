@@ -100,6 +100,19 @@ button { cursor: pointer; }
   font-variant-numeric: tabular-nums;
 }
 .avance .de { color: var(--tinta2); font-size: 14px; }
+/* El porcentaje: el mismo naranja de texto que el número grande, pero chico y en su propia
+   píldora para que se lea como un dato aparte y no como parte de «de 1097 cartas».
+   `--acento` sobre `--papel` da 4.76, que pasa AA — el naranja vivo no llegaría, y ésa es
+   justamente la distinción que este archivo ya hace entre `--acento` y `--naranja`. */
+.avance .pct {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--acento);
+  font-variant-numeric: tabular-nums;
+  background: rgb(168 89 13 / 0.09);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
 
 .barra {
   height: 6px;

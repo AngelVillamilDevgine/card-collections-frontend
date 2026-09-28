@@ -6,6 +6,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { usarEscape } from './foco'
 import { estadisticas } from './almacenamiento'
+import { albumPercent } from './collections'
 import './dashboard.css'
 
 /* Con techo, y hace falta de verdad: `g.cartas` cuenta FILAS de esa persona y una carta
@@ -417,7 +418,11 @@ function Cuerpo({ d, colecciones }) {
                       const h = suyo?.huecos
                       return (
                         <td key={c.id}>
-                          {n ? <>{n}{h != null && <i>{parte(h, c.total)}%</i>}</> : '—'}
+                          {/* Por `albumPercent` y no por `parte`: éste es el avance de un
+                              álbum y ahí `Math.round` miente — 1096 de 1097 daría 100%.
+                              `parte` se queda para los porcentajes de gente, donde 100
+                              quiere decir «todos» y redondear está bien. */}
+                          {n ? <>{n}{h != null && <i>{albumPercent(h, c.total)}%</i>}</> : '—'}
                         </td>
                       )
                     })

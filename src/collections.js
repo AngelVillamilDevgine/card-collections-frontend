@@ -145,6 +145,22 @@ export const cardLabel = (exp, n) => `${exp?.prefijo ?? ''}${n}`
  * expansión quiera nombres, se los pone en el json y aparecen. */
 export const cardDetail = (exp, n) => exp?.detalle?.[n] ?? null
 
+/* CUÁNTO LLEVÁS DE UN ÁLBUM, en porcentaje, y vale igual para los dos.
+ *
+ * `tengo` y `total` son HUECOS en las dos colecciones: un hueco cuenta si alguno de sus
+ * casilleros tiene algo, y cuenta UNA vez tengas la carta en un fondo o en cinco. Es la
+ * regla que pidió Angel para Leyenda —«la carta cuenta si la tenés al menos una vez, y si
+ * tenés varias variantes sólo contamos una»— y en Cromeros, donde cada hueco tiene un
+ * casillero y nada más, da el número de siempre. Por eso no hay ninguna rama especial.
+ *
+ * NO ES `Math.round`, y ésa es la parte que importa: con 1096 de 1097 el redondeo dice
+ * 100% y te deja mirando un álbum «completo» al que le falta una carta — que es el peor
+ * error posible acá, porque es el que hace que dejes de buscarla. El 100 se reserva para
+ * cuando de verdad están todas y lo demás va truncado, que es el lado que no miente. */
+export const albumPercent = (tengo, total) =>
+  !total ? 0 : tengo >= total ? 100 : Math.min(99, Math.floor((tengo / total) * 100))
+
+
 /* EL RÓTULO PARA UNA LISTA, donde hay que decir además DE DÓNDE es la carta.
  *
  * Con dos álbumes, «551» es ambiguo, así que a la que no es de la colección que estás

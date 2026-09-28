@@ -12,7 +12,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import {
-  COLLECTIONS, DEFAULT_COLLECTION, readCollection, albumNames, cardLabel, cardDetail, listLabel,
+  COLLECTIONS, DEFAULT_COLLECTION, readCollection, albumNames, cardLabel, cardDetail, listLabel, albumPercent,
   withVariants, variantsFor, slotKey, slotsOf, drawableVariants, pointsToASlot, numbersOf,
   slotOf, slotName, orphanName,
 } from '../src/collections.js'
@@ -272,6 +272,34 @@ test('cardDetail: la MISMA referencia en cada llamada, que es lo que deja vivo e
      cartas se volverían a renderizar en cada toque. */
   const e = armar({ id: 'x', desde: 1, hasta: 2, detalle: { 1: { nombre: 'Uno', copias: 10 } } })
   assert.ok(cardDetail(e, 1) === cardDetail(e, 1))
+})
+
+// ---------------------------------------------------------------- albumPercent
+
+test('albumPercent: el 100 se reserva para cuando de verdad están todas', () => {
+  /* Con `Math.round`, 1096 de 1097 da 100% y te deja mirando un álbum «completo» al que
+     le falta una carta — el peor error posible acá, porque es el que hace que dejes de
+     buscarla. Es el mismo criterio que el resto del proyecto: el modo de falla no puede
+     ser la respuesta más tranquilizadora. */
+  assert.equal(albumPercent(1097, 1097), 100)
+  assert.equal(albumPercent(1096, 1097), 99, 'le falta una: NO puede decir 100')
+  assert.equal(albumPercent(1935, 1936), 99)
+  assert.equal(albumPercent(1936, 1936), 100)
+})
+
+test('albumPercent: trunca, no redondea', () => {
+  assert.equal(albumPercent(1, 1936), 0, 'una de 1936 es 0%, no 1%')
+  assert.equal(albumPercent(549, 1097), 50)
+  assert.equal(albumPercent(548, 1097), 49, 'el redondeo diría 50')
+})
+
+test('albumPercent: sin álbum y sin cartas no revienta ni dibuja NaN', () => {
+  assert.equal(albumPercent(0, 0), 0)
+  assert.equal(albumPercent(0, 1097), 0)
+  assert.equal(albumPercent(5, 0), 0, 'sin denominador no hay porcentaje')
+  /* Y si alguna vez el numerador se pasara —que es el bug que tenía el panel— se recorta
+     en vez de dibujar 176%. */
+  assert.equal(albumPercent(2000, 1097), 100)
 })
 
 // ---------------------------------------------------------------- slotOf / slotName

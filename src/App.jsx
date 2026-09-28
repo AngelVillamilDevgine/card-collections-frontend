@@ -13,7 +13,7 @@ import Exportar from './Exportar'
 const Estadisticas = lazy(() => import('./Estadisticas'))
 import Instalar from './Instalar'
 import { ErrorBoundary } from './boundary'
-import { COLLECTIONS, DEFAULT_COLLECTION, readCollection, rememberCollection, loadCatalogs, slotKey, slotsOf, variantsFor, drawableVariants, pointsToASlot, cardLabel, cardDetail, slotOf, slotName, orphanName } from './collections'
+import { COLLECTIONS, DEFAULT_COLLECTION, readCollection, rememberCollection, loadCatalogs, slotKey, slotsOf, variantsFor, drawableVariants, pointsToASlot, cardLabel, cardDetail, albumPercent, slotOf, slotName, orphanName } from './collections'
 import {
   ErrorApi,
   descargar, restaurar, quienSoy, salir,
@@ -1672,6 +1672,10 @@ export default function App() {
               <div className="avance">
                 <span className="grande">{resumen.tengo}</span>
                 <span className="de">de {resumen.total} cartas</span>
+                {/* El porcentaje sale de los mismos dos números que están al lado, así que
+                    no puede contradecirlos — y vale igual en los dos álbumes porque los dos
+                    cuentan huecos. Ver `albumPercent`. */}
+                <span className="pct">{albumPercent(resumen.tengo, resumen.total)}%</span>
                 {resumen.sobrantes > 0 && (
                   <span className="sobrantes">
                     {resumen.sobrantes} repetida{resumen.sobrantes > 1 ? 's' : ''}
