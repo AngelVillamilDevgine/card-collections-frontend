@@ -101,6 +101,13 @@ const Carta = memo(function Carta({ clave, numero, nombre, detalle, variante, es
   const fueLargo = useRef(false)  // ya pasaron los 420 ms: el click que venga no cuenta
   const cobrable = useRef(false)  // ...y además todavía se puede cobrar al soltar
   const origen = useRef(null)
+  /* EL AVISO VISUAL SE ADELANTA AL COBRO, y es todo lo que este estado hace.
+     Lo reportó Angel: «uno se queda apretando una casilla esperando que se descuente un
+     número de repetida y nunca pasa, pasa recién cuando uno suelta». Tenía razón y el gesto
+     igual no se puede mover — cobrar al soltar es lo que impide que un scroll reste una
+     carta, y eso está medido—. Lo que faltaba era decirlo: a los 420 ms la carta muestra
+     CÓMO VA A QUEDAR, y si el gesto se cancela se deshace sin haber tocado nada. */
+  const [restando, setRestando] = useState(false)
 
   function apretar(e) {
     fueLargo.current = false
@@ -109,6 +116,10 @@ const Carta = memo(function Carta({ clave, numero, nombre, detalle, variante, es
     reloj.current = setTimeout(() => {
       fueLargo.current = true
       cobrable.current = true
+      /* Sólo si hay algo que restar. Con cantidad 0 el mantenido no hace nada —la guarda
+         está en `restar`— así que anunciar una resta que no va a pasar es peor que no
+         anunciar nada. */
+      if (cantidad > 0) setRestando(true)
     }, MANTENIDO)
   }
 
@@ -131,16 +142,20 @@ const Carta = memo(function Carta({ clave, numero, nombre, detalle, variante, es
   function soltar() {
     clearTimeout(reloj.current)
     origen.current = null
+    setRestando(false)
     if (!cobrable.current) return
     cobrable.current = false
     onMantener(clave)
   }
 
-  /* El gesto se fue a otro lado: ni resta ni cuenta como toque. */
+  /* El gesto se fue a otro lado: ni resta ni cuenta como toque. Y el aviso se deshace, que
+     es justamente lo que lo hace honesto: si al final no se cobra, no se vio una mentira
+     sino lo que HABRÍA pasado. */
   function cancelar() {
     clearTimeout(reloj.current)
     origen.current = null
     cobrable.current = false
+    setRestando(false)
   }
 
   useEffect(() => () => clearTimeout(reloj.current), [])
@@ -171,6 +186,16 @@ const Carta = memo(function Carta({ clave, numero, nombre, detalle, variante, es
     }, 0)
   }
 
+  /* Lo que se DIBUJA mientras el mantenido está armado: cómo va a quedar la carta si soltás
+     ahora. Bajar de 1 a 0 se lleva también la condición, igual que hace `restar`, así que la
+     carta entera cambia de color — que es exactamente la respuesta que se estaba esperando.
+
+     El `aria-label` NO usa estos valores, y es a propósito: la etiqueta dice lo que la carta
+     ES, no lo que va a ser. Esto es un aviso visual de un gesto en curso, y un `aria-label`
+     que se mueve y vuelve durante un mantenido sólo confunde a quien lo lee al enfocar. */
+  const cantidadVista = restando ? cantidad - 1 : cantidad
+  const estadoVista = restando && cantidad === 1 ? null : estado
+
   const titulo = cantidad
     ? `${etiqueta(estado, cantidad)} · tenés ${cantidad}`
     : 'Me falta'
@@ -198,7 +223,7 @@ const Carta = memo(function Carta({ clave, numero, nombre, detalle, variante, es
      estado y el número chico de la esquina es la cantidad. */
   return (
     <button
-      className={`carta ${claseDe(estado, cantidad)}${sinGuardar ? ' sin-guardar' : ''}${variante ? ' variante' : ''}`}
+      className={`carta ${claseDe(estadoVista, cantidadVista)}${sinGuardar ? ' sin-guardar' : ''}${variante ? ' variante' : ''}${restando ? ' restando' : ''}`}
       aria-label={`${comoSeLlama}. ${titulo}${sinGuardar ? '. Sin guardar' : ''}`}
       /* La forma estándar de anunciar un atajo de teclado. Restar con Backspace no
          estaba dicho en ningún lado: ni en la ayuda, ni en la etiqueta. Para quien usa
@@ -225,7 +250,7 @@ const Carta = memo(function Carta({ clave, numero, nombre, detalle, variante, es
         </>
       ) : numero}
       {variante && <b className="marca-variante">{variante.corto ?? variante.id.toUpperCase()}</b>}
-      {cantidad > 1 && <b className="repes">{cantidad}</b>}
+      {cantidadVista > 1 && <b className="repes">{cantidadVista}</b>}
     </button>
   )
 })

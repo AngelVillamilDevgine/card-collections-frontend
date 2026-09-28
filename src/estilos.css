@@ -510,6 +510,35 @@ button { cursor: pointer; }
 }
 .carta:active { transform: scale(0.9); }
 
+/* EL MANTENIDO YA SE DISPARÓ, aunque todavía no se cobró.
+ *
+ * Lo reportó Angel: «uno se queda apretando una casilla esperando que se descuente un
+ * número de repetida y nunca pasa, pasa recién cuando uno suelta». El gesto NO se puede
+ * mover —cobrar al soltar es lo que impide que un scroll reste una carta, y está medido—,
+ * así que lo que faltaba era avisar. A los 420 ms la carta muestra cómo va a quedar: el
+ * número baja y, si iba de 1 a 0, cambia de color entera.
+ *
+ * VA ACÁ Y NO ARRIBA, y no es casual: `.carta.restando` y `.carta:active` tienen la MISMA
+ * especificidad (0,2,0), así que entre las dos gana la última del archivo — y `:active`
+ * está en el renglón de arriba. Puesta antes, esta regla no haría nada y parecería hecha.
+ * Es la tercera vez que este archivo muerde con lo mismo.
+ *
+ * Y el cambio es SALIR del apretado, no apretar más: el dedo ya tiene la carta en
+ * `scale(0.9)`, así que achicarla otro poco no se distingue de lo que ya está pasando.
+ * Saltar hacia afuera sí, y de paso se lee como «listo, soltá». */
+.carta.restando {
+  transform: scale(1.06);
+  /* Un aro, no un `outline`: el outline ya es el foco del teclado y no se pueden confundir
+     dos cosas distintas con la misma pinta. `box-shadow` además no reflota el layout. */
+  box-shadow: 0 0 0 3px var(--acento);
+  z-index: 1;
+}
+/* Para quien pidió menos movimiento, el aro y el número alcanzan: son lo que informa. La
+   escala es el adorno y es lo único que se saca. */
+@media (prefers-reduced-motion: reduce) {
+  .carta.restando { transform: none; }
+}
+
 /* --------------------------------- entrada -------------------------------- */
 
 /* Una sola cosa en la pantalla, y va en el medio. min-height en vez de height
