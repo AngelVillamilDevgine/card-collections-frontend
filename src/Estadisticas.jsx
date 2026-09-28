@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { usarEscape } from './foco'
 import { estadisticas } from './almacenamiento'
 import { albumPercent } from './collections'
+import { isStale } from './health'
 import './dashboard.css'
 
 const dia = (f) => (f ? f.slice(8, 10) + '/' + f.slice(5, 7) : '—')
@@ -30,7 +31,6 @@ function cuando(minutos) {
    Si algo deja de correr, la fecha se pone vieja sola. Esa fecha vieja ES el aviso. */
 function Salud({ salud }) {
   if (!salud) return null
-  const dias = (m) => (m == null ? Infinity : m / 60 / 24)
   const r = salud.respaldo
   const d = salud.despliegue
   const p = salud.restauracion
@@ -38,7 +38,7 @@ function Salud({ salud }) {
   const cosas = [
     {
       que: 'Copia de la base',
-      mal: !r || dias(r.hace) > 2,
+      mal: isStale(r, 'respaldo'),
       dice: r
         ? `${cuando(r.hace)} · ${Math.round((r.valor?.bytes ?? 0) / 1024)} KB · ${r.valor?.copias ?? '?'} guardadas`
         : 'nunca se anotó ninguna',
@@ -53,7 +53,7 @@ function Salud({ salud }) {
          no toca la fecha, así que esto se pone rojo solo. Un fracaso anotado con la
          fecha de hoy dejaría el panel en verde con una copia que no sirve. */
       que: 'Se restaura de verdad',
-      mal: !p || dias(p.hace) > 10,
+      mal: isStale(p, 'restauracion'),
       dice: p
         ? `${cuando(p.hace)} · ${p.valor?.tablas ?? '?'} tablas · ${(p.valor?.cartas ?? 0).toLocaleString('es-AR')} cartas`
         : 'nunca se probó',

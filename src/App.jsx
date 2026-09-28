@@ -14,6 +14,7 @@ const Estadisticas = lazy(() => import('./Estadisticas'))
 import Instalar from './Instalar'
 import Reinstall from './Reinstall'
 import { pathFor, syncPath } from './routes'
+import { whatIsStale, staleText } from './health'
 import { ErrorBoundary } from './boundary'
 import { COLLECTIONS, DEFAULT_COLLECTION, readCollection, rememberCollection, loadCatalogs, slotKey, slotsOf, variantsFor, drawableVariants, pointsToASlot, cardLabel, cardDetail, albumPercent, slotOf, slotName, orphanName } from './collections'
 import {
@@ -1637,6 +1638,10 @@ export default function App() {
      usuario se entera la próxima vez que abre la app, o nunca. */
   if (!catalogo || !coleccionLista) return <div className="hoja"><p className="cargando">Cargando…</p></div>
 
+  /* Qué está viejo de lo que corre afuera de la app. Vacío para todo el mundo menos el
+     admin, porque `/api/yo` sólo le manda `salud` a él. */
+  const enFalta = whatIsStale(cuenta?.salud)
+
   const pct = (n) => (n / resumen.total) * 100
 
   return (
@@ -1693,7 +1698,25 @@ export default function App() {
               no es la colección. */}
           <div className="lado">
             {cuenta.admin && (
-              <button className="a-panel" onClick={openDashboard}>
+              /* LA MARCA CUANDO LA COPIA ESTÁ VIEJA. Angel: «lo único que me importa es que
+                 se haga la copia de seguridad, y si no se hace que ahí sí me avise».
+                 El bloque Salud del panel ya lo decía — pero hay que ABRIR el panel para
+                 verlo, y eso es un tablero, no una alarma. Acá aparece en la app, que se
+                 abre todos los días.
+
+                 Y NO ES UN CARTEL NI UN DIÁLOGO a propósito: un aviso que tapa algo se
+                 aprende a cerrar sin leerlo. Un punto en un botón que ya está ahí no molesta
+                 nunca y no se puede pasar por alto dos días seguidos.
+
+                 El umbral NO se decide acá: sale de `health.js`, que es el mismo módulo que
+                 usa el panel. Si viviera en los dos lados, un día dirían cosas distintas. */
+              <button
+                className={`a-panel${enFalta.length ? ' con-aviso' : ''}`}
+                onClick={openDashboard}
+                aria-label={enFalta.length
+                  ? `Panel · revisá ${staleText(enFalta)}`
+                  : undefined}
+              >
                 {/* SVG y no un emoji: un emoji lo dibuja cada sistema a su manera y en
                     Android viejo puede salir un cuadradito. */}
                 <svg width="13" height="13" viewBox="0 0 13 13" aria-hidden="true" focusable="false">

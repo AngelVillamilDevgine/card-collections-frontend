@@ -951,6 +951,36 @@ button { cursor: pointer; }
 .a-panel:hover { border-color: var(--acento); color: var(--acento); }
 .a-panel svg { flex: none; }
 
+/* CUANDO LA COPIA DE LA BASE ESTÁ VIEJA. Lo único que Angel pidió que le avise, y hasta hoy
+   el aviso era el bloque Salud del panel poniéndose rojo — que hay que ABRIR el panel para
+   ver. Eso es un tablero, no una alarma.
+ *
+ * Es un punto y no un cartel A PROPÓSITO: un aviso que tapa algo se aprende a cerrar sin
+ * leerlo, y éste tiene que seguir estando el día quince. Un punto en un botón que ya existe
+ * no molesta nunca y no se pasa por alto dos días seguidos.
+ *
+ * EL COLOR ES `--reem-tinta`, QUE ES EL MISMO QUE YA USA EL BLOQUE SALUD DEL PANEL para un
+ * renglón en falta (`.numeros .salud .mal`, en dashboard.css). No se inventa un rojo nuevo:
+ * ése ya está medido —es el de «para reemplazar», uno de los cuatro estados de carta— y así
+ * el punto de acá y el renglón rojo de allá son la misma cosa dicha dos veces.
+ *
+ * El borde NO cambia de color, y es a propósito: el borde en `--acento` ya significa hover
+ * en este mismo botón, y dos estados con la misma pinta no se distinguen. El punto solo
+ * alcanza.
+ *
+ * Y va en un `::before` dentro del flex, no en un `::after` absoluto: el botón ya tiene un
+ * `::after` estirado para el blanco de toque de 44 px (más abajo en este archivo), y
+ * pisárselo le sacaría eso justo a la única persona que ve este botón. */
+.a-panel.con-aviso { color: var(--reem-tinta); }
+.a-panel.con-aviso::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--reem-tinta);
+  flex: none;
+}
+
 /* Blanca y opaca: la versión transparente dejaba ver las cartas pasando por detrás.
    La sombra la despega del contenido cuando queda pegada arriba. */
 .herramientas {
