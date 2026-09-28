@@ -1,0 +1,15 @@
+# Un archivo de verdad, porque hasta el 2026-09-28 /robots.txt NO EXISTÍA y devolvía el
+# index.html entero con 200: Cloudflare Pages hace fallback de SPA en cualquier ruta que no
+# sea un archivo, así que pedir las reglas devolvía una página. Un buscador que pide
+# robots.txt y recibe HTML no lo puede parsear.
+#
+# Y de los paths que se midieron ese día, /robots.txt es EL ÚNICO que el borde cachea
+# cuatro horas (Cache-Control: max-age=14400 contra el max-age=0 de todos los demás), o sea
+# que la respuesta equivocada además se quedaba pegada.
+#
+# No prohíbe nada, y no es un descuido: la colección entera vive detrás de una clave y el
+# HTML público es el mismo para todos. Existe para que la respuesta sea un robots.txt.
+# Si algún día hay rutas que no se quieren indexar, van acá.
+
+User-agent: *
+Allow: /

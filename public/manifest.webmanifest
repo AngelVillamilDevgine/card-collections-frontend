@@ -1,8 +1,12 @@
 {
   "name": "Mi colección de Dragon Ball Z",
   "short_name": "Cromeros",
-  "description": "El seguimiento de tu colección de cartas Dragon Ball Z de Cromeros, 1936 cartas en 16 expansiones.",
+  "description": "Marcá las cartas de Dragon Ball Z que tenés, las que te faltan y las repetidas, y compartí la lista en tu grupo. Cromeros 2007 y Leyenda.",
   "lang": "es-AR",
+
+  "//": "SIN `id`, la identidad de la app se DERIVA del `start_url`: cambiarlo sería otra app y dejaría huérfanas las instalaciones que ya existen (8 al 2026-09-28), con el icono abriendo la ruta vieja para siempre — y en iPhone sin arreglo, porque Safari congela el manifest al agregarlo. Declarado con el mismo valor que hoy se deriva, no mueve nada y desacopla la identidad de la ruta. El porque largo esta en el CLAUDE.md.",
+  "id": "/",
+
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
