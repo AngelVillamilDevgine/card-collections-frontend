@@ -249,9 +249,13 @@ function Espina({ nodos }) {
 
    Cada estación lleva su «antes»: el período equivalente anterior (ayer, la semana
    previa, el MISMO TRAMO del mes pasado), que calcula el servidor. */
-function ViajePeriodo({ p }) {
+/* El «antes» de cada filtro tiene nombre propio — «antes: 0» a secas obligaba a
+   preguntar antes de qué (preguntó Angel, que es la prueba). */
+const ANTES = { hoy: 'ayer', semana: 'sem. anterior', mes: 'mismo tramo del mes pasado', mesPasado: 'mes anterior' }
+
+function ViajePeriodo({ p, periodo }) {
   const pct = (a, b) => (b > 0 ? Math.round((a / b) * 100) : null)
-  const antes = (n) => `antes: ${n.toLocaleString('es-AR')}`
+  const antes = (n) => `${ANTES[periodo] ?? 'antes'}: ${n.toLocaleString('es-AR')}`
   /* Rótulos de DATO, no de relato — Angel: «quiero datos puros, es un dashboard». La
      poesía quedó en la landing, que es donde vende. */
   const nodos = [
@@ -497,7 +501,7 @@ function Cuerpo({ d, colecciones, periodo }) {
           la conversión va en una sola escala; sin `periodos` (back viejo) cae al embudo
           histórico. Títulos de dato y no de relato — Angel: «quiero datos puros». */}
       <h4>Embudo</h4>
-      {p ? <ViajePeriodo p={p} /> : <Viaje f={d.funnel} u={u} />}
+      {p ? <ViajePeriodo p={p} periodo={periodo} /> : <Viaje f={d.funnel} u={u} />}
       {p && p.toLogin > 0 && (
         <p className="nada">Logins desde la landing: {p.toLogin}</p>
       )}
