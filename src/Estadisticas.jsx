@@ -114,69 +114,11 @@ function Cuadro({ valor, rotulo, de, pie, chico }) {
   )
 }
 
-/* LOS DÍAS DE UN RANGO, FIJOS Y COMPARTIDOS. Las columnas salen de las fechas y no de
-   las filas que devolvió la consulta: el servidor no manda los días sin nadie, y
-   omitiéndolos dos días separados por una semana quedaban pegados pareciendo
-   consecutivos. A mediodía UTC para que ningún huso corra el día. */
-const addDays = (s, n) => {
-  const d = new Date(`${s}T12:00:00Z`)
-  d.setUTCDate(d.getUTCDate() + n)
-  return d.toISOString().slice(0, 10)
-}
-
-function daysBetween(desde, hasta) {
-  const out = []
-  const fin = new Date(`${hasta}T12:00:00Z`)
-  for (const d = new Date(`${desde}T12:00:00Z`); d <= fin; d.setUTCDate(d.getUTCDate() + 1)) {
-    out.push(d.toISOString().slice(0, 10))
-  }
-  return out
-}
-
-/* EL RITMO: las series del período una ARRIBA de la otra, con las columnas alineadas —
-   así cada día se lee en vertical («el jueves pasó algo en la puerta Y adentro») en vez
-   de saltar entre gráficos con ejes distintos. El rango lo pone el filtro: 7 columnas la
-   semana, el mes corrido o el mes pasado entero. Cada fila escala contra su propio
-   máximo, y su renglón lo dice; el eje de días va UNA vez, abajo. Con más de 16 columnas
-   el eje rotula día por medio de a cinco (1, 5, 10…): a 412 px, 31 números de dos cifras
-   no entran y un eje ilegible es peor que uno ralo. */
-function Ritmo({ desde, hasta, hoyReal, filas }) {
-  const dias = daysBetween(desde, hasta)
-  const apretado = dias.length > 16
-  const rotulaEje = (d) => !apretado || Number(d.slice(8, 10)) % 5 === 1 || d === dias[dias.length - 1]
-  return (
-    <div className="ritmo">
-      {filas.map((f) => {
-        const porFecha = new Map(f.dias.map((x) => [x.dia, x.n]))
-        const serie = dias.map((d) => ({ dia: d, n: porFecha.get(d) ?? 0 }))
-        const pico = Math.max(1, ...serie.map((x) => x.n))
-        const ultimo = serie[serie.length - 1]
-        return (
-          <div key={f.rotulo}>
-            <p className="ritmo-renglon">
-              {f.rotulo} · {ultimo.dia === hoyReal ? 'hoy' : `el ${dia(ultimo.dia)}`} <b>{ultimo.n}</b> · máximo <b>{pico}</b>
-            </p>
-            <div className={`tira-barras${apretado ? ' apretado' : ''}`}>
-              {serie.map((x) => (
-                <span key={x.dia} className="tira-dia"
-                      title={`${dia(x.dia)}: ${x.n} ${f.unidad[x.n === 1 ? 0 : 1]}`}>
-                  <span className="tira-barra" style={{ height: `${Math.max(2, (x.n / pico) * 100)}%` }} />
-                </span>
-              ))}
-            </div>
-          </div>
-        )
-      })}
-      <div className={`tira-barras ritmo-eje${apretado ? ' apretado' : ''}`} aria-hidden="true">
-        {dias.map((x) => (
-          <span key={x} className={`tira-dia${x === hoyReal ? ' hoy' : ''}`}>
-            <em>{rotulaEje(x) ? x.slice(8, 10) : ''}</em>
-          </span>
-        ))}
-      </div>
-    </div>
-  )
-}
+/* ACÁ VIVIÓ «DÍA POR DÍA» (el ritmo: las series diarias alineadas) Y SE EXTINGUIÓ el
+   2026-09-30, por pedido de Angel: con el filtro de período más el «antes» espejo de
+   cada estación, la serie diaria era la forma de ver ventanas de cuando no había
+   ventanas. El servidor sigue mandando `actividad`, `porDia` y `visitors.days` — sacar
+   un campo de la respuesta es un cambio en dos pasos y éste es el primero. */
 
 /* Cómo se llama cada aparato. La clasificación gruesa la hace el servidor sobre el
    User-Agent (sin guardarlo crudo); acá sólo se le pone nombre. */
@@ -400,26 +342,8 @@ function Cuerpo({ d, colecciones, periodo }) {
   const cohortes = d.cohortes ?? []
 
   /* EL PERÍODO ELEGIDO, si el back ya lo manda. Sin `periodos` (back viejo) el panel cae
-     al viaje histórico y al ritmo de 14 días, que es lo que había. */
+     al embudo histórico, que es lo que había. */
   const p = d.periodos?.[periodo] ?? null
-
-  /* LAS TRES SERIES DEL RITMO. El rango lo pone el filtro; sin filtro, los últimos 14
-     días terminando en el último día que aparezca en CUALQUIERA de las tres — si cada
-     una armara su eje, una serie sin datos de hoy correría sus columnas un día. */
-  const seriePuerta = d.funnel?.visitors?.days ?? null
-  const serieAdentro = (d.actividad ?? []).map((x) => ({ dia: x.dia, n: x.personas }))
-  const serieAltas = (d.porDia ?? []).map((x) => ({ dia: x.dia, n: x.cuantos }))
-  const ultimoDia = [...(seriePuerta ?? []), ...serieAdentro, ...serieAltas]
-    .map((x) => x.dia).sort().at(-1) ?? null
-  const hoyReal = d.periodos?.hoy?.hasta ?? ultimoDia
-  const rangoRitmo = p
-    ? (periodo === 'hoy' ? null : { desde: p.desde, hasta: p.hasta })
-    : ultimoDia ? { desde: addDays(ultimoDia, -13), hasta: ultimoDia } : null
-  const filasRitmo = [
-    ...(seriePuerta ? [{ rotulo: 'En la puerta', unidad: ['persona', 'personas'], dias: seriePuerta }] : []),
-    { rotulo: 'Adentro, usando la app', unidad: ['persona', 'personas'], dias: serieAdentro },
-    { rotulo: 'Cuentas nuevas', unidad: ['alta', 'altas'], dias: serieAltas },
-  ]
 
   /* Aparatos: del período cuando hay filtro, del total histórico cuando no. */
   const aparatos = p ? { devices: p.devices, total: p.visitors } :
@@ -492,11 +416,10 @@ function Cuerpo({ d, colecciones, periodo }) {
 
   return (
     <>
-      {/* LA HISTORIA, EN TRES TIEMPOS — «que sea más como un storytelling, para darle
-          seguimiento visual rápido a todo» (Angel, 2026-09-29). Primero EL VIAJE (la
-          línea de la puerta al álbum, que absorbe al embudo y a la pasarela que contaban
-          lo mismo partido en dos), después HOY (el pulso del día contra la semana), y
-          después EL RITMO (los 14 días de las tres series, columna a columna). */}
+      {/* LA HISTORIA: el embudo del período sobre la espina, con su «antes» espejo en
+          cada estación. Hubo además un «Hoy» y un «Día por día» y los dos se
+          extinguieron: el filtro de período los volvió redundantes — sus datos viven en
+          las estaciones, en cards y filtrados. */}
       {/* EL EMBUDO DEL PERÍODO. Con filtro, todas las estaciones comparten la ventana y
           la conversión va en una sola escala; sin `periodos` (back viejo) cae al embudo
           histórico. Títulos de dato y no de relato — Angel: «quiero datos puros». */}
@@ -522,13 +445,6 @@ function Cuerpo({ d, colecciones, periodo }) {
       {/* EL RITMO: las series con las columnas ALINEADAS sobre el rango del filtro —
           7 columnas la semana, el mes corrido, el mes pasado entero. Con «Hoy» no hay
           nada que dibujar: un gráfico de una columna es un número disfrazado. */}
-      {rangoRitmo && (
-        <>
-          <h4>Día por día</h4>
-          <Ritmo desde={rangoRitmo.desde} hasta={rangoRitmo.hasta} hoyReal={hoyReal} filas={filasRitmo} />
-        </>
-      )}
-
       {aparatos && aparatos.devices.length > 0 && (
         <>
           <h4>Por aparato</h4>
