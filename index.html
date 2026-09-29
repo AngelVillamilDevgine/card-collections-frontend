@@ -18,8 +18,17 @@
          Es lo que hace que `/` nunca sea un callejón sin salida. -->
     <script src="./resume.js"></script>
 
+    <!-- QUE CHROME NO OFREZCA INSTALAR EN LA LANDING. La página linkea el manifest —tiene
+         que hacerlo: hay instalaciones viejas con `start_url=/` que dejarían de reconocerse
+         como la app— y con el manifest a la vista Chrome en Android puede sacar SU cartel
+         de instalar solo. Lo que lo apaga es el `preventDefault` de `temprano.js` sobre
+         `beforeinstallprompt`. Acá el evento guardado no lo usa nadie (la barra de instalar
+         es de React y esta página no carga el bundle): se lo captura únicamente para que el
+         cartel del navegador no salte sobre la página de venta. -->
+    <script async src="./temprano.js"></script>
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#f4a11d" />
+    <meta name="theme-color" content="#101d33" />
     <link rel="icon" type="image/svg+xml" href="./bola.svg" />
 
     <!-- Se quedan acá aunque la app viva en /collection: hay instalaciones cuyo `start_url`
@@ -35,15 +44,20 @@
     <meta name="apple-mobile-web-app-title" content="Cromeros" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 
-    <title>Mi colección de Dragon Ball Z</title>
+    <!-- «Cromeros» y «Leyenda» van en el title porque son las dos búsquedas donde este
+         sitio puede ser el resultado uno; «Dragon Ball Z» solo compite contra internet
+         entero. El og:title queda corto: la tarjeta de WhatsApp ya dice el sitio. -->
+    <title>Mi colección de Dragon Ball Z · Cromeros y Leyenda</title>
 
-    <!-- Sin esto el sitio no decía nada de sí mismo: el HTML que recibe quien no ejecuta JS
+    <!-- Sin esto el sitio no dice nada de sí mismo: el HTML que recibe quien no ejecuta JS
          —un buscador, el robot de la vista previa de WhatsApp— tenía NUEVE caracteres de
          texto, «Cargando…». La dirección viaja a los grupos en cada lista exportada.
          La imagen es el ícono y no el logo porque el logo es 3,9 a 1 y se recorta; el
          canonical, porque el apex y el www sirven los mismos bytes sin redirección.
          Todo medido el 2026-09-28; el detalle está en el CLAUDE.md. -->
-    <meta name="description" content="Llevá el seguimiento de tus cartas de Dragon Ball Z: marcá las que tenés, las que te faltan y las repetidas, y compartí la lista en tu grupo de intercambio. Cromeros 2007 y Leyenda." />
+    <meta
+      name="description"
+      content="Llevá el seguimiento de tus cartas de Dragon Ball Z: marcá las que tenés, las que te faltan y las repetidas, y compartí la lista en tu grupo de intercambio. Cromeros 2007 y Leyenda." />
     <link rel="canonical" href="https://cromeros.com.ar/" />
 
     <meta property="og:type" content="website" />
@@ -62,124 +76,776 @@
     <meta name="twitter:description" content="Marcá las que tenés, las que te faltan y las repetidas, y compartí la lista en tu grupo. Cromeros 2007 y Leyenda." />
     <meta name="twitter:image" content="https://cromeros.com.ar/icono-512.png" />
 
-    <!-- EL CSS VA EN LÍNEA Y ES TODO EL QUE HAY: la landing no carga el bundle ni
-         `estilos.css`, así que es UN solo documento y UN solo pintado. Una hoja aparte
-         sería un pedido bloqueante más en la única página que tiene que ser instantánea.
-         La CSP lo permite (`style-src 'self' 'unsafe-inline'`), que es la concesión que
-         este proyecto ya hace por los estilos en línea de React.
+    <!-- Lo primero que se ve: el logo y la carta del centro del abanico. -->
+    <link rel="preload" as="image" href="/logo.png" fetchpriority="high" />
+    <link rel="preload" as="image" href="/landing/fan-goku.webp" fetchpriority="high" />
+    <link rel="preload" as="font" type="font/woff2" href="/landing/anton.woff2" crossorigin />
 
-         Los colores son los mismos tokens de `estilos.css`, copiados y no inventados,
-         porque el contraste de cada uno ya está medido contra el papel. -->
+    <!-- EL CSS VA EN LÍNEA Y ES TODO EL QUE HAY: la landing no carga el bundle ni
+         `estilos.css`, así que es UN documento. La CSP lo permite (style-src
+         'unsafe-inline'), y la tipografía es un woff2 autohospedado porque font-src es
+         'self': Google Fonts no entra, y está bien que no entre.
+
+         EL BRIEF, para leer este archivo dentro de un año: «que se sienta como redescubrir
+         un producto perdido; nostalgia y dualidad entre las dos colecciones». De ahí sale
+         todo — la página es una historia en cinco actos (el hallazgo → kiosco 2007 → la
+         última carta decía HASTA SIEMPRE → volvieron en 2025 → esta vez el álbum no se
+         pierde), la mitad vieja va sobre papel amarillento y tinta cálida, la mitad nueva
+         sobre frío claro con UNA cinta de brillo holográfico, y el cielo nocturno del
+         héroe lleva el rayado de sol de las CARTA ÚNICA. Angel soltó la paleta de la app
+         a propósito («podés despegarte todo lo que quieras»), así que los colores de acá
+         NO son los de estilos.css y no tienen que sincronizarse con ellos.
+
+         RENDIMIENTO, que fue la otra mitad del pedido («que no se laggee»): el único
+         JavaScript es resume.js (el ruteo) y temprano.js (apagar el cartel de instalar
+         del navegador). Las tres animaciones de reposo (breathe, bob, sway) y el
+         hover de la carta animan sólo transform/translate/rotate — compositor, nada
+         relayoutea — y TODAS van adentro de prefers-reduced-motion. Las dieciséis fotos
+         son webp recortado a la medida (~520 KB) y las de abajo del pliegue llevan
+         loading="lazy". La página entera, medida contra el build: ~640 KB. -->
     <style>
       :root {
-        --papel: #f4f2ee;
-        --tinta: #201d1a;
-        --tinta2: #6f6963;
-        --tinta3: #736d65;
-        --linea2: #d3cec4;
-        --acento: #a8590d;
+        --noche: #101d33; /* el azul del marco de las cartas, bien oscuro */
+        --noche-2: #16273f;
+        --crema: #f3ead7; /* texto sobre la noche: papel a la luz de una lámpara */
+        --dorado: #e6b13c; /* el holo dorado de las únicas */
+        --papel-viejo: #efe4cc; /* 2007: amarillento, de caja guardada */
+        --tinta-vieja: #453a2a;
+        --tinta-vieja-2: #695b44;
+        --claro: #eef2f5; /* 2025: frío, de producto recién abierto */
+        --tinta-nueva: #182635;
+        --tinta-nueva-2: #46586b;
+        /* Acá vivió un --cta naranja y SE FUE: el botón es dorado por decisión de Angel
+           (ver el comentario de .cta). Un token llamado «cta» que no era el color del CTA
+           invitaba a reponer el botón naranja que se rechazó. */
       }
-      * { box-sizing: border-box; }
+      @font-face {
+        font-family: 'Anton';
+        src: url('/landing/anton.woff2') format('woff2');
+        font-display: swap;
+      }
+      * {
+        box-sizing: border-box;
+      }
       body {
         margin: 0;
-        background: var(--papel);
-        color: var(--tinta);
-        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-        font-size: 15px;
-        line-height: 1.5;
+        background: var(--noche);
+        color: var(--crema);
+        font-family:
+          system-ui,
+          -apple-system,
+          'Segoe UI',
+          Roboto,
+          sans-serif;
+        font-size: 16px;
+        line-height: 1.55;
         -webkit-font-smoothing: antialiased;
+        overflow-x: hidden;
       }
-      .caja {
-        max-width: 480px;
-        margin: 0 auto;
-        /* El `env()` no es opcional: sin él el último renglón queda debajo de la barra de
-           gestos del iPhone. Es la misma razón que en la barra de filtros de la app. */
-        padding: 40px 20px calc(32px + env(safe-area-inset-bottom, 0px));
-        text-align: center;
-      }
-      .logo { width: 240px; max-width: 100%; height: auto; }
-      h1 {
-        margin: 22px 0 10px;
-        font-size: 25px;
-        line-height: 1.2;
-        letter-spacing: -0.01em;
+      .display {
+        font-family: Anton, 'Arial Narrow', system-ui, sans-serif;
+        font-weight: 400;
+        text-transform: uppercase;
+        letter-spacing: 0.015em;
+        line-height: 1.04;
+        margin: 0;
         text-wrap: balance;
       }
-      .bajada {
-        margin: 0 0 26px;
-        color: var(--tinta2);
-        font-size: 16px;
+      .center {
+        max-width: 1020px;
+        margin: 0 auto;
+        padding-inline: 22px;
+      }
+      p {
+        margin: 0;
+      }
+      img {
+        display: block;
+      }
+
+      /* ---------- acto 1: el hallazgo ---------- */
+      .hero {
+        position: relative;
+        overflow: hidden;
+        text-align: center;
+        padding: 46px 0 0;
+        /* El rayado de sol de las CARTA ÚNICA, en versión nocturna: dos azules casi
+           iguales girando desde donde está el abanico, y un resplandor dorado subiendo
+           desde las cartas. Es pintura estática: no anima nada. */
+        background:
+          radial-gradient(ellipse 120% 70% at 50% 100%, rgba(230, 177, 60, 0.15), transparent 62%),
+          repeating-conic-gradient(from 0.35turn at 50% 118%, var(--noche) 0deg 9deg, var(--noche-2) 9deg 18deg);
+      }
+      .hero .logo {
+        width: 216px;
+        max-width: 62vw;
+        height: auto;
+        margin: 0 auto 30px;
+      }
+      .hero h1 {
+        font-size: clamp(42px, 8.5vw, 84px);
+        color: var(--crema);
+      }
+      .hero h1 b {
+        color: var(--dorado);
+        font-weight: inherit;
+      }
+      .hero .subtitle {
+        max-width: 56ch;
+        margin: 18px auto 0;
+        font-size: clamp(15px, 2.6vw, 18px);
+        color: #c9c0aa;
         text-wrap: pretty;
       }
-      .acciones { display: flex; flex-direction: column; gap: 10px; }
-      /* Mismos valores que `.principal` y `.secundario` de la app: 46 px de alto porque un
-         dedo no acierta cómodo en menos. */
-      .principal {
-        display: block;
-        min-height: 46px;
-        padding: 12px 14px;
-        background: var(--acento);
-        border: 1px solid var(--acento);
-        border-radius: 6px;
-        color: #fff;
-        font-size: 16px;
-        font-weight: 600;
-        text-decoration: none;
+
+      /* El abanico: cinco cartas de las DOS colecciones, mezcladas a propósito. */
+      .fan {
+        position: relative;
+        height: clamp(255px, 47vw, 410px);
+        margin-top: 34px;
       }
-      .principal:hover { filter: brightness(1.06); }
-      .secundario {
-        display: block;
-        min-height: 44px;
-        padding: 12px 8px;
-        color: var(--tinta2);
-        font-size: 14px;
-        text-decoration: none;
+      .fan img {
+        position: absolute;
+        bottom: -18px;
+        left: 50%;
+        height: clamp(250px, 46vw, 400px);
+        width: auto;
+        border-radius: 10px;
+        box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+        transform-origin: 50% 120%;
       }
-      .secundario:hover { color: var(--acento); }
-      a:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
-      .puntos {
-        margin: 30px 0 0;
-        padding: 0;
-        list-style: none;
-        text-align: left;
-        color: var(--tinta2);
+      /* Cada carta va envuelta en un <picture>: las de las puntas usan el <source> con
+         media query para NO bajarse en el teléfono. El posicionado sigue en el <img>
+         (absoluto contra .fan; el <picture> no participa del layout). */
+      .fan picture:nth-child(1) img {
+        transform: translateX(-50%) rotate(-22deg) translateX(-108%);
+        z-index: 1;
+      }
+      .fan picture:nth-child(2) img {
+        transform: translateX(-50%) rotate(-11deg) translateX(-54%);
+        z-index: 2;
+      }
+      .fan picture:nth-child(3) img {
+        transform: translateX(-50%);
+        z-index: 3;
+      }
+      .fan picture:nth-child(4) img {
+        transform: translateX(-50%) rotate(11deg) translateX(54%);
+        z-index: 2;
+      }
+      .fan picture:nth-child(5) img {
+        transform: translateX(-50%) rotate(22deg) translateX(108%);
+        z-index: 1;
+      }
+
+      /* Con aire respecto del abanico: la primera versión le pisaba el pie a la carta del
+         centro, justo donde la única de Goku tiene su numeración. */
+      .hero .actions {
+        position: relative;
+        z-index: 4;
+        padding: 0 22px 46px;
+        margin-top: 84px;
+      }
+
+      /* ---------- los botones: los mismos DOS destinos de siempre ---------- */
+      /* DORADO Y NO NARANJA, y es una decisión de jerarquía: el héroe está lleno de cartas
+         naranjas y un botón naranja se camuflaba entre ellas — lo marcó Angel. El dorado ya
+         es el color «premium» de la página (los destacados del título, el holo de las
+         únicas) y no lo usa ninguna imagen grande, así que el botón es lo único dorado
+         macizo en escena. Texto casi negro encima: contraste sobrado, medido de la familia
+         del 8:1. */
+      .cta {
+        display: inline-block;
+        min-height: 56px;
+        padding: 17px 44px;
+        background: var(--dorado);
+        border: none;
+        border-radius: 10px;
+        color: #1c1508;
+        font-size: 18px;
+        font-weight: 800;
+        letter-spacing: 0.01em;
+        text-decoration: none;
+        box-shadow:
+          0 10px 36px rgba(230, 177, 60, 0.4),
+          0 2px 8px rgba(0, 0, 0, 0.35);
+      }
+      .cta:hover {
+        filter: brightness(1.06);
+      }
+      /* El foco del teclado sobre un botón dorado no puede ser dorado. */
+      .cta:focus-visible {
+        outline: 2px solid var(--crema);
+        outline-offset: 3px;
+      }
+      .login-link {
+        display: block;
+        margin-top: 14px;
+        color: inherit;
         font-size: 14.5px;
-        border-top: 1px solid var(--linea2);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+        /* 11px arriba y abajo para llegar a los ~44px de blanco de toque que usa la app;
+           con 8px quedaba en 38,5. */
+        padding: 11px 8px;
       }
-      .puntos li { padding: 14px 0 0; }
-      .puntos b { color: var(--tinta); font-weight: 600; }
-      footer { margin-top: 30px; color: var(--tinta3); font-size: 13px; }
+      .free {
+        margin-top: 12px;
+        font-size: 14px;
+        color: #b9ae95;
+      }
+      a:focus-visible {
+        outline: 2px solid var(--dorado);
+        outline-offset: 3px;
+      }
+
+      /* ---------- overlines y actos ---------- */
+      .act {
+        padding: 72px 0;
+      }
+      .overline {
+        font-size: 12.5px;
+        font-weight: 700;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        margin: 0 0 14px;
+      }
+      .act h2 {
+        font-size: clamp(32px, 6vw, 58px);
+      }
+      .act .text {
+        max-width: 62ch;
+        margin-top: 16px;
+        font-size: clamp(15px, 2.4vw, 17.5px);
+        text-wrap: pretty;
+      }
+
+      /* ---------- acto 2: 2007, papel de caja guardada ---------- */
+      .a2007 {
+        background: var(--papel-viejo);
+        color: var(--tinta-vieja);
+      }
+      /* Medido: #96690b daba 3.85 sobre el papel y a 12,5px negrita no califica como
+         texto grande. Éste da 5.37. El de 2025 (#35648f) ya pasaba con 5.53. */
+      .a2007 .overline {
+        color: #7a540a;
+      }
+      .a2007 .text {
+        color: var(--tinta-vieja-2);
+      }
+      .spheres {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 2px;
+        margin: 44px 0 10px;
+      }
+      .spheres img {
+        width: calc(100% / 7 - 4px);
+        max-width: 96px;
+        height: auto;
+      }
+      /* Alturas alternadas, como sueltas sobre la mesa. OJO con el orden: la esfera 6
+         matchea 2n Y 3n y se queda con -7px sólo porque la regla 3n viene después.
+         Reordenarlas «sin cambiar nada» cambia la mesa en silencio. */
+      .spheres img:nth-child(2n) {
+        transform: translateY(-16px);
+      }
+      .spheres img:nth-child(3n) {
+        transform: translateY(-7px);
+      }
+      /* Y flotan apenas, cada una a su ritmo. El vaivén anima `translate` —propiedad
+         aparte— para no pisar el `transform` de las alturas: se componen. Duraciones
+         distintas y arranques negativos para que nunca suban y bajen en bloque. */
+      @media (prefers-reduced-motion: no-preference) {
+        .spheres img {
+          animation: bob 5.6s ease-in-out infinite;
+        }
+        .spheres img:nth-child(2) {
+          animation-duration: 6.3s;
+          animation-delay: -2.1s;
+        }
+        .spheres img:nth-child(3) {
+          animation-duration: 4.9s;
+          animation-delay: -3.4s;
+        }
+        .spheres img:nth-child(4) {
+          animation-duration: 5.9s;
+          animation-delay: -1.2s;
+        }
+        .spheres img:nth-child(5) {
+          animation-duration: 5.2s;
+          animation-delay: -4.5s;
+        }
+        .spheres img:nth-child(6) {
+          animation-duration: 6.6s;
+          animation-delay: -0.7s;
+        }
+        .spheres img:nth-child(7) {
+          animation-duration: 5.4s;
+          animation-delay: -2.9s;
+        }
+      }
+      @keyframes bob {
+        0%,
+        100% {
+          translate: 0 0;
+        }
+        50% {
+          translate: 0 -6px;
+        }
+      }
+      /* ---------- acto 3: la última carta ---------- */
+      .moment {
+        background: var(--noche);
+        text-align: center;
+        padding: 80px 0;
+      }
+      /* LA CARTA SE LEVANTA. Lo pidió Angel: «me gustaría movimiento en esa carta, o que
+         el hover la acerque». El gesto es el de un coleccionista agarrando una carta de la
+         mesa: en reposo se mece apenas, torcida como quedó apoyada; al pasarle el mouse se
+         ENDEREZA, se acerca, y le cruza un reflejo de holográfica. Todo es transform y
+         opacity — nada relayoutea, nada laggea — y con reduced-motion queda quieta: el
+         mecido no corre y el hover cambia de golpe, porque sus transiciones también viven
+         adentro del media query. */
+      .live-card {
+        position: relative;
+        width: fit-content;
+        margin: 0 auto 30px;
+        rotate: -3deg;
+        will-change: transform;
+      }
+      /* El tamaño de REPOSO es el original y no se toca: Angel lo dijo explícito. Crecer
+         es cosa del hover, nada más. */
+      .moment .card {
+        width: clamp(210px, 38vw, 280px);
+        height: auto;
+        border-radius: 10px;
+        box-shadow:
+          0 24px 70px rgba(0, 0, 0, 0.6),
+          0 0 0 1px rgba(230, 177, 60, 0.25);
+        transition: box-shadow 0.5s;
+      }
+      /* El reflejo: una banda de luz que cruza en diagonal, como al inclinar una holo.
+         Va por `background-position` y NO por transform del pseudo-elemento: trasladar el
+         ::after lo sacaba de la carta pero nada lo recortaba, y quedaba una franja gris
+         flotando al costado en reposo. Con la posición del fondo, en reposo la banda está
+         estacionada fuera del degradé y el elemento no pinta ni un pixel. */
+      .live-card::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: 10px;
+        background: linear-gradient(115deg, transparent 40%, rgba(255, 246, 216, 0.45) 50%, transparent 60%) no-repeat;
+        background-size: 280% 100%;
+        background-position: 200% 0;
+        pointer-events: none;
+      }
+      /* En hover NO se endereza: cambia de lado. Estaba apoyada inclinada a la izquierda y
+         al levantarla se inclina a la derecha — giro plano, sin nada 3D, como pidió Angel.
+
+         Y LA REGLA QUE SOSTIENE TODO ESTO: el mecido de reposo vive en la IMAGEN y el hover
+         en el ENVOLTORIO, y no pueden compartir elemento. Estuvieron juntos y el giro del
+         hover salía INSTANTÁNEO por más transición que tuviera declarada: el `rotate` del
+         reposo lo estaba poniendo la animación del mecido, y al apagarla con
+         `animation: none` el valor salta — un cambio que viene de cancelar una animación
+         NO dispara transiciones. Tres vueltas de «quedó brusco» eran esto, no las curvas.
+         Con dos elementos, el `rotate` del envoltorio jamás lo toca una animación, así que
+         siempre transiciona; y la imagen sigue meciéndose apenas en la mano, que de paso
+         queda más vivo. */
+      .live-card:hover {
+        rotate: 1.8deg;
+        transform: scale(1.18) translateY(-9px);
+      }
+      .live-card:hover .card {
+        box-shadow:
+          0 40px 90px rgba(0, 0, 0, 0.7),
+          0 0 0 2px rgba(230, 177, 60, 0.55);
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        /* LO BRUSCO ERA EL GIRO, no el crecimiento — tercera vuelta de Angel sobre esto, y
+           la precisión importa: el ángulo cruza de un lado al otro (de ~-3° a +1,8°), y un
+           cruce de lado se percibe el doble de rápido que un cambio de tamaño. Así que cada
+           cosa va por su carril: la escala sube en 1,5 s, y el giro tarda 2,4 s, con una
+           curva aún más dormida y arrancando 0,15 s después — la carta crece primero y la
+           inclinación se ASIENTA encima. La vuelta usa las mismas curvas.
+           Las transiciones viven ACÁ adentro y no en .live-card: con reduced-motion el
+           hover tiene que cambiar de estado sin animar, no animar más despacio. */
+        .live-card {
+          transition:
+            rotate 2.4s cubic-bezier(0.35, 0.25, 0.15, 1) 0.15s,
+            transform 1.5s cubic-bezier(0.3, 0.4, 0.2, 1);
+        }
+        .moment .card {
+          animation: sway 12s ease-in-out infinite;
+        }
+        .live-card:hover::after {
+          transition: background-position 1.6s ease 0.35s;
+          background-position: -100% 0;
+        }
+      }
+      /* Amplitud RELATIVA y chica: la base de -3° la pone el envoltorio; esto sólo la
+         hamaca ±0,7° alrededor de donde esté — apoyada o levantada. */
+      @keyframes sway {
+        0%,
+        100% {
+          rotate: -0.7deg;
+        }
+        50% {
+          rotate: 0.7deg;
+        }
+      }
+      .moment h2 {
+        color: var(--crema);
+      }
+      .moment h2 b {
+        color: var(--dorado);
+        font-weight: inherit;
+      }
+      .moment .text {
+        margin-inline: auto;
+        color: #c9c0aa;
+      }
+
+      /* ---------- acto 4: 2025, producto recién abierto ---------- */
+      .a2025 {
+        background: var(--claro);
+        color: var(--tinta-nueva);
+        position: relative;
+      }
+      /* El brillo de holográfica: una cinta finita arriba del acto, y es TODO el arcoíris
+         que hay en la página. Más que esto ya empieza a gritar otra cosa. */
+      .a2025::before {
+        content: '';
+        position: absolute;
+        inset: 0 0 auto 0;
+        height: 5px;
+        background: linear-gradient(90deg, #e6b13c, #7fd0c0, #7fa8e6, #c78fd6, #e6b13c);
+      }
+      .a2025 .overline {
+        color: #35648f;
+      }
+      .a2025 .text {
+        color: var(--tinta-nueva-2);
+      }
+      .showcase {
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        gap: clamp(8px, 3vw, 34px);
+        margin-top: 48px;
+      }
+      .showcase img {
+        height: clamp(190px, 30vw, 320px);
+        width: auto;
+      }
+      .showcase .box {
+        filter: drop-shadow(0 16px 26px rgba(24, 38, 53, 0.28));
+      }
+      /* El mazo inicial va al medio y un poco más grande: es por donde se empieza. */
+      .showcase .box-starter {
+        height: clamp(225px, 36vw, 375px);
+      }
+      /* ---------- acto 5: la app ---------- */
+      .closing {
+        background: var(--noche);
+        text-align: center;
+        padding: 84px 0 0;
+      }
+      .closing h2 {
+        color: var(--crema);
+        font-size: clamp(34px, 6.4vw, 62px);
+      }
+      .closing h2 b {
+        color: var(--dorado);
+        font-weight: inherit;
+      }
+      .features {
+        display: flex;
+        justify-content: center;
+        gap: 14px;
+        flex-wrap: wrap;
+        margin: 34px 0 40px;
+        padding: 0 22px;
+        list-style: none;
+      }
+      .features li {
+        flex: 1 1 240px;
+        max-width: 300px;
+        text-align: left;
+        background: var(--noche-2);
+        border: 1px solid #24374f;
+        border-radius: 10px;
+        padding: 18px 20px;
+        font-size: 14.5px;
+        color: #c9c0aa;
+      }
+      .features b {
+        display: block;
+        color: var(--crema);
+        font-size: 15.5px;
+        margin-bottom: 4px;
+      }
+      /* Los dos álbumes, uno al lado del otro: en Cromeros se anota el ESTADO y en
+         Leyenda la VARIANTE. Cada cuadro lleva la luz de su época — el papel amarillento
+         de 2007, el frío de 2025 — con los mismos colores de sus actos. */
+      .albums {
+        display: flex;
+        justify-content: center;
+        gap: 14px;
+        flex-wrap: wrap;
+        margin: 0 0 46px;
+        padding: 0 22px;
+      }
+      .album-card {
+        flex: 1 1 240px;
+        max-width: 300px;
+        text-align: left;
+        border-radius: 10px;
+        padding: 20px 22px 22px;
+      }
+      .album-card .overline {
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        margin: 0 0 10px;
+      }
+      .album-card h3 {
+        font-size: 22px;
+      }
+      .album-card p:last-child {
+        margin: 8px 0 0;
+        font-size: 14.5px;
+        line-height: 1.5;
+      }
+      .album-2007 {
+        background: var(--papel-viejo);
+        color: var(--tinta-vieja-2);
+      }
+      .album-2007 .overline {
+        color: #7a540a;
+      }
+      .album-2007 h3 {
+        color: var(--tinta-vieja);
+      }
+      .album-2025 {
+        background: var(--claro);
+        color: var(--tinta-nueva-2);
+      }
+      .album-2025 .overline {
+        color: #35648f;
+      }
+      .album-2025 h3 {
+        color: var(--tinta-nueva);
+      }
+      .closing .actions {
+        padding-bottom: 64px;
+      }
+      footer {
+        border-top: 1px solid #24374f;
+        padding: 26px 22px calc(26px + env(safe-area-inset-bottom, 0px));
+        text-align: center;
+        font-size: 13px;
+        color: #8d8a7c;
+      }
+      footer .brand {
+        color: var(--crema);
+        font-weight: 600;
+      }
+      footer .legal {
+        display: block;
+        margin-top: 8px;
+        /* El mismo gris del cuerpo del pie (4.86 sobre la noche): el #6d6a5e de antes daba
+           3.11, que en la única letra de 11,5px de la página es donde menos se lo banca.
+           La jerarquía la hace el tamaño, no apagar el color — regla vieja del proyecto. */
+        color: #8d8a7c;
+        font-size: 11.5px;
+      }
+
+      /* ---------- teléfono ---------- */
+      @media (max-width: 560px) {
+        .fan picture:nth-child(1),
+        .fan picture:nth-child(5) {
+          display: none;
+        }
+        .fan picture:nth-child(2) img {
+          transform: translateX(-50%) rotate(-13deg) translateX(-62%);
+        }
+        .fan picture:nth-child(4) img {
+          transform: translateX(-50%) rotate(13deg) translateX(62%);
+        }
+        /* Las tres cajas entran en fila en 412 px achicándolas apenas; la del medio
+           conserva su ventaja. */
+        .showcase .box {
+          height: clamp(140px, 34vw, 200px);
+        }
+        .showcase .box-starter {
+          height: clamp(165px, 41vw, 240px);
+        }
+        .act {
+          padding: 56px 0;
+        }
+      }
+
+      /* El abanico respira — mismo principio que las esferas y el mecido de la carta:
+         sólo compositor, y con reduced-motion no se mueve un pixel. */
+      @media (prefers-reduced-motion: no-preference) {
+        .fan img {
+          animation: breathe 7s ease-in-out infinite;
+        }
+        .fan picture:nth-child(2) img {
+          animation-delay: -1.4s;
+        }
+        .fan picture:nth-child(3) img {
+          animation-delay: -2.8s;
+        }
+        .fan picture:nth-child(4) img {
+          animation-delay: -4.2s;
+        }
+        .fan picture:nth-child(5) img {
+          animation-delay: -5.6s;
+        }
+      }
+      @keyframes breathe {
+        0%,
+        100% {
+          translate: 0 0;
+        }
+        50% {
+          translate: 0 -7px;
+        }
+      }
     </style>
   </head>
   <body>
-    <main class="caja">
-      <img class="logo" src="./logo.png" alt="Dragon Ball Z" width="660" height="168" />
-
-      <h1>Tu álbum de Dragon Ball Z, al día</h1>
-
-      <p class="bajada">
-        Marcá las cartas que tenés y la lista de las que te faltan y de las repetidas se
-        arma sola, lista para pegar en tu grupo.
-      </p>
-
-      <div class="acciones">
-        <a class="principal" href="/login?new=1">Anotá tus faltantes</a>
-        <a class="secundario" href="/login">Ya tengo cuenta</a>
+    <!-- ACTO 1 · EL HALLAZGO -->
+    <header class="hero">
+      <div class="center">
+        <img class="logo" src="./logo.png" alt="Dragon Ball Z" width="660" height="168" />
+        <h1 class="display">¿Te acordás<br />de <b>estas cartas</b>?</h1>
+        <p class="subtitle">Se compraban en el kiosco, se cambiaban en el recreo y se perdían en alguna mudanza. Casi veinte años después volvieron a los sobres.</p>
       </div>
 
-      <!-- SIN NÚMEROS A PROPÓSITO. Poner «1936 cartas» o «3033» acá sería reponer el
-           `TOTAL_CARTAS` escrito a mano que ya se sacó del panel por esto mismo: el catálogo
-           se lee en caliente y este documento es estático, así que el día que cambie nadie
-           se entera y ningún test puede agarrarlo. Los nombres de las colecciones sí van
-           —cambian mucho más lento y son lo que alguien busca—, pero si entra una tercera
-           hay que acordarse de este renglón. -->
-      <ul class="puntos">
-        <li><b>Se guarda solo.</b> Tocás una carta y ya quedó: no hay botón de guardar.</li>
-        <li><b>Las dos colecciones.</b> Cromeros 2007 y Leyenda.</li>
-        <li><b>Se instala en el teléfono</b> y se abre como una app, sin buscar la página.</li>
-      </ul>
+      <!-- Las dos colecciones mezcladas a propósito: la dualidad empieza acá. Goten y el
+           Majin Vegeta de «El lado oscuro» (carta 89, la eligió Angel) son Cromeros 2007;
+           el Goku SSJ, el Shenron y la F504 son Leyenda. Todo escaneos frontales: las
+           fotos de cartas en mano tenían borde blanco y perspectiva, y acá quedaban mal. -->
+      <!-- Las de las puntas no existen en el teléfono (display:none más abajo), y un
+           display:none NO evita la descarga: eran 71 KB viajando para nadie —el 38% del
+           abanico— en el aparato del brief. El <source> con media query sí la evita:
+           abajo de 561px el <img> cae al px.webp de 72 bytes. -->
+      <div class="fan" aria-hidden="true">
+        <picture>
+          <source media="(min-width: 561px)" srcset="/landing/fan-goten.webp" />
+          <img src="/landing/px.webp" alt="" width="365" height="560" />
+        </picture>
+        <picture><img src="/landing/fan-vegeta89.webp" alt="" width="373" height="560" /></picture>
+        <picture><img src="/landing/fan-goku.webp" alt="" fetchpriority="high" width="378" height="560" /></picture>
+        <picture><img src="/landing/fan-shenron.webp" alt="" width="343" height="560" /></picture>
+        <picture>
+          <source media="(min-width: 561px)" srcset="/landing/fan-f504.webp" />
+          <img src="/landing/px.webp" alt="" width="350" height="560" />
+        </picture>
+      </div>
 
-      <footer>www.cromeros.com.ar</footer>
+      <div class="actions">
+        <a class="cta" href="/login?new=1">Anotá tus faltantes</a>
+        <p class="free">Gratis. Lo caro eran los sobres.</p>
+        <a class="login-link" href="/login">Ya tengo cuenta</a>
+      </div>
+    </header>
+
+    <!-- <main> para que el lector de pantalla tenga a dónde saltar; el footer va AFUERA
+         de la última section porque sólo es landmark (contentinfo) colgado del body. -->
+    <main>
+    <!-- ACTO 2 · 2007 -->
+    <section class="act a2007">
+      <div class="center">
+        <p class="overline">Cromeros · Argentina · 2007</p>
+        <h2 class="display">1936 cartas.<br />Nadie las tenía todas.</h2>
+        <p class="text">Dieciséis expansiones, sobres de a cinco cartas, y una colección que no se terminaba nunca: siempre faltaba una.</p>
+        <p class="text">Adentro estaban también las siete Esferas del Dragón Definitivas — van seguidas, de la 1761 a la 1767, por si algún día te lo preguntaste.</p>
+
+        <!-- Con width/height aunque el CSS mande: el navegador reserva el alto por el
+             aspect-ratio y el bloque no crece de golpe cuando las lazy llegan. -->
+        <div class="spheres" aria-hidden="true">
+          <img src="/landing/esfera-1.webp" alt="" loading="lazy" width="302" height="306" />
+          <img src="/landing/esfera-2.webp" alt="" loading="lazy" width="303" height="306" />
+          <img src="/landing/esfera-3.webp" alt="" loading="lazy" width="303" height="306" />
+          <img src="/landing/esfera-4.webp" alt="" loading="lazy" width="303" height="306" />
+          <img src="/landing/esfera-5.webp" alt="" loading="lazy" width="302" height="306" />
+          <img src="/landing/esfera-6.webp" alt="" loading="lazy" width="304" height="306" />
+          <img src="/landing/esfera-7.webp" alt="" loading="lazy" width="302" height="306" />
+        </div>
+      </div>
+    </section>
+
+    <!-- ACTO 3 · LA ÚLTIMA CARTA -->
+    <section class="act moment">
+      <div class="center">
+        <div class="live-card">
+          <img class="card" src="/landing/hasta-siempre.webp" alt="La carta 1936: Goku saludando bajo el título HASTA SIEMPRE" loading="lazy" width="493" height="760" />
+        </div>
+        <h2 class="display">La última carta decía<br /><b>«hasta siempre»</b>.</h2>
+        <p class="text">Carta 1936 de 1936: Goku saludando. Ahí terminaba la colección, y ahí quedó: en cajas de zapatos, en carpetas o en lo de tus viejos (durante casi veinte años).</p>
+      </div>
+    </section>
+
+    <!-- ACTO 4 · 2025 -->
+    <section class="act a2025">
+      <div class="center">
+        <p class="overline">Leyenda · Flash Gondor · 2025</p>
+        <h2 class="display">Hasta siempre<br />no era para siempre.</h2>
+        <p class="text">
+          En 2025 volvieron a salir, y la reedición se llama Leyenda: los mismos números de siempre, acabados que antes no existían, y nueve Cartas Únicas numeradas a mano — del Shenron salieron
+          quinientas, ni una más.
+        </p>
+
+        <div class="showcase">
+          <img class="box" src="/landing/caja-piccolo.webp" alt="La caja de la Expansión 2, con Piccolo" loading="lazy" width="459" height="520" />
+          <img class="box box-starter" src="/landing/caja-inicial.webp" alt="La caja del mazo inicial de Leyenda, con Goku" loading="lazy" width="516" height="640" />
+          <img class="box" src="/landing/caja-vegeta.webp" alt="La caja de la Expansión 3, con Vegeta" loading="lazy" width="424" height="520" />
+        </div>
+      </div>
+    </section>
+
+    <!-- ACTO 5 · LA APP -->
+    <section class="closing">
+      <div class="center">
+        <h2 class="display">Y esta vez, la colección<br /><b>no se pierde</b>.</h2>
+
+        <ul class="features">
+          <li><b>Se guarda sola.</b> Tocás una carta y ya quedó: no hay botón de guardar, no hay archivo que cuidar.</li>
+          <li><b>La lista se arma sola.</b> Faltantes y repetidas, listas para pegar en tu grupo de intercambio.</li>
+        </ul>
+
+        <!-- Las dos colecciones, cada una con su cuadro — lo pidió Angel: que se vea que
+             en Cromeros anotás el ESTADO y en Leyenda la VARIANTE. Cada cuadro lleva la
+             luz de su época, que es la dualidad de toda la página. -->
+        <div class="albums">
+          <div class="album-card album-2007">
+            <p class="overline">Cromeros · 2007</p>
+            <h3 class="display">Anotás el estado</h3>
+            <p>Cada carta en cómo está: buen estado, perfecta o para reemplazar.</p>
+          </div>
+          <div class="album-card album-2025">
+            <p class="overline">Leyenda · 2025</p>
+            <h3 class="display">Anotás la variante</h3>
+            <p>Glitter, holográfica, dorada… cada acabado tiene su casillero.</p>
+          </div>
+        </div>
+
+        <div class="actions">
+          <a class="cta" href="/login?new=1">Anotá tus faltantes</a>
+          <p class="free">Gratis. Lo caro eran los sobres.</p>
+          <a class="login-link" href="/login">Ya tengo cuenta</a>
+        </div>
+      </div>
+    </section>
     </main>
+
+    <footer>
+      <span class="brand">www.cromeros.com.ar</span> · hecho por un coleccionista
+      <span class="legal">Dragon Ball Z © Bird Studio / Shueisha · Toei Animation. Sitio de fans: no es un sitio oficial de Cromeros S.A. ni de Flash Gondor.</span>
+    </footer>
   </body>
 </html>

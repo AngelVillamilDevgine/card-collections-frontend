@@ -69,6 +69,31 @@ test('resume.js va PRIMERO y SIN async ni defer', () => {
   assert.equal(primero[0], tag[0])
 })
 
+test('la landing carga temprano.js, que es lo que le apaga a Chrome su cartel de instalar', () => {
+  /* La landing linkea el manifest —obligatorio: hay instalaciones viejas con `start_url=/`—
+     y con el manifest a la vista Chrome en Android puede ofrecer instalar por su cuenta,
+     encima de la página de venta. Lo único que lo apaga es el `preventDefault` de
+     `temprano.js` sobre `beforeinstallprompt`. Acá nadie usa el evento guardado (no hay
+     bundle): está sólo para suprimir el cartel. Y va `async` porque no puede frenar el
+     primer pintado de la única página que ve un desconocido. */
+  assert.ok(landing.includes('manifest.webmanifest'), 'si el manifest se fue, este test ya no aplica: leé el comentario')
+  const tag = landing.match(/<script[^>]*temprano\.js[^>]*>/)
+  assert.ok(tag, 'la landing no carga temprano.js: Chrome puede ofrecer instalar sobre la página de venta')
+  assert.ok(/\basync\b/.test(tag[0]), `temprano.js va async para no frenar el pintado: ${tag[0]}`)
+})
+
+test('cada asset que la landing referencia existe en public/', () => {
+  /* En Pages un asset que falta NI SIQUIERA da 404: el fallback de SPA contesta el
+     index.html con 200 y text/html, así que un webp renombrado es una imagen rota sin
+     una sola señal en la pestaña de red. Se juntan todos los src/srcset/href de archivos
+     propios (webp, png, svg, woff2) y se mira que cada uno esté en public/. */
+  const urls = [...landing.matchAll(/(?:src|srcset|href)="\.?(\/[^"]+\.(?:webp|png|svg|woff2))"/g)].map((m) => m[1])
+  assert.ok(urls.length >= 18, `se esperaban al menos 18 assets referenciados y hay ${urls.length}`)
+  for (const u of new Set(urls)) {
+    assert.ok(existsSync(new URL(`public${u}`, rootUrl)), `la landing referencia ${u} y no existe en public/`)
+  }
+})
+
 test('la landing lleva <base href="/">, porque además es el 404 del sitio', () => {
   /* Pages sirve `index.html` con 200 en cualquier route que no exista. Sin el `<base>`, desde
      `/a/b/c` los relativos resuelven contra `/a/b/` y la landing se queda sin logo y —lo
