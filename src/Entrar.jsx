@@ -3,9 +3,21 @@
 //
 // No usa la clase .hoja del resto de la app: acá no hay contenido que fluya hacia
 // abajo, hay una sola cosa y va en el medio de la pantalla.
-import { useState } from 'react'
-import { entrar, registrarse } from './almacenamiento'
+import { useEffect, useState } from 'react'
+import { entrar, registrarse, pulse } from './almacenamiento'
 import { albumNames } from './collections'
+
+/* LA LLEGADA AL FORMULARIO, para la pasarela del panel: con qué botón de la landing se
+   llegó (`?f=`), o directo. Lista cerrada — lo que no está acá cuenta como directo, así
+   que un enlace pegado con una `f` inventada no estrena claves. Los valores son los
+   mismos literales que pone `index.html` y que acepta `PULSE_KEYS` en el backend; el
+   contrato de este lado lo ata `pages.test.js`.
+
+   La marca es de MÓDULO y no un estado: una llegada es una carga de página. Salir y
+   volver a caer en el formulario no es una llegada nueva, y el doble montaje de
+   StrictMode tampoco. */
+const FROM = new Set(['hero', 'closing', 'hero-acct', 'closing-acct'])
+let arrivalSent = false
 
 /* Quien se olvida la clave no tiene ningún camino solo: no hay mail de recupero ni
    cambio de clave (la app no manda correo, y el servidor tampoco puede: rebota antes de
@@ -27,6 +39,14 @@ export default function Entrar({ onEntro, aviso }) {
   })
   const [error, setError] = useState(null)
   const [yendo, setYendo] = useState(false)
+
+  useEffect(() => {
+    if (arrivalSent) return
+    arrivalSent = true
+    let f = null
+    try { f = new URLSearchParams(location.search).get('f') } catch { /* sin query */ }
+    pulse(FROM.has(f) ? `login:${f}` : 'login:direct')
+  }, [])
 
   async function enviar(ev) {
     ev.preventDefault()

@@ -31,6 +31,14 @@ export function token() {
   try { return localStorage.getItem(CLAVE_TOKEN) } catch { return null }
 }
 
+/* El pulso de la pasarela: un contador anónimo del panel — sin IPs, sin cookies, sin
+   identificadores. El cuerpo va en texto plano para que el POST sea un pedido simple
+   (sin OPTIONS previo, el mismo viaje de más del maxAge del CORS), y por `sendBeacon`
+   porque no hay que esperar nada: si el navegador no lo tiene o falla, no pasó nada. */
+export function pulse(key) {
+  try { navigator.sendBeacon?.(`${RAIZ}/pulse`, key) } catch { /* es una estadística */ }
+}
+
 function recordarToken(t) {
   try { t ? localStorage.setItem(CLAVE_TOKEN, t) : localStorage.removeItem(CLAVE_TOKEN) }
   catch { /* modo privado: la sesión dura lo que dure la pestaña */ }

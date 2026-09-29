@@ -104,8 +104,26 @@ test('la landing lleva <base href="/">, porque además es el 404 del sitio', () 
 })
 
 test('los botones de la landing llevan a /login, que es lo que dice routes.js', () => {
-  assert.ok(landing.includes(`href="${LOGIN}?new=1"`), 'falta el botón de crear cuenta')
-  assert.ok(landing.includes(`href="${LOGIN}"`), 'falta el de ya tengo cuenta')
+  /* Cuatro botones, cada uno con su marcador de pasarela: los dos CTA con `new=1` y su
+     `f`, los dos «Ya tengo cuenta» sólo con la `f`. */
+  for (const href of [
+    `${LOGIN}?new=1&f=hero`, `${LOGIN}?f=hero-acct`,
+    `${LOGIN}?new=1&f=closing`, `${LOGIN}?f=closing-acct`,
+  ]) assert.ok(landing.includes(`href="${href}"`), `falta el enlace a ${href}`)
+})
+
+test('la pasarela: los marcadores f= de la landing son los que lee el formulario', () => {
+  /* El tercer contrato de este archivo entre la landing y Entrar.jsx. Si divergen, el
+     contador pierde EN SILENCIO: una `f` que Entrar no lista cuenta como «directo» y
+     nadie se entera de que el botón dejó de medirse. */
+  const fs = [...landing.matchAll(/[?&]f=([a-z-]+)"/g)].map((m) => m[1])
+  assert.equal(new Set(fs).size, 4, `se esperaban 4 marcadores distintos y hay: ${fs.join(', ')}`)
+  const lista = read('src/Entrar.jsx').match(/const FROM = new Set\(\[([^\]]+)\]\)/)?.[1] ?? ''
+  for (const f of fs) assert.ok(lista.includes(`'${f}'`), `la landing manda f=${f} y Entrar no lo lista`)
+  /* Y temprano.js manda la clave de la landing al mismo endpoint. */
+  const temprano = read('public/temprano.js')
+  assert.ok(temprano.includes(`'/api/pulse'`), 'temprano.js perdió el endpoint del pulso')
+  assert.ok(temprano.includes(`'landing'`), 'temprano.js perdió la clave de la landing')
 })
 
 test('el parámetro que pone la landing es el que lee Entrar.jsx', () => {
@@ -114,7 +132,7 @@ test('el parámetro que pone la landing es el que lee Entrar.jsx', () => {
      enlace y NO el `get('crear')` del componente, así que el botón «Anotá tus faltantes»
      seguía abriendo el formulario en modo «Entrar». No lo agarró ningún test —el de arriba
      sólo mira el enlace— sino la prueba con clicks. */
-  const enLaLanding = landing.match(new RegExp(`href="${LOGIN}\\?([a-z]+)=1"`))?.[1]
+  const enLaLanding = landing.match(new RegExp(`href="${LOGIN}\\?([a-z]+)=1&`))?.[1]
   const enElFormulario = read('src/Entrar.jsx').match(/location\.search\)\.get\('([^']+)'\)/)?.[1]
   assert.ok(enLaLanding, 'la landing no lleva ningún parámetro')
   assert.equal(enElFormulario, enLaLanding)

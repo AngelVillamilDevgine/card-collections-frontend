@@ -215,6 +215,9 @@
    DOS listas verticales de catorce renglones, pegadas y casi iguales, que juntas se comían
    dos pantallas de teléfono para mostrar veintiocho números de un dígito. */
 .numeros .tira { margin: 0 0 18px; }
+/* El rótulo de una tira cuando hay más de una seguida (la pasarela lleva dos). Más
+   callado que el h4: es un sub-renglón, no una sección. */
+.numeros .tira-cabeza { margin: 14px 0 6px; font-size: 12px; font-weight: 600; color: var(--p-text2); }
 .numeros .tira-resumen { margin: 0 0 8px; font-size: 13px; color: var(--p-text2); }
 .numeros .tira-resumen b { color: var(--p-text); font-variant-numeric: tabular-nums; }
 .numeros .tira-barras { display: flex; align-items: flex-end; gap: 4px; height: 62px; }

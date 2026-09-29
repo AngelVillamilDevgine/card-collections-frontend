@@ -122,7 +122,7 @@ function Cuadro({ valor, rotulo, de, pie, chico }) {
    consulta: el servidor no manda los días en que no entró nadie, así que dibujando sólo lo
    que viene, dos días separados por una semana quedaban pegados y se leían como
    consecutivos. Un día sin nadie tiene que ocupar su lugar y verse vacío. */
-function Tira({ dias }) {
+function Tira({ dias, unidad = ['persona', 'personas'] }) {
   const porFecha = new Map(dias.map((x) => [x.dia, x]))
   const hoy = dias.length ? dias[dias.length - 1].dia : null
   const catorce = []
@@ -147,7 +147,7 @@ function Tira({ dias }) {
       <div className="tira-barras">
         {catorce.map((x) => (
           <span key={x.dia} className={`tira-dia${x.dia === hoy ? ' hoy' : ''}`}
-                title={`${dia(x.dia)}: ${x.personas} ${x.personas === 1 ? 'persona' : 'personas'}${x.porApp ? `, ${x.porApp} por la app` : ''}`}>
+                title={`${dia(x.dia)}: ${x.personas} ${unidad[x.personas === 1 ? 0 : 1]}${x.porApp ? `, ${x.porApp} por la app` : ''}`}>
             <span className="tira-barra" style={{ height: `${Math.max(2, (x.personas / pico) * 100)}%` }} />
             <em>{x.dia.slice(8, 10)}</em>
           </span>
@@ -343,6 +343,41 @@ function Cuerpo({ d, colecciones }) {
         <Cuadro valor={u.activosHoy} rotulo="La usaron hoy" />
         <Cuadro valor={u.activos7} rotulo="La usaron esta semana" />
       </div>
+
+      {/* LA PASARELA: el tramo de ANTES de tener cuenta, que hasta el 2026-09-29 no se
+          medía taxativamente — el propio panel decía «no hay denominador». Ahora lo hay:
+          contadores anónimos de la landing (`temprano.js`) y de la llegada al formulario
+          (`Entrar.jsx`, con el `?f=` de cada botón). Son VISITAS y no personas —sin IPs
+          ni cookies no hay forma de deduplicar, y está bien que no la haya— y el bloque
+          lo dice con esas palabras.
+
+          Sólo se dibuja si el back ya lo manda (`funnel` en null = back viejo), y sus
+          «se anotaron» son las altas DESDE que la pasarela existe: contra las históricas
+          la conversión sería absurda.
+
+          Y LA TIRA DE ALTAS VUELVE, acá adentro. El «altas por día» vertical se fue por
+          pedido de Angel («cada vez más largo»); esto es otra cosa — la misma tira FIJA
+          de 14 columnas del uso, que él pidió de vuelta el 2026-09-29 («faltan gráficos
+          de registros»). El campo `porDia` seguía viniendo del servidor a propósito. */}
+      {d.funnel && (
+        <>
+          <h4>La pasarela · desde el {dia(d.funnel.since)}</h4>
+          <div className="cuadros">
+            <Cuadro valor={d.funnel.landing} rotulo="Vieron la landing" pie="visitas, no personas" />
+            <Cuadro valor={d.funnel.toSignup} rotulo="Salieron a anotarse" de={d.funnel.landing || undefined} />
+            <Cuadro valor={d.funnel.signups ?? 0} rotulo="Se anotaron" de={d.funnel.landing || undefined} />
+            <Cuadro valor={d.funnel.toLogin} rotulo="Fueron a entrar" pie="ya tenían cuenta, o directo" />
+          </div>
+          <p className="tira-cabeza">Visitas a la landing, por día</p>
+          <Tira dias={d.funnel.days.map((x) => ({ dia: x.dia, personas: x.n }))} unidad={['visita', 'visitas']} />
+          {(d.porDia ?? []).length > 0 && (
+            <>
+              <p className="tira-cabeza">Altas, por día</p>
+              <Tira dias={d.porDia.map((x) => ({ dia: x.dia, personas: x.cuantos }))} unidad={['alta', 'altas']} />
+            </>
+          )}
+        </>
+      )}
 
       {cohortes.length > 0 && (
         <>

@@ -755,10 +755,13 @@
         </picture>
       </div>
 
+      <!-- El `?f=` es el pulso de la pasarela: dice desde qué botón se llegó al
+           formulario. `Entrar.jsx` lo lee y lo manda; una `f` inventada cuenta como
+           llegada directa. -->
       <div class="actions">
-        <a class="cta" href="/login?new=1">Anotá tus faltantes</a>
+        <a class="cta" href="/login?new=1&f=hero">Anotá tus faltantes</a>
         <p class="free">Gratis. Lo caro eran los sobres.</p>
-        <a class="login-link" href="/login">Ya tengo cuenta</a>
+        <a class="login-link" href="/login?f=hero-acct">Ya tengo cuenta</a>
       </div>
     </header>
 
@@ -843,9 +846,9 @@
         </div>
 
         <div class="actions">
-          <a class="cta" href="/login?new=1">Anotá tus faltantes</a>
+          <a class="cta" href="/login?new=1&f=closing">Anotá tus faltantes</a>
           <p class="free">Gratis. Lo caro eran los sobres.</p>
-          <a class="login-link" href="/login">Ya tengo cuenta</a>
+          <a class="login-link" href="/login?f=closing-acct">Ya tengo cuenta</a>
         </div>
       </div>
     </section>
