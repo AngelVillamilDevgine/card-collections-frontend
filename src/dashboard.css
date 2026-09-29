@@ -54,6 +54,17 @@
  * Los tokens van ACÁ y con prefijo `--p-`, no en el `:root` de estilos.css: el panel no
  * comparte paleta con la app y un token global llamado parecido es la clase de trampa que
  * este proyecto ya pagó dos veces. */
+/* CON EL PANEL ABIERTO, EL DOCUMENTO DE ATRÁS NO SCROLLEA — lo marcó Angel: en
+   escritorio se veían DOS barras pegadas, la del panel y la de la grilla congelada
+   debajo. Va por `:has` y sin JS: se enciende sola al montar el panel y se apaga sola
+   al desmontarlo, así no hay ningún efecto que pueda olvidarse de limpiar. El scroll
+   de la grilla NO se pierde (verificado con clicks: abrir, cerrar, y `scrollY` vuelve
+   igual) — ocultar el overflow recorta, no resetea. En un navegador sin `:has` queda
+   la barra de más, que es exactamente lo que había hasta hoy. */
+body:has(.pagina-panel) {
+  overflow: hidden;
+}
+
 .pagina-panel {
   --p-bg: #101d33;      /* la noche de la landing */
   --p-card: #16273f;
