@@ -274,7 +274,9 @@ body:has(.pagina-panel) {
   grid-template-columns: minmax(26px, max-content) minmax(0, 1fr);
   align-items: center;
   gap: 2px 10px;
-  padding: 7px 0 7px 20px;
+  /* 26 de canaleta: con 20, el número quedaba ROZANDO la espina — el aire justo también
+     existe para el lado de menos. */
+  padding: 7px 0 7px 26px;
 }
 /* El tramo de línea de cada estación; la primera arranca en su nodo y la última muere
    en el suyo. */

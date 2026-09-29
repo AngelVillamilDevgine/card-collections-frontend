@@ -428,9 +428,6 @@ function Cuerpo({ d, colecciones, period }) {
           histórico. Títulos de dato y no de relato — Angel: «quiero datos puros». */}
       <h4>Embudo</h4>
       {p ? <PeriodFunnel p={p} /> : <HistoricFunnel f={d.funnel} u={u} />}
-      {p && p.toLogin > 0 && (
-        <p className="nada">Logins desde la landing: {p.toLogin}</p>
-      )}
 
       {/* Los totales históricos, aparte del período. */}
       {p && (
