@@ -143,8 +143,8 @@ body:has(.pagina-panel) {
    oscura — el mismo trato que el CTA de la landing, porque acá también es «lo único
    dorado macizo en escena». En escritorio va a la derecha; en angosto baja a su propia
    fila del header pegajoso, que para eso envuelve. */
-.periodos { display: flex; gap: 4px; flex-wrap: wrap; margin: 0 0 16px; }
-.periodos button {
+.periods { display: flex; gap: 4px; flex-wrap: wrap; margin: 0 0 16px; }
+.periods button {
   padding: 6px 12px;
   border: 1px solid var(--p-line);
   border-radius: 999px;
@@ -156,9 +156,9 @@ body:has(.pagina-panel) {
   cursor: pointer;
   white-space: nowrap;
 }
-.periodos button:hover { border-color: var(--p-gold); color: var(--p-gold); }
-.periodos button:focus-visible { outline: 2px solid var(--p-gold); outline-offset: 2px; }
-.periodos button.activo {
+.periods button:hover { border-color: var(--p-gold); color: var(--p-gold); }
+.periods button:focus-visible { outline: 2px solid var(--p-gold); outline-offset: 2px; }
+.periods button.activo {
   background: var(--p-gold);
   border-color: var(--p-gold);
   color: #1c1508;
@@ -179,12 +179,12 @@ body:has(.pagina-panel) {
   padding-block: 18px 0;
 }
 
-/* Los títulos de sección como los overlines de la landing. `.viaje-div` es el corte del
+/* Los títulos de sección como los overlines de la landing. `.journey-break` es el corte del
    embudo («Actividad en la app») y va con EXACTAMENTE este estilo — fue un renglón
    metido adentro del nodo, corrido a la derecha, y Angel lo enterró: un cambio de
    sección se marca como todas las secciones. */
 .numeros h4,
-.numeros .viaje-div {
+.numeros .journey-break {
   margin: 24px 0 10px;
   font-size: 12px;
   font-weight: 700;
@@ -263,11 +263,11 @@ body:has(.pagina-panel) {
    La espina es `--p-line` y los nodos dorados; el nodo de la COSTURA —donde la escala
    cambia de «desde que se mide» a «todas las épocas»— va en el azul de Leyenda, para que
    el cambio de régimen se vea sin leer. */
-.numeros .viaje { list-style: none; margin: 0 0 8px; padding: 0; }
+.numeros .journey { list-style: none; margin: 0 0 8px; padding: 0; }
 /* El número ARRANCA pegado a la espina (columna angosta y alineado a la izquierda):
    con 84px alineados a la derecha, un «3» quedaba a media pantalla del punto que le
    corresponde — lo marcó Angel. 58px banca cuatro cifras en Anton. */
-.numeros .viaje li {
+.numeros .journey li {
   position: relative;
   display: grid;
   grid-template-columns: 58px minmax(0, 1fr) auto;
@@ -277,7 +277,7 @@ body:has(.pagina-panel) {
 }
 /* El tramo de línea de cada estación; la primera arranca en su nodo y la última muere
    en el suyo. */
-.numeros .viaje li::before {
+.numeros .journey li::before {
   content: '';
   position: absolute;
   left: 7px;
@@ -286,9 +286,9 @@ body:has(.pagina-panel) {
   width: 2px;
   background: var(--p-line);
 }
-.numeros .viaje li:first-child::before { top: 50%; }
-.numeros .viaje li:last-child::before { bottom: 50%; }
-.numeros .viaje li::after {
+.numeros .journey li:first-child::before { top: 50%; }
+.numeros .journey li:last-child::before { bottom: 50%; }
+.numeros .journey li::after {
   content: '';
   position: absolute;
   left: 3px;
@@ -301,17 +301,17 @@ body:has(.pagina-panel) {
   /* El halo del color del fondo separa el nodo de la línea, como una estación de subte. */
   box-shadow: 0 0 0 3px var(--p-bg);
 }
-.numeros .viaje b {
+.numeros .journey b {
   font-family: Anton, 'Arial Narrow', system-ui, sans-serif;
   font-weight: 400;
   font-size: 24px;
   color: var(--p-text);
   text-align: left;
 }
-.numeros .viaje-que { display: flex; flex-direction: column; min-width: 0; }
-.numeros .viaje-rotulo { font-size: 13.5px; font-weight: 600; color: var(--p-text2); }
-.numeros .viaje-nota { font-size: 11.5px; color: var(--p-text3); }
-.numeros .viaje-conv {
+.numeros .journey-body { display: flex; flex-direction: column; min-width: 0; }
+.numeros .journey-label { font-size: 13.5px; font-weight: 600; color: var(--p-text2); }
+.numeros .journey-note { font-size: 11.5px; color: var(--p-text3); }
+.numeros .journey-conv {
   font-style: normal;
   font-size: 12px;
   color: var(--p-gold);

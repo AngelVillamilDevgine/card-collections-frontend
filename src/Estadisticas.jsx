@@ -135,21 +135,21 @@ const APARATOS = { iphone: 'iPhone', android: 'Android', windows: 'Windows', mac
    últimas son las cuentas de todas las épocas. Mezclar esos denominadores daría
    conversiones absurdas, así que la costura se dice, no se disimula: el nodo «Tienen
    cuenta» arranca la segunda escala y lo aclara. */
-function Viaje({ f, u }) {
+function HistoricFunnel({ f, u }) {
   const v = f?.visitors
   const pct = (a, b) => (b > 0 ? Math.round((a / b) * 100) : null)
-  const nodos = []
+  const nodes = []
   if (f && v) {
-    nodos.push({ n: v.total, rotulo: 'Pasaron por la puerta', nota: `personas distintas, con o sin cuenta · desde el ${dia(f.since)}` })
-    nodos.push({ n: f.toSignup, rotulo: 'Salieron a anotarse', nota: 'tocaron «Anotá tus faltantes»', conv: pct(f.toSignup, v.total) })
-    nodos.push({ n: f.signups ?? 0, rotulo: 'Se anotaron', nota: 'cuentas nuevas desde que se mide la puerta', conv: pct(f.signups ?? 0, f.toSignup) })
+    nodes.push({ n: v.total, rotulo: 'Pasaron por la puerta', nota: `personas distintas, con o sin cuenta · desde el ${dia(f.since)}` })
+    nodes.push({ n: f.toSignup, rotulo: 'Salieron a anotarse', nota: 'tocaron «Anotá tus faltantes»', conv: pct(f.toSignup, v.total) })
+    nodes.push({ n: f.signups ?? 0, rotulo: 'Se anotaron', nota: 'cuentas nuevas desde que se mide la puerta', conv: pct(f.signups ?? 0, f.toSignup) })
   }
-  nodos.push({ n: u.total, rotulo: 'Tienen cuenta', nota: `todas las épocas${u.altas7 ? ` · +${u.altas7} esta semana` : ''}`, costura: nodos.length > 0 ? 'Totales históricos' : undefined })
-  nodos.push({ n: u.conCartas, rotulo: 'Cargaron cartas', conv: pct(u.conCartas, u.total), deCuentas: true })
-  nodos.push({ n: u.volvieron, rotulo: 'Volvieron otro día', conv: pct(u.volvieron, u.total), deCuentas: true })
-  nodos.push({ n: u.conApp, rotulo: 'La instalaron', nota: 'el paso que más hace volver', conv: pct(u.conApp, u.total), deCuentas: true })
+  nodes.push({ n: u.total, rotulo: 'Tienen cuenta', nota: `todas las épocas${u.altas7 ? ` · +${u.altas7} esta semana` : ''}`, costura: nodes.length > 0 ? 'Totales históricos' : undefined })
+  nodes.push({ n: u.conCartas, rotulo: 'Cargaron cartas', conv: pct(u.conCartas, u.total), deCuentas: true })
+  nodes.push({ n: u.volvieron, rotulo: 'Volvieron otro día', conv: pct(u.volvieron, u.total), deCuentas: true })
+  nodes.push({ n: u.conApp, rotulo: 'La instalaron', nota: 'el paso que más hace volver', conv: pct(u.conApp, u.total), deCuentas: true })
 
-  return <Espina nodos={nodos} />
+  return <Spine nodes={nodes} />
 }
 
 /* La espina compartida: la dibujan el embudo histórico (cuando el back no manda
@@ -157,24 +157,24 @@ function Viaje({ f, u }) {
    sección con EXACTAMENTE el mismo estilo que los h4 — la primera versión lo dibujaba
    como un renglón adentro del nodo, corrido a la derecha, y Angel lo enterró con razón:
    un cambio de sección se marca como todas las demás secciones, no con un injerto. */
-function Espina({ nodos }) {
+function Spine({ nodes }) {
   const segmentos = [{ titulo: null, items: [] }]
-  for (const x of nodos) {
+  for (const x of nodes) {
     if (x.costura) segmentos.push({ titulo: x.costura, items: [] })
     segmentos[segmentos.length - 1].items.push(x)
   }
   return segmentos.map((s, i) => (
     <div key={s.titulo ?? i}>
-      {s.titulo && <p className="viaje-div">{s.titulo}</p>}
-      <ol className="viaje">
+      {s.titulo && <p className="journey-break">{s.titulo}</p>}
+      <ol className="journey">
         {s.items.map((x) => (
           <li key={x.rotulo}>
             <b>{x.n.toLocaleString('es-AR')}</b>
-            <div className="viaje-que">
-              <span className="viaje-rotulo">{x.rotulo}</span>
-              {x.nota && <span className="viaje-nota">{x.nota}</span>}
+            <div className="journey-body">
+              <span className="journey-label">{x.rotulo}</span>
+              {x.nota && <span className="journey-note">{x.nota}</span>}
             </div>
-            {x.conv != null && <i className="viaje-conv">{x.conv}%{x.deCuentas ? ' de las cuentas' : ''}</i>}
+            {x.conv != null && <i className="journey-conv">{x.conv}%{x.deCuentas ? ' de las cuentas' : ''}</i>}
           </li>
         ))}
       </ol>
@@ -195,13 +195,13 @@ function Espina({ nodos }) {
    sacó Angel el 2026-09-30: «no quiero gastar procesamiento al pedo» — eran cuatro
    paquetes extra de COUNT(DISTINCT) por apertura. El back deja de calcularlos en el
    paso dos; este front ya no los lee. */
-function ViajePeriodo({ p }) {
+function PeriodFunnel({ p }) {
   const pct = (a, b) => (b > 0 ? Math.round((a / b) * 100) : null)
   /* Rótulos de DATO, no de relato — Angel: «quiero datos puros, es un dashboard». La
      estación de arriba cuenta VISITANTES NUEVOS (primera vez de ese navegador), que es
      el que entra al embudo — también pedido suyo: «4 / 4 nuevos» era el mismo número
-     dicho dos veces. Los aparatos siguen repartiendo sobre los únicos totales. */
-  const nodos = [
+     dicho dos veces. Los devices siguen repartiendo sobre los únicos totales. */
+  const nodes = [
     { n: p.visitorsNew, rotulo: 'Visitantes únicos nuevos', nota: `${p.landing} cargas` },
     { n: p.toSignup, rotulo: 'Clicks a anotarse', conv: pct(p.toSignup, p.visitorsNew) },
     { n: p.signups, rotulo: 'Registros', conv: pct(p.signups, p.toSignup) },
@@ -212,7 +212,7 @@ function ViajePeriodo({ p }) {
       conv: pct(p.moved.gente, p.usedApp),
     },
   ]
-  return <Espina nodos={nodos} />
+  return <Spine nodes={nodes} />
 }
 
 function Barra({ rotulo, valor, techo, nota, flaca }) {
@@ -239,8 +239,8 @@ function Barra({ rotulo, valor, techo, nota, flaca }) {
    persona por la suma de los DOS catálogos, así que tener Cromeros entero se dibujaba
    como 64%. */
 /* Los cuatro períodos del filtro. El id es el del campo `periodos` del servidor. */
-const PERIODOS = [['hoy', 'Hoy'], ['semana', '7 días'], ['mes', 'Este mes'], ['mesPasado', 'Mes pasado']]
-const CLAVE_PERIODO = 'dbz-cromeros-panel-periodo'
+const PERIODS = [['hoy', 'Hoy'], ['semana', '7 días'], ['mes', 'Este mes'], ['mesPasado', 'Mes pasado']]
+const PERIOD_KEY = 'dbz-cromeros-panel-period'
 
 export default function Estadisticas({ onCerrar, onSesionMuerta, colecciones }) {
   const [datos, setDatos] = useState(null)
@@ -248,15 +248,15 @@ export default function Estadisticas({ onCerrar, onSesionMuerta, colecciones }) 
   /* El período elegido se recuerda en el aparato, como las expansiones plegadas: es una
      preferencia de ESTE dispositivo, no un dato. Un valor viejo o inventado cae a la
      semana, que es el que sirve para decidir. */
-  const [periodo, setPeriodo] = useState(() => {
+  const [period, setPeriodo] = useState(() => {
     try {
-      const g = localStorage.getItem(CLAVE_PERIODO)
-      return PERIODOS.some(([id]) => id === g) ? g : 'semana'
+      const g = localStorage.getItem(PERIOD_KEY)
+      return PERIODS.some(([id]) => id === g) ? g : 'semana'
     } catch { return 'semana' }
   })
-  const elegir = (id) => {
+  const pick = (id) => {
     setPeriodo(id)
-    try { localStorage.setItem(CLAVE_PERIODO, id) } catch { /* modo privado */ }
+    try { localStorage.setItem(PERIOD_KEY, id) } catch { /* modo privado */ }
   }
   const titulo = useRef(null)
   /* Quién tenía el foco antes de abrir, leído en el render: para cuando corren los
@@ -313,11 +313,11 @@ export default function Estadisticas({ onCerrar, onSesionMuerta, colecciones }) 
             Angel: un filtro no comparte estructura con un título y un botón de volver.
             Sólo aparece si el back ya manda los períodos. */}
         {datos?.periodos && (
-          <div className="periodos" role="group" aria-label="Período">
-            {PERIODOS.map(([id, rotulo]) => (
-              <button key={id} type="button" aria-pressed={periodo === id}
-                      className={periodo === id ? 'activo' : undefined}
-                      onClick={() => elegir(id)}>
+          <div className="periods" role="group" aria-label="Período">
+            {PERIODS.map(([id, rotulo]) => (
+              <button key={id} type="button" aria-pressed={period === id}
+                      className={period === id ? 'activo' : undefined}
+                      onClick={() => pick(id)}>
                 {rotulo}
               </button>
             ))}
@@ -325,22 +325,22 @@ export default function Estadisticas({ onCerrar, onSesionMuerta, colecciones }) 
         )}
         {error && <p className="nada">{error}</p>}
         {!datos && !error && <p className="nada">Buscando…</p>}
-        {datos && <Cuerpo d={datos} colecciones={colecciones ?? []} periodo={periodo} />}
+        {datos && <Cuerpo d={datos} colecciones={colecciones ?? []} period={period} />}
       </div>
     </div>
   )
 }
 
-function Cuerpo({ d, colecciones, periodo }) {
+function Cuerpo({ d, colecciones, period }) {
   const { usuarios: u, cartas,  gente } = d
 
 
   /* EL PERÍODO ELEGIDO, si el back ya lo manda. Sin `periodos` (back viejo) el panel cae
      al embudo histórico, que es lo que había. */
-  const p = d.periodos?.[periodo] ?? null
+  const p = d.periodos?.[period] ?? null
 
   /* Aparatos: del período cuando hay filtro, del total histórico cuando no. */
-  const aparatos = p ? { devices: p.devices, total: p.visitors } :
+  const devices = p ? { devices: p.devices, total: p.visitors } :
     d.funnel?.visitors ? { devices: d.funnel.visitors.devices, total: d.funnel.visitors.total } : null
 
   /* Cada colección con lo que trajo el servidor. `porColeccion` puede venir en null si el
@@ -418,7 +418,7 @@ function Cuerpo({ d, colecciones, periodo }) {
           la conversión va en una sola escala; sin `periodos` (back viejo) cae al embudo
           histórico. Títulos de dato y no de relato — Angel: «quiero datos puros». */}
       <h4>Embudo</h4>
-      {p ? <ViajePeriodo p={p} /> : <Viaje f={d.funnel} u={u} />}
+      {p ? <PeriodFunnel p={p} /> : <HistoricFunnel f={d.funnel} u={u} />}
       {p && p.toLogin > 0 && (
         <p className="nada">Logins desde la landing: {p.toLogin}</p>
       )}
@@ -439,14 +439,14 @@ function Cuerpo({ d, colecciones, periodo }) {
       {/* EL RITMO: las series con las columnas ALINEADAS sobre el rango del filtro —
           7 columnas la semana, el mes corrido, el mes pasado entero. Con «Hoy» no hay
           nada que dibujar: un gráfico de una columna es un número disfrazado. */}
-      {aparatos && aparatos.devices.length > 0 && (
+      {devices && devices.devices.length > 0 && (
         <>
           <h4>Por aparato</h4>
           <div className="grupo">
-            {aparatos.devices.map((x) => (
+            {devices.devices.map((x) => (
               <Barra key={x.device} rotulo={APARATOS[x.device] ?? x.device} valor={x.n}
-                     techo={aparatos.total}
-                     nota={`${Math.round((x.n / aparatos.total) * 100)}%`} />
+                     techo={devices.total}
+                     nota={`${Math.round((x.n / devices.total) * 100)}%`} />
             ))}
           </div>
         </>
@@ -468,7 +468,7 @@ function Cuerpo({ d, colecciones, periodo }) {
       {porCol && (
         /* `colecciones` además de `grupo`: la dualidad dorado/azul del CSS es SÓLO de
            este bloque — puesta sobre `.grupo` a secas, teñía de azul renglón por medio
-           a los aparatos, donde el azul no significa nada. */
+           a los devices, donde el azul no significa nada. */
         <div className="grupo colecciones">
           {porCol.map((c) => (
             /* SIN porcentaje, a propósito: acá `cartas` son las filas de TODA la gente
