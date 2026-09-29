@@ -202,7 +202,7 @@ function Viaje({ f, u }) {
     nodos.push({ n: f.toSignup, rotulo: 'Salieron a anotarse', nota: 'tocaron «Anotá tus faltantes»', conv: pct(f.toSignup, v.total) })
     nodos.push({ n: f.signups ?? 0, rotulo: 'Se anotaron', nota: 'cuentas nuevas desde que se mide la puerta', conv: pct(f.signups ?? 0, f.toSignup) })
   }
-  nodos.push({ n: u.total, rotulo: 'Tienen cuenta', nota: `todas las épocas${u.altas7 ? ` · +${u.altas7} esta semana` : ''}`, corte: nodos.length > 0 })
+  nodos.push({ n: u.total, rotulo: 'Tienen cuenta', nota: `todas las épocas${u.altas7 ? ` · +${u.altas7} esta semana` : ''}`, costura: nodos.length > 0 ? 'Totales históricos' : undefined })
   nodos.push({ n: u.conCartas, rotulo: 'Cargaron cartas', conv: pct(u.conCartas, u.total), deCuentas: true })
   nodos.push({ n: u.volvieron, rotulo: 'Volvieron otro día', conv: pct(u.volvieron, u.total), deCuentas: true })
   nodos.push({ n: u.conApp, rotulo: 'La instalaron', nota: 'el paso que más hace volver', conv: pct(u.conApp, u.total), deCuentas: true })
@@ -210,26 +210,34 @@ function Viaje({ f, u }) {
   return <Espina nodos={nodos} />
 }
 
-/* La espina compartida: la dibujan el viaje histórico (cuando el back no manda períodos)
-   y el del período. Un nodo con `costura` abre su renglón de cambio de régimen. */
+/* La espina compartida: la dibujan el embudo histórico (cuando el back no manda
+   períodos) y el del período. Un nodo con `costura` CORTA la lista y abre un título de
+   sección con EXACTAMENTE el mismo estilo que los h4 — la primera versión lo dibujaba
+   como un renglón adentro del nodo, corrido a la derecha, y Angel lo enterró con razón:
+   un cambio de sección se marca como todas las demás secciones, no con un injerto. */
 function Espina({ nodos }) {
-  return (
-    <ol className="viaje">
-      {nodos.map((x) => (
-        <li key={x.rotulo} className={x.costura || x.corte ? 'corte' : undefined}>
-          {(x.costura || x.corte) && (
-            <span className="viaje-costura">{x.costura ?? 'acá se suma la historia previa a la medición'}</span>
-          )}
-          <b>{x.n.toLocaleString('es-AR')}</b>
-          <div className="viaje-que">
-            <span className="viaje-rotulo">{x.rotulo}</span>
-            {x.nota && <span className="viaje-nota">{x.nota}</span>}
-          </div>
-          {x.conv != null && <i className="viaje-conv">{x.conv}%{x.deCuentas ? ' de las cuentas' : ''}</i>}
-        </li>
-      ))}
-    </ol>
-  )
+  const segmentos = [{ titulo: null, items: [] }]
+  for (const x of nodos) {
+    if (x.costura) segmentos.push({ titulo: x.costura, items: [] })
+    segmentos[segmentos.length - 1].items.push(x)
+  }
+  return segmentos.map((s, i) => (
+    <div key={s.titulo ?? i}>
+      {s.titulo && <p className="viaje-div">{s.titulo}</p>}
+      <ol className="viaje">
+        {s.items.map((x) => (
+          <li key={x.rotulo}>
+            <b>{x.n.toLocaleString('es-AR')}</b>
+            <div className="viaje-que">
+              <span className="viaje-rotulo">{x.rotulo}</span>
+              {x.nota && <span className="viaje-nota">{x.nota}</span>}
+            </div>
+            {x.conv != null && <i className="viaje-conv">{x.conv}%{x.deCuentas ? ' de las cuentas' : ''}</i>}
+          </li>
+        ))}
+      </ol>
+    </div>
+  ))
 }
 
 /* EL VIAJE DEL PERÍODO — y acá la costura vieja DESAPARECE: con el filtro puesto, todas
@@ -244,20 +252,22 @@ function Espina({ nodos }) {
 function ViajePeriodo({ p }) {
   const pct = (a, b) => (b > 0 ? Math.round((a / b) * 100) : null)
   const antes = (n) => `antes: ${n.toLocaleString('es-AR')}`
+  /* Rótulos de DATO, no de relato — Angel: «quiero datos puros, es un dashboard». La
+     poesía quedó en la landing, que es donde vende. */
   const nodos = [
     {
-      n: p.visitors, rotulo: 'Pasaron por la puerta',
-      nota: `${p.visitorsNew} por primera vez · ${p.landing} cargas · ${antes(p.antes.visitors)}`,
+      n: p.visitors, rotulo: 'Visitantes únicos',
+      nota: `${p.visitorsNew} nuevos · ${p.landing} cargas · ${antes(p.antes.visitors)}`,
     },
-    { n: p.toSignup, rotulo: 'Salieron a anotarse', nota: antes(p.antes.toSignup), conv: pct(p.toSignup, p.visitors) },
-    { n: p.signups, rotulo: 'Se anotaron', nota: antes(p.antes.signups), conv: pct(p.signups, p.toSignup) },
+    { n: p.toSignup, rotulo: 'Clicks a anotarse', nota: antes(p.antes.toSignup), conv: pct(p.toSignup, p.visitors) },
+    { n: p.signups, rotulo: 'Registros', nota: antes(p.antes.signups), conv: pct(p.signups, p.toSignup) },
     {
-      n: p.usedApp, rotulo: 'Usaron la app', costura: 'adentro, mientras tanto',
-      nota: `cuentas de cualquier época · ${antes(p.antes.usedApp)}`,
+      n: p.usedApp, rotulo: 'Usuarios activos', costura: 'Actividad en la app',
+      nota: antes(p.antes.usedApp),
     },
     {
       n: p.moved.gente, rotulo: 'Movieron cartas',
-      nota: `${p.moved.cartas.toLocaleString('es-AR')} ${p.moved.cartas === 1 ? 'carta tocada' : 'cartas tocadas'} · ${antes(p.antes.moved.gente)}`,
+      nota: `${p.moved.cartas.toLocaleString('es-AR')} ${p.moved.cartas === 1 ? 'carta' : 'cartas'} · ${antes(p.antes.moved.gente)}`,
       conv: pct(p.moved.gente, p.usedApp),
     },
   ]
@@ -356,9 +366,11 @@ export default function Estadisticas({ onCerrar, onSesionMuerta, colecciones }) 
         </button>
         {/* `tabIndex={-1}` para poder enfocarlo al entrar sin meterlo en el orden del Tab. */}
         <h1 tabIndex={-1} ref={titulo}>Los números</h1>
-        {/* EL FILTRO DE PERÍODO, EN LA CABECERA PEGAJOSA: filtra todo lo que es serie de
-            tiempo, así que tiene que estar a la vista mientras se scrollea. Sólo aparece
-            si el back ya manda los períodos. */}
+      </header>
+      <div className="panel-cuerpo numeros">
+        {/* EL FILTRO DE PERÍODO, PRIMERO EN EL CUERPO y NO en la cabecera — lo marcó
+            Angel: un filtro no comparte estructura con un título y un botón de volver.
+            Sólo aparece si el back ya manda los períodos. */}
         {datos?.periodos && (
           <div className="periodos" role="group" aria-label="Período">
             {PERIODOS.map(([id, rotulo]) => (
@@ -370,8 +382,6 @@ export default function Estadisticas({ onCerrar, onSesionMuerta, colecciones }) 
             ))}
           </div>
         )}
-      </header>
-      <div className="panel-cuerpo numeros">
         {error && <p className="nada">{error}</p>}
         {!datos && !error && <p className="nada">Buscando…</p>}
         {datos && <Cuerpo d={datos} colecciones={colecciones ?? []} periodo={periodo} />}
@@ -478,27 +488,24 @@ function Cuerpo({ d, colecciones, periodo }) {
 
   return (
     <>
-      <Salud salud={d.salud} />
-
       {/* LA HISTORIA, EN TRES TIEMPOS — «que sea más como un storytelling, para darle
           seguimiento visual rápido a todo» (Angel, 2026-09-29). Primero EL VIAJE (la
           línea de la puerta al álbum, que absorbe al embudo y a la pasarela que contaban
           lo mismo partido en dos), después HOY (el pulso del día contra la semana), y
           después EL RITMO (los 14 días de las tres series, columna a columna). */}
-      {/* EL VIAJE, EN EL PERÍODO ELEGIDO. Con filtro, todas las estaciones comparten la
-          ventana y la historia va en una sola escala; sin `periodos` (back viejo) cae al
-          viaje histórico de siempre. El rótulo del filtro ya está en la cabecera. */}
-      <h4>El viaje · de la puerta al álbum</h4>
+      {/* EL EMBUDO DEL PERÍODO. Con filtro, todas las estaciones comparten la ventana y
+          la conversión va en una sola escala; sin `periodos` (back viejo) cae al embudo
+          histórico. Títulos de dato y no de relato — Angel: «quiero datos puros». */}
+      <h4>Embudo</h4>
       {p ? <ViajePeriodo p={p} /> : <Viaje f={d.funnel} u={u} />}
       {p && p.toLogin > 0 && (
-        <p className="nada">Y {p.toLogin} con cuenta {p.toLogin === 1 ? 'llegó' : 'llegaron'} a entrar por la landing.</p>
+        <p className="nada">Logins desde la landing: {p.toLogin}</p>
       )}
 
-      {/* LO DE SIEMPRE, aparte del período: los totales históricos que el viaje del
-          filtro ya no muestra. Chicos a propósito — son el contexto, no la historia. */}
+      {/* Los totales históricos, aparte del período. */}
       {p && (
         <>
-          <h4>Desde siempre</h4>
+          <h4>Totales históricos</h4>
           <div className="cuadros chicos cuatro">
             <Cuadro valor={u.total} rotulo="Cuentas" pie={u.altas7 ? `+${u.altas7} esta semana` : undefined} />
             <Cuadro valor={u.conCartas} rotulo="Con cartas" de={u.total} />
@@ -513,7 +520,7 @@ function Cuerpo({ d, colecciones, periodo }) {
           nada que dibujar: un gráfico de una columna es un número disfrazado. */}
       {rangoRitmo && (
         <>
-          <h4>El ritmo · día por día</h4>
+          <h4>Día por día</h4>
           <Ritmo desde={rangoRitmo.desde} hasta={rangoRitmo.hasta} hoyReal={hoyReal} filas={filasRitmo} />
         </>
       )}
@@ -700,6 +707,14 @@ function Cuerpo({ d, colecciones, periodo }) {
           </tbody>
         </table>
       </div>
+
+      {/* LA SALUD DEL FIERRO, AL FONDO — Angel: «ese cuadro con datos de la vm no va
+          ahí». Es información de operación, no del producto, así que cierra el panel en
+          vez de abrirlo. La ALARMA no depende de este lugar: cuando algo está vencido, el
+          botón «Panel» de la app ya lleva el punto rojo, y acá abajo el bloque se pinta
+          entero — no hace falta verlo primero para verlo. */}
+      <h4>Infra</h4>
+      <Salud salud={d.salud} />
     </>
   )
 }

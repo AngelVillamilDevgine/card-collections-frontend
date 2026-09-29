@@ -143,8 +143,7 @@ body:has(.pagina-panel) {
    oscura — el mismo trato que el CTA de la landing, porque acá también es «lo único
    dorado macizo en escena». En escritorio va a la derecha; en angosto baja a su propia
    fila del header pegajoso, que para eso envuelve. */
-.panel-cabecera { flex-wrap: wrap; }
-.periodos { display: flex; gap: 4px; margin-left: auto; }
+.periodos { display: flex; gap: 4px; flex-wrap: wrap; margin: 0 0 16px; }
 .periodos button {
   padding: 6px 12px;
   border: 1px solid var(--p-line);
@@ -170,8 +169,11 @@ body:has(.pagina-panel) {
 .numeros .tira-barras.apretado .tira-dia { max-width: 22px; }
 .numeros .ritmo-eje.apretado em { font-size: 9px; }
 
-/* Los cuatro totales históricos, chicos: contexto, no historia. */
+/* Los cuatro totales históricos. La fila es angosta pero EL NÚMERO NO SE ACHICA: con la
+   fuente de los chicos, en un teléfono había que forzar la vista — lo marcó Angel. */
 .numeros .cuadros.chicos.cuatro { grid-template-columns: repeat(4, minmax(0, 170px)); }
+.numeros .cuadros.chicos.cuatro .cuadro b { font-size: 25px; }
+.numeros .cuadros.chicos.cuatro .cuadro-pie { font-size: 12px; }
 
 /* El cuerpo con un ancho cómodo de lectura y su canaleta a los costados. La canaleta va
    acá y no en `.pagina-panel`, para que la cabecera pegajosa llegue de borde a borde. */
@@ -182,8 +184,12 @@ body:has(.pagina-panel) {
   padding-block: 18px 0;
 }
 
-/* Los títulos de sección como los overlines de la landing. */
-.numeros h4 {
+/* Los títulos de sección como los overlines de la landing. `.viaje-div` es el corte del
+   embudo («Actividad en la app») y va con EXACTAMENTE este estilo — fue un renglón
+   metido adentro del nodo, corrido a la derecha, y Angel lo enterró: un cambio de
+   sección se marca como todas las secciones. */
+.numeros h4,
+.numeros .viaje-div {
   margin: 24px 0 10px;
   font-size: 12px;
   font-weight: 700;
@@ -263,12 +269,15 @@ body:has(.pagina-panel) {
    cambia de «desde que se mide» a «todas las épocas»— va en el azul de Leyenda, para que
    el cambio de régimen se vea sin leer. */
 .numeros .viaje { list-style: none; margin: 0 0 8px; padding: 0; }
+/* El número ARRANCA pegado a la espina (columna angosta y alineado a la izquierda):
+   con 84px alineados a la derecha, un «3» quedaba a media pantalla del punto que le
+   corresponde — lo marcó Angel. 58px banca cuatro cifras en Anton. */
 .numeros .viaje li {
   position: relative;
   display: grid;
-  grid-template-columns: 84px minmax(0, 1fr) auto;
+  grid-template-columns: 58px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 4px 14px;
+  gap: 4px 12px;
   padding: 8px 0 8px 24px;
 }
 /* El tramo de línea de cada estación; la primera arranca en su nodo y la última muere
@@ -302,7 +311,7 @@ body:has(.pagina-panel) {
   font-weight: 400;
   font-size: 24px;
   color: var(--p-text);
-  text-align: right;
+  text-align: left;
 }
 .numeros .viaje-que { display: flex; flex-direction: column; min-width: 0; }
 .numeros .viaje-rotulo { font-size: 13.5px; font-weight: 600; color: var(--p-text2); }
@@ -313,18 +322,6 @@ body:has(.pagina-panel) {
   color: var(--p-gold);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-}
-/* La costura: el renglón que avisa el cambio de escala ocupa su propia fila del grid, y
-   el nodo se corre para seguir centrado en la estación de verdad. */
-.numeros .viaje li.corte { margin-top: 10px; }
-.numeros .viaje li.corte::after { background: var(--p-blue); top: calc(50% + 9px); }
-.numeros .viaje-costura {
-  grid-column: 1 / -1;
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--p-text3);
 }
 
 /* -------------------------------- el ritmo -------------------------------- */
@@ -493,7 +490,7 @@ body:has(.pagina-panel) {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  margin: 0 0 16px;
+  margin: 0;
   padding: 10px 12px;
   border-radius: 10px;
   border: 1px solid var(--p-line);
