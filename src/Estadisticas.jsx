@@ -114,41 +114,57 @@ function Cuadro({ valor, rotulo, de, pie, chico }) {
   )
 }
 
-/* LOS CATORCE DÍAS COMO UNA TIRA. Una serie de tiempo se lee de izquierda a derecha, no
-   como catorce renglones apilados — que era además lo que hacía que el panel pareciera no
-   terminar nunca.
-
-   Las catorce columnas son FIJAS y salen de las fechas, no de las filas que devolvió la
-   consulta: el servidor no manda los días en que no entró nadie, así que dibujando sólo lo
-   que viene, dos días separados por una semana quedaban pegados y se leían como
-   consecutivos. Un día sin nadie tiene que ocupar su lugar y verse vacío. */
-function Tira({ dias, unidad = ['persona', 'personas'] }) {
-  const porFecha = new Map(dias.map((x) => [x.dia, x]))
-  const hoy = dias.length ? dias[dias.length - 1].dia : null
+/* LOS CATORCE DÍAS, FIJOS Y COMPARTIDOS. Las columnas salen de las fechas y no de las
+   filas que devolvió la consulta: el servidor no manda los días sin nadie, y omitiéndolos
+   dos días separados por una semana quedaban pegados pareciendo consecutivos. El `hoy` se
+   pasa de afuera para que TODAS las series del ritmo compartan el mismo eje: si cada una
+   armara el suyo con su última fecha, una serie sin datos de hoy correría sus columnas un
+   día y el ritmo compararía miércoles con jueves sin avisar. */
+function fill14(serie, hoy) {
+  const porFecha = new Map(serie.map((x) => [x.dia, x.n]))
   const catorce = []
-  if (hoy) {
-    const base = new Date(`${hoy}T12:00:00Z`)
-    for (let i = 13; i >= 0; i--) {
-      const f = new Date(base)
-      f.setUTCDate(f.getUTCDate() - i)
-      const clave = f.toISOString().slice(0, 10)
-      catorce.push({ dia: clave, ...(porFecha.get(clave) ?? { personas: 0, porApp: 0 }) })
-    }
+  const base = new Date(`${hoy}T12:00:00Z`)
+  for (let i = 13; i >= 0; i--) {
+    const f = new Date(base)
+    f.setUTCDate(f.getUTCDate() - i)
+    const clave = f.toISOString().slice(0, 10)
+    catorce.push({ dia: clave, n: porFecha.get(clave) ?? 0 })
   }
-  const pico = Math.max(1, ...catorce.map((x) => x.personas))
-  const ultimo = catorce[catorce.length - 1]
+  return catorce
+}
+
+const sumar = (dias) => dias.reduce((a, x) => a + x.n, 0)
+
+/* EL RITMO: las series de 14 días una ARRIBA de la otra, con las columnas alineadas —
+   así cada día se lee en vertical («el jueves pasó algo en la puerta Y adentro») en vez
+   de saltar entre tres gráficos con ejes distintos. Cada fila escala contra su propio
+   máximo, y su renglón lo dice; el eje de días va UNA vez, abajo. La alineación no es
+   casualidad: todas las filas usan la misma caja flex con los mismos anchos. */
+function Ritmo({ hoy, filas }) {
   return (
-    <div className="tira">
-      {/* El máximo y el de hoy arriba: son los dos números que se miran. Poner el valor
-          encima de cada barra sería catorce números de un dígito, que es de donde venimos. */}
-      <p className="tira-resumen">
-        <b>{ultimo?.personas ?? 0}</b> hoy · máximo <b>{pico}</b> en estos catorce días
-      </p>
-      <div className="tira-barras">
-        {catorce.map((x) => (
-          <span key={x.dia} className={`tira-dia${x.dia === hoy ? ' hoy' : ''}`}
-                title={`${dia(x.dia)}: ${x.personas} ${unidad[x.personas === 1 ? 0 : 1]}${x.porApp ? `, ${x.porApp} por la app` : ''}`}>
-            <span className="tira-barra" style={{ height: `${Math.max(2, (x.personas / pico) * 100)}%` }} />
+    <div className="ritmo">
+      {filas.map((f) => {
+        const catorce = fill14(f.dias, hoy)
+        const pico = Math.max(1, ...catorce.map((x) => x.n))
+        return (
+          <div key={f.rotulo}>
+            <p className="ritmo-renglon">
+              {f.rotulo} · hoy <b>{catorce[13].n}</b> · máximo <b>{pico}</b>
+            </p>
+            <div className="tira-barras">
+              {catorce.map((x) => (
+                <span key={x.dia} className="tira-dia"
+                      title={`${dia(x.dia)}: ${x.n} ${f.unidad[x.n === 1 ? 0 : 1]}`}>
+                  <span className="tira-barra" style={{ height: `${Math.max(2, (x.n / pico) * 100)}%` }} />
+                </span>
+              ))}
+            </div>
+          </div>
+        )
+      })}
+      <div className="tira-barras ritmo-eje" aria-hidden="true">
+        {fill14([], hoy).map((x) => (
+          <span key={x.dia} className={`tira-dia${x.dia === hoy ? ' hoy' : ''}`}>
             <em>{x.dia.slice(8, 10)}</em>
           </span>
         ))}
@@ -161,63 +177,47 @@ function Tira({ dias, unidad = ['persona', 'personas'] }) {
    User-Agent (sin guardarlo crudo); acá sólo se le pone nombre. */
 const APARATOS = { iphone: 'iPhone', android: 'Android', windows: 'Windows', mac: 'Mac', ipad: 'iPad', otro: 'Otro' }
 
-/* LA PASARELA: el tramo de ANTES de tener cuenta, que hasta el 2026-09-29 no se medía
-   taxativamente. PERSONAS PRIMERO Y CARGAS DESPUÉS, que fue la corrección de Angel el
-   mismo día del estreno: «si es la misma persona 10 veces cuenta 1, pero 10 personas
-   cuentan 10, aunque tengan sesión». Persona = navegador distinto (el `vid` anónimo de
-   `resume.js`), que es el techo honesto de la medición y el pie del cuadro lo dice.
+/* EL VIAJE: la historia del panel contada como UNA línea — de la puerta al álbum. Lo
+   pidió Angel el 2026-09-29: «que sea más como un storytelling, para darle seguimiento
+   visual rápido a todo». Antes esto eran dos grillas de cuadros (el embudo histórico y
+   la pasarela) que contaban la misma historia partida en dos.
 
-   `visitors` puede faltar si el back es más viejo que el front: entonces se dibujan las
-   cargas solas, que es lo que había. Los porcentajes de los aparatos van SIN capar,
-   como manda la regla del panel — es un reparto de verdad sobre el total de personas.
+   Siete estaciones sobre una espina dorada, cada una con su conversión respecto del paso
+   anterior — SIN capar, como manda la regla del panel. Y con una COSTURA honesta en el
+   medio: las tres primeras se miden desde que existe la pasarela (29/09) y las cuatro
+   últimas son las cuentas de todas las épocas. Mezclar esos denominadores daría
+   conversiones absurdas, así que la costura se dice, no se disimula: el nodo «Tienen
+   cuenta» arranca la segunda escala y lo aclara. */
+function Viaje({ f, u }) {
+  const v = f?.visitors
+  const pct = (a, b) => (b > 0 ? Math.round((a / b) * 100) : null)
+  const nodos = []
+  if (f && v) {
+    nodos.push({ n: v.total, rotulo: 'Pasaron por la puerta', nota: `personas distintas, con o sin cuenta · desde el ${dia(f.since)}` })
+    nodos.push({ n: f.toSignup, rotulo: 'Salieron a anotarse', nota: 'tocaron «Anotá tus faltantes»', conv: pct(f.toSignup, v.total) })
+    nodos.push({ n: f.signups ?? 0, rotulo: 'Se anotaron', nota: 'cuentas nuevas desde que se mide la puerta', conv: pct(f.signups ?? 0, f.toSignup) })
+  }
+  nodos.push({ n: u.total, rotulo: 'Tienen cuenta', nota: `todas las épocas${u.altas7 ? ` · +${u.altas7} esta semana` : ''}`, corte: nodos.length > 0 })
+  nodos.push({ n: u.conCartas, rotulo: 'Cargaron cartas', conv: pct(u.conCartas, u.total), deCuentas: true })
+  nodos.push({ n: u.volvieron, rotulo: 'Volvieron otro día', conv: pct(u.volvieron, u.total), deCuentas: true })
+  nodos.push({ n: u.conApp, rotulo: 'La instalaron', nota: 'el paso que más hace volver', conv: pct(u.conApp, u.total), deCuentas: true })
 
-   Y LA TIRA DE ALTAS VOLVIÓ acá adentro: lo que se fue por pedido de Angel era la lista
-   vertical que crecía; esto es la misma tira fija de 14 columnas del uso, y el campo
-   `porDia` había quedado viajando a propósito. */
-function Pasarela({ f, porDia }) {
-  const v = f.visitors
   return (
-    <>
-      <h4>La pasarela · desde el {dia(f.since)}</h4>
-      {v && (
-        <div className="cuadros">
-          <Cuadro valor={v.total} rotulo="Personas distintas" pie="navegadores distintos" />
-          <Cuadro valor={v.today} rotulo="Pasaron hoy" />
-          <Cuadro valor={v.withSession} rotulo="Ya tenían cuenta" de={v.total || undefined} />
-          <Cuadro valor={f.signups ?? 0} rotulo="Se anotaron" de={v.total || undefined} />
-        </div>
-      )}
-      <div className={`cuadros chicos${v ? ' tres' : ''}`}>
-        <Cuadro valor={f.landing} rotulo="Cargas de la landing" />
-        <Cuadro valor={f.toSignup} rotulo="Tocaron «Anotá tus faltantes»" />
-        <Cuadro valor={f.toLogin} rotulo="Fueron a entrar" />
-      </div>
-      {v && v.devices.length > 0 && (
-        <>
-          <p className="tira-cabeza">Por aparato</p>
-          <div className="grupo">
-            {v.devices.map((x) => (
-              <Barra key={x.device} rotulo={APARATOS[x.device] ?? x.device} valor={x.n}
-                     techo={v.total} nota={`${Math.round((x.n / v.total) * 100)}%`} />
-            ))}
+    <ol className="viaje">
+      {nodos.map((x) => (
+        <li key={x.rotulo} className={x.corte ? 'corte' : undefined}>
+          {x.corte && <span className="viaje-costura">acá se suma la historia previa a la medición</span>}
+          <b>{x.n.toLocaleString('es-AR')}</b>
+          <div className="viaje-que">
+            <span className="viaje-rotulo">{x.rotulo}</span>
+            {x.nota && <span className="viaje-nota">{x.nota}</span>}
           </div>
-        </>
-      )}
-      {v && (
-        <>
-          <p className="tira-cabeza">Personas distintas, por día</p>
-          <Tira dias={v.days.map((x) => ({ dia: x.dia, personas: x.n }))} unidad={['persona', 'personas']} />
-        </>
-      )}
-      <p className="tira-cabeza">Cargas de la landing, por día</p>
-      <Tira dias={f.days.map((x) => ({ dia: x.dia, personas: x.n }))} unidad={['carga', 'cargas']} />
-      {porDia.length > 0 && (
-        <>
-          <p className="tira-cabeza">Altas, por día</p>
-          <Tira dias={porDia.map((x) => ({ dia: x.dia, personas: x.cuantos }))} unidad={['alta', 'altas']} />
-        </>
-      )}
-    </>
+          {/* La conversión es contra el paso ANTERIOR en las de la puerta, y contra el
+              total de cuentas en las de adentro — que es el mismo «de 42» de siempre. */}
+          {x.conv != null && <i className="viaje-conv">{x.conv}%{x.deCuentas ? ' de las cuentas' : ''}</i>}
+        </li>
+      ))}
+    </ol>
   )
 }
 
@@ -309,9 +309,24 @@ export default function Estadisticas({ onCerrar, onSesionMuerta, colecciones }) 
 function Cuerpo({ d, colecciones }) {
   const { usuarios: u, cartas,  gente } = d
 
-  const actividad = d.actividad ?? []
-  const picoActivos = Math.max(1, ...actividad.map((x) => x.personas))
   const cohortes = d.cohortes ?? []
+
+  /* LAS TRES SERIES DEL RITMO, sobre un MISMO eje de 14 días. El «hoy» compartido es el
+     último día que aparezca en cualquiera de las tres: si cada una armara su propio eje
+     con su última fecha, una serie sin datos de hoy correría sus columnas un día y el
+     ritmo compararía miércoles con jueves sin avisar. */
+  const seriePuerta = d.funnel?.visitors?.days ?? null
+  const serieAdentro = (d.actividad ?? []).map((x) => ({ dia: x.dia, n: x.personas }))
+  const serieAltas = (d.porDia ?? []).map((x) => ({ dia: x.dia, n: x.cuantos }))
+  const hoy14 = [...(seriePuerta ?? []), ...serieAdentro, ...serieAltas]
+    .map((x) => x.dia).sort().at(-1) ?? null
+  const v14 = hoy14 && seriePuerta ? fill14(seriePuerta, hoy14) : null
+  const a14 = hoy14 ? fill14(serieAltas, hoy14) : null
+  const filasRitmo = [
+    ...(seriePuerta ? [{ rotulo: 'En la puerta', unidad: ['persona', 'personas'], dias: seriePuerta }] : []),
+    { rotulo: 'Adentro, usando la app', unidad: ['persona', 'personas'], dias: serieAdentro },
+    { rotulo: 'Cuentas nuevas', unidad: ['alta', 'altas'], dias: serieAltas },
+  ]
 
   /* Cada colección con lo que trajo el servidor. `porColeccion` puede venir en null si el
      back es más viejo que el front: entonces no se dibuja nada partido, que es mejor que
@@ -382,48 +397,48 @@ function Cuerpo({ d, colecciones }) {
     <>
       <Salud salud={d.salud} />
 
-      {/* EL EMBUDO, EN CUADROS. Angel: «los contadores son unos textos, deberían ser unos
-          cuadros o algo». Y son los MISMOS cuatro números del embudo de antes: lo que
-          cambia es que ahora el número es lo primero que se ve y el rótulo lo explica,
-          en vez de un rótulo con una barra al lado y el número al final.
+      {/* LA HISTORIA, EN TRES TIEMPOS — «que sea más como un storytelling, para darle
+          seguimiento visual rápido a todo» (Angel, 2026-09-29). Primero EL VIAJE (la
+          línea de la puerta al álbum, que absorbe al embudo y a la pasarela que contaban
+          lo mismo partido en dos), después HOY (el pulso del día contra la semana), y
+          después EL RITMO (los 14 días de las tres series, columna a columna). */}
+      <h4>El viaje · de la puerta al álbum</h4>
+      <Viaje f={d.funnel} u={u} />
 
-          Va primero y sin párrafo que lo introduzca: los cuatro rótulos ya dicen qué es, y
-          el panel existe para esto — «no cuánta gente entra, sino cuánta vuelve».
-
-          Absorbe además cuatro de los seis textos sueltos que estaban más abajo repitiendo
-          parte de esto. Un bloque menos, no uno más. */}
-      <div className="cuadros">
-        <Cuadro valor={u.total} rotulo="Se anotaron" pie={u.altas7 ? `+${u.altas7} esta semana` : 'ninguna esta semana'} />
-        <Cuadro valor={u.conCartas} rotulo="Cargaron cartas" de={u.total} />
-        <Cuadro valor={u.volvieron} rotulo="Volvieron otro día" de={u.total} />
-        <Cuadro valor={u.conApp} rotulo="La instalaron" de={u.total} />
+      {/* HOY, con su comparación honesta: cada cuadro dice la semana en el pie, y la
+          semana anterior sale de las MISMAS series de 14 días que dibuja el ritmo — no
+          hay un segundo cálculo que pueda divergir. */}
+      <h4>Hoy</h4>
+      <div className={`cuadros chicos${v14 ? ' tres' : ''}`}>
+        {v14 && <Cuadro valor={d.funnel.visitors.today} rotulo="Pasaron por la puerta"
+                        pie={`semana: ${sumar(v14.slice(7))} · anterior: ${sumar(v14.slice(0, 7))}`} />}
+        <Cuadro valor={u.activosHoy} rotulo="Usaron la app"
+                pie={`semana: ${u.activos7} personas`} />
+        <Cuadro valor={u.altasHoy ?? 0} rotulo="Cuentas nuevas"
+                pie={a14 ? `semana: ${sumar(a14.slice(7))} · anterior: ${sumar(a14.slice(0, 7))}` : undefined} />
       </div>
 
-      {/* EL PULSO, aparte y más chico. Es el «ahora» y no lo acumulado, así que no puede ir
-          en la misma grilla: seis cuadros iguales se leen como una pared y se pierde cuál
-          contesta qué. El salto de tamaño es lo que dice que son secundarios — no un
-          `opacity`, que en este proyecto está prohibido sobre texto. */}
-      <div className="cuadros chicos">
-        <Cuadro valor={u.activosHoy} rotulo="La usaron hoy" />
-        <Cuadro valor={u.activos7} rotulo="La usaron esta semana" />
-      </div>
+      {/* EL RITMO: las tres series con las columnas ALINEADAS, para que un día se lea en
+          vertical. Reemplaza a las tres tiras sueltas con tres ejes repetidos. */}
+      {hoy14 && (
+        <>
+          <h4>El ritmo · últimos 14 días</h4>
+          <Ritmo hoy={hoy14} filas={filasRitmo} />
+        </>
+      )}
 
-      {/* LA PASARELA: el tramo de ANTES de tener cuenta, que hasta el 2026-09-29 no se
-          medía taxativamente — el propio panel decía «no hay denominador». Ahora lo hay:
-          contadores anónimos de la landing (`temprano.js`) y de la llegada al formulario
-          (`Entrar.jsx`, con el `?f=` de cada botón). Son VISITAS y no personas —sin IPs
-          ni cookies no hay forma de deduplicar, y está bien que no la haya— y el bloque
-          lo dice con esas palabras.
-
-          Sólo se dibuja si el back ya lo manda (`funnel` en null = back viejo), y sus
-          «se anotaron» son las altas DESDE que la pasarela existe: contra las históricas
-          la conversión sería absurda.
-
-          Y LA TIRA DE ALTAS VUELVE, acá adentro. El «altas por día» vertical se fue por
-          pedido de Angel («cada vez más largo»); esto es otra cosa — la misma tira FIJA
-          de 14 columnas del uso, que él pidió de vuelta el 2026-09-29 («faltan gráficos
-          de registros»). El campo `porDia` seguía viniendo del servidor a propósito. */}
-      {d.funnel && <Pasarela f={d.funnel} porDia={d.porDia ?? []} />}
+      {d.funnel?.visitors && d.funnel.visitors.devices.length > 0 && (
+        <>
+          <h4>Por aparato</h4>
+          <div className="grupo">
+            {d.funnel.visitors.devices.map((x) => (
+              <Barra key={x.device} rotulo={APARATOS[x.device] ?? x.device} valor={x.n}
+                     techo={d.funnel.visitors.total}
+                     nota={`${Math.round((x.n / d.funnel.visitors.total) * 100)}%`} />
+            ))}
+          </div>
+        </>
+      )}
 
       {cohortes.length > 0 && (
         <>
@@ -461,32 +476,9 @@ function Cuerpo({ d, colecciones }) {
         </>
       )}
 
-      {/* LOS CATORCE DÍAS, EN UNA TIRA Y NO EN CATORCE RENGLONES. Acá había DOS listas
-          verticales casi idénticas y pegadas —«La usaron, por día» y «Altas por día»— que
-          juntas se comían dos pantallas de teléfono para mostrar veintiocho números de un
-          dígito. Angel: «el "Lo usaron por día" es realmente una poronga» y «el gráfico de
-          altas por día cada vez más largo». Es el mismo problema: catorce barras apiladas
-          verticalmente son la forma equivocada para una serie de tiempo, que se lee de
-          izquierda a derecha.
-
-          SE VA «ALTAS POR DÍA» ENTERO, y es lo que más achica el panel. Mide cuánta gente
-          LLEGA, que es textualmente lo que el CLAUDE.md dice que NO es la pregunta de este
-          panel; hace un pico el día que se comparte el enlace y después nada, o sea catorce
-          renglones para dibujar trece ceros; y lo que de verdad se quiere saber de las
-          altas —cuántas esta semana— ya está en el primer cuadro. El servidor sigue
-          mandando `porDia`: sacar un campo de la respuesta es un cambio en dos pasos, y
-          éste es el primero.
-
-          CATORCE COLUMNAS FIJAS, no una por día que vino, y eso arregla una mentira que
-          había: la consulta no devuelve los días sin nadie, así que la lista los omitía y
-          dos días separados por una semana salían pegados pareciendo consecutivos. Un día
-          sin nadie ahora se dibuja: un tope finito, que se ve. */}
-      {actividad.length > 0 && (
-        <>
-          <h4>La usaron, últimos 14 días</h4>
-          <Tira dias={actividad} />
-        </>
-      )}
+      {/* «La usaron, últimos 14 días» vivió acá como tira suelta y se mudó al RITMO de
+          arriba, alineada con la puerta y las altas: tres gráficos con el mismo eje se
+          leen como una historia; tres tiras con tres ejes, no. */}
 
       <h4>Las cartas</h4>
       {/* TODO LO DE CARTAS, JUNTO. Antes «Qué colección usan» estaba entre el embudo y las
@@ -495,7 +487,10 @@ function Cuerpo({ d, colecciones }) {
           colección usan" está acomodado medio mal». Van juntos y después de la gente,
           porque el cuello de botella no es cuántas cartas hay. */}
       {porCol && (
-        <div className="grupo">
+        /* `colecciones` además de `grupo`: la dualidad dorado/azul del CSS es SÓLO de
+           este bloque — puesta sobre `.grupo` a secas, teñía de azul renglón por medio
+           a los aparatos, donde el azul no significa nada. */
+        <div className="grupo colecciones">
           {porCol.map((c) => (
             /* SIN porcentaje, a propósito: acá `cartas` son las filas de TODA la gente
                sumadas, y dividirlas por los huecos de un álbum no significa nada — con

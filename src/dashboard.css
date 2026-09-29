@@ -222,16 +222,87 @@ body:has(.pagina-panel) {
 .numeros .cuadros.chicos.tres { grid-template-columns: repeat(3, minmax(0, 200px)); }
 .numeros .cuadros.chicos .cuadro b { font-size: 20px; }
 
-/* --------------------------------- la tira -------------------------------- */
-/* Catorce días de izquierda a derecha, que es como se lee una serie de tiempo. Antes eran
-   DOS listas verticales de catorce renglones, pegadas y casi iguales, que juntas se comían
-   dos pantallas de teléfono para mostrar veintiocho números de un dígito. */
-.numeros .tira { margin: 0 0 18px; }
-/* El rótulo de una tira cuando hay más de una seguida (la pasarela lleva dos). Más
-   callado que el h4: es un sub-renglón, no una sección. */
-.numeros .tira-cabeza { margin: 14px 0 6px; font-size: 12px; font-weight: 600; color: var(--p-text2); }
-.numeros .tira-resumen { margin: 0 0 8px; font-size: 13px; color: var(--p-text2); }
-.numeros .tira-resumen b { color: var(--p-text); font-variant-numeric: tabular-nums; }
+/* ------------------------------- el viaje --------------------------------- */
+/* La historia como UNA línea: siete estaciones sobre una espina, de la puerta al álbum.
+   Absorbió al embudo y a la pasarela, que contaban lo mismo partido en dos grillas.
+   La espina es `--p-line` y los nodos dorados; el nodo de la COSTURA —donde la escala
+   cambia de «desde que se mide» a «todas las épocas»— va en el azul de Leyenda, para que
+   el cambio de régimen se vea sin leer. */
+.numeros .viaje { list-style: none; margin: 0 0 8px; padding: 0; }
+.numeros .viaje li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 14px;
+  padding: 8px 0 8px 24px;
+}
+/* El tramo de línea de cada estación; la primera arranca en su nodo y la última muere
+   en el suyo. */
+.numeros .viaje li::before {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--p-line);
+}
+.numeros .viaje li:first-child::before { top: 50%; }
+.numeros .viaje li:last-child::before { bottom: 50%; }
+.numeros .viaje li::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 50%;
+  margin-top: -5px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--p-gold);
+  /* El halo del color del fondo separa el nodo de la línea, como una estación de subte. */
+  box-shadow: 0 0 0 3px var(--p-bg);
+}
+.numeros .viaje b {
+  font-family: Anton, 'Arial Narrow', system-ui, sans-serif;
+  font-weight: 400;
+  font-size: 24px;
+  color: var(--p-text);
+  text-align: right;
+}
+.numeros .viaje-que { display: flex; flex-direction: column; min-width: 0; }
+.numeros .viaje-rotulo { font-size: 13.5px; font-weight: 600; color: var(--p-text2); }
+.numeros .viaje-nota { font-size: 11.5px; color: var(--p-text3); }
+.numeros .viaje-conv {
+  font-style: normal;
+  font-size: 12px;
+  color: var(--p-gold);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* La costura: el renglón que avisa el cambio de escala ocupa su propia fila del grid, y
+   el nodo se corre para seguir centrado en la estación de verdad. */
+.numeros .viaje li.corte { margin-top: 10px; }
+.numeros .viaje li.corte::after { background: var(--p-blue); top: calc(50% + 9px); }
+.numeros .viaje-costura {
+  grid-column: 1 / -1;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--p-text3);
+}
+
+/* -------------------------------- el ritmo -------------------------------- */
+/* Las series de 14 días una arriba de la otra con las columnas ALINEADAS: cada día se
+   lee en vertical. La alineación no es magia: todas las filas (y el eje) usan la misma
+   caja flex con los mismos anchos. Cada fila escala contra SU máximo y el renglón lo
+   dice — compartir escala aplastaría a la serie chica. */
+.numeros .ritmo { margin: 0 0 18px; }
+.numeros .ritmo-renglon { margin: 10px 0 4px; font-size: 12.5px; color: var(--p-text2); }
+.numeros .ritmo-renglon b { color: var(--p-text); font-variant-numeric: tabular-nums; }
+.numeros .ritmo .tira-barras { height: 42px; }
+.numeros .ritmo-eje { height: auto; margin-top: 2px; }
 .numeros .tira-barras { display: flex; align-items: flex-end; gap: 4px; height: 62px; }
 .numeros .tira-dia {
   flex: 1 1 0;
@@ -301,8 +372,10 @@ body:has(.pagina-panel) {
    cuadros del cierre. No es «un color por métrica»: son los DOS álbumes, y la landing ya
    estableció qué color es cada época. OJO: va por posición (par = segunda colección),
    porque el orden sale de COLLECTIONS y es estable; una tercera colección volvería al
-   dorado y habría que darle su renglón acá. */
-.numeros .grupo .renglon:nth-child(even) .relleno { background: var(--p-blue); }
+   dorado y habría que darle su renglón acá.
+   Y va sobre `.colecciones`, NO sobre `.grupo` a secas: puesta ahí teñía de azul renglón
+   por medio al reparto por aparato, donde el azul no quiere decir nada. */
+.numeros .grupo.colecciones .renglon:nth-child(even) .relleno { background: var(--p-blue); }
 .numeros .renglon b { text-align: right; font-variant-numeric: tabular-nums; color: var(--p-text); }
 .numeros .renglon-nota { color: var(--p-text3); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
