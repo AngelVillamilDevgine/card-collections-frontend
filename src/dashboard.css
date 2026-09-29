@@ -139,6 +139,40 @@ body:has(.pagina-panel) {
 .panel-cabecera .volver:hover { border-color: var(--p-gold); color: var(--p-gold); }
 .panel-cabecera .volver:focus-visible { outline: 2px solid var(--p-gold); outline-offset: 2px; }
 
+/* EL FILTRO DE PERÍODO: cuatro píldoras pegadas, el elegido en dorado macizo con tinta
+   oscura — el mismo trato que el CTA de la landing, porque acá también es «lo único
+   dorado macizo en escena». En escritorio va a la derecha; en angosto baja a su propia
+   fila del header pegajoso, que para eso envuelve. */
+.panel-cabecera { flex-wrap: wrap; }
+.periodos { display: flex; gap: 4px; margin-left: auto; }
+.periodos button {
+  padding: 6px 12px;
+  border: 1px solid var(--p-line);
+  border-radius: 999px;
+  background: var(--p-card);
+  color: var(--p-text2);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.periodos button:hover { border-color: var(--p-gold); color: var(--p-gold); }
+.periodos button:focus-visible { outline: 2px solid var(--p-gold); outline-offset: 2px; }
+.periodos button.activo {
+  background: var(--p-gold);
+  border-color: var(--p-gold);
+  color: #1c1508;
+}
+
+/* Con más de 16 columnas (el mes) las barras se aprietan y el eje rotula de a cinco. */
+.numeros .tira-barras.apretado { gap: 2px; }
+.numeros .tira-barras.apretado .tira-dia { max-width: 22px; }
+.numeros .ritmo-eje.apretado em { font-size: 9px; }
+
+/* Los cuatro totales históricos, chicos: contexto, no historia. */
+.numeros .cuadros.chicos.cuatro { grid-template-columns: repeat(4, minmax(0, 170px)); }
+
 /* El cuerpo con un ancho cómodo de lectura y su canaleta a los costados. La canaleta va
    acá y no en `.pagina-panel`, para que la cabecera pegajosa llegue de borde a borde. */
 .panel-cuerpo {

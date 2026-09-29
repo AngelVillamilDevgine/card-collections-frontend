@@ -114,45 +114,50 @@ function Cuadro({ valor, rotulo, de, pie, chico }) {
   )
 }
 
-/* LOS CATORCE DÍAS, FIJOS Y COMPARTIDOS. Las columnas salen de las fechas y no de las
-   filas que devolvió la consulta: el servidor no manda los días sin nadie, y omitiéndolos
-   dos días separados por una semana quedaban pegados pareciendo consecutivos. El `hoy` se
-   pasa de afuera para que TODAS las series del ritmo compartan el mismo eje: si cada una
-   armara el suyo con su última fecha, una serie sin datos de hoy correría sus columnas un
-   día y el ritmo compararía miércoles con jueves sin avisar. */
-function fill14(serie, hoy) {
-  const porFecha = new Map(serie.map((x) => [x.dia, x.n]))
-  const catorce = []
-  const base = new Date(`${hoy}T12:00:00Z`)
-  for (let i = 13; i >= 0; i--) {
-    const f = new Date(base)
-    f.setUTCDate(f.getUTCDate() - i)
-    const clave = f.toISOString().slice(0, 10)
-    catorce.push({ dia: clave, n: porFecha.get(clave) ?? 0 })
-  }
-  return catorce
+/* LOS DÍAS DE UN RANGO, FIJOS Y COMPARTIDOS. Las columnas salen de las fechas y no de
+   las filas que devolvió la consulta: el servidor no manda los días sin nadie, y
+   omitiéndolos dos días separados por una semana quedaban pegados pareciendo
+   consecutivos. A mediodía UTC para que ningún huso corra el día. */
+const addDays = (s, n) => {
+  const d = new Date(`${s}T12:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + n)
+  return d.toISOString().slice(0, 10)
 }
 
-const sumar = (dias) => dias.reduce((a, x) => a + x.n, 0)
+function daysBetween(desde, hasta) {
+  const out = []
+  const fin = new Date(`${hasta}T12:00:00Z`)
+  for (const d = new Date(`${desde}T12:00:00Z`); d <= fin; d.setUTCDate(d.getUTCDate() + 1)) {
+    out.push(d.toISOString().slice(0, 10))
+  }
+  return out
+}
 
-/* EL RITMO: las series de 14 días una ARRIBA de la otra, con las columnas alineadas —
+/* EL RITMO: las series del período una ARRIBA de la otra, con las columnas alineadas —
    así cada día se lee en vertical («el jueves pasó algo en la puerta Y adentro») en vez
-   de saltar entre tres gráficos con ejes distintos. Cada fila escala contra su propio
-   máximo, y su renglón lo dice; el eje de días va UNA vez, abajo. La alineación no es
-   casualidad: todas las filas usan la misma caja flex con los mismos anchos. */
-function Ritmo({ hoy, filas }) {
+   de saltar entre gráficos con ejes distintos. El rango lo pone el filtro: 7 columnas la
+   semana, el mes corrido o el mes pasado entero. Cada fila escala contra su propio
+   máximo, y su renglón lo dice; el eje de días va UNA vez, abajo. Con más de 16 columnas
+   el eje rotula día por medio de a cinco (1, 5, 10…): a 412 px, 31 números de dos cifras
+   no entran y un eje ilegible es peor que uno ralo. */
+function Ritmo({ desde, hasta, hoyReal, filas }) {
+  const dias = daysBetween(desde, hasta)
+  const apretado = dias.length > 16
+  const rotulaEje = (d) => !apretado || Number(d.slice(8, 10)) % 5 === 1 || d === dias[dias.length - 1]
   return (
     <div className="ritmo">
       {filas.map((f) => {
-        const catorce = fill14(f.dias, hoy)
-        const pico = Math.max(1, ...catorce.map((x) => x.n))
+        const porFecha = new Map(f.dias.map((x) => [x.dia, x.n]))
+        const serie = dias.map((d) => ({ dia: d, n: porFecha.get(d) ?? 0 }))
+        const pico = Math.max(1, ...serie.map((x) => x.n))
+        const ultimo = serie[serie.length - 1]
         return (
           <div key={f.rotulo}>
             <p className="ritmo-renglon">
-              {f.rotulo} · hoy <b>{catorce[13].n}</b> · máximo <b>{pico}</b>
+              {f.rotulo} · {ultimo.dia === hoyReal ? 'hoy' : `el ${dia(ultimo.dia)}`} <b>{ultimo.n}</b> · máximo <b>{pico}</b>
             </p>
-            <div className="tira-barras">
-              {catorce.map((x) => (
+            <div className={`tira-barras${apretado ? ' apretado' : ''}`}>
+              {serie.map((x) => (
                 <span key={x.dia} className="tira-dia"
                       title={`${dia(x.dia)}: ${x.n} ${f.unidad[x.n === 1 ? 0 : 1]}`}>
                   <span className="tira-barra" style={{ height: `${Math.max(2, (x.n / pico) * 100)}%` }} />
@@ -162,10 +167,10 @@ function Ritmo({ hoy, filas }) {
           </div>
         )
       })}
-      <div className="tira-barras ritmo-eje" aria-hidden="true">
-        {fill14([], hoy).map((x) => (
-          <span key={x.dia} className={`tira-dia${x.dia === hoy ? ' hoy' : ''}`}>
-            <em>{x.dia.slice(8, 10)}</em>
+      <div className={`tira-barras ritmo-eje${apretado ? ' apretado' : ''}`} aria-hidden="true">
+        {dias.map((x) => (
+          <span key={x} className={`tira-dia${x === hoyReal ? ' hoy' : ''}`}>
+            <em>{rotulaEje(x) ? x.slice(8, 10) : ''}</em>
           </span>
         ))}
       </div>
@@ -202,23 +207,61 @@ function Viaje({ f, u }) {
   nodos.push({ n: u.volvieron, rotulo: 'Volvieron otro día', conv: pct(u.volvieron, u.total), deCuentas: true })
   nodos.push({ n: u.conApp, rotulo: 'La instalaron', nota: 'el paso que más hace volver', conv: pct(u.conApp, u.total), deCuentas: true })
 
+  return <Espina nodos={nodos} />
+}
+
+/* La espina compartida: la dibujan el viaje histórico (cuando el back no manda períodos)
+   y el del período. Un nodo con `costura` abre su renglón de cambio de régimen. */
+function Espina({ nodos }) {
   return (
     <ol className="viaje">
       {nodos.map((x) => (
-        <li key={x.rotulo} className={x.corte ? 'corte' : undefined}>
-          {x.corte && <span className="viaje-costura">acá se suma la historia previa a la medición</span>}
+        <li key={x.rotulo} className={x.costura || x.corte ? 'corte' : undefined}>
+          {(x.costura || x.corte) && (
+            <span className="viaje-costura">{x.costura ?? 'acá se suma la historia previa a la medición'}</span>
+          )}
           <b>{x.n.toLocaleString('es-AR')}</b>
           <div className="viaje-que">
             <span className="viaje-rotulo">{x.rotulo}</span>
             {x.nota && <span className="viaje-nota">{x.nota}</span>}
           </div>
-          {/* La conversión es contra el paso ANTERIOR en las de la puerta, y contra el
-              total de cuentas en las de adentro — que es el mismo «de 42» de siempre. */}
           {x.conv != null && <i className="viaje-conv">{x.conv}%{x.deCuentas ? ' de las cuentas' : ''}</i>}
         </li>
       ))}
     </ol>
   )
+}
+
+/* EL VIAJE DEL PERÍODO — y acá la costura vieja DESAPARECE: con el filtro puesto, todas
+   las estaciones se miden en la MISMA ventana y la historia queda en una sola escala,
+   que era justo lo que el viaje histórico no podía tener. Queda una costura más suave
+   («adentro, mientras tanto»): las dos primeras poblaciones son el flujo de afuera y las
+   dos últimas la vida adentro — no son el mismo río, y decirlo evita leer «usaron la
+   app» como si fuera un paso del embudo de conversión.
+
+   Cada estación lleva su «antes»: el período equivalente anterior (ayer, la semana
+   previa, el MISMO TRAMO del mes pasado), que calcula el servidor. */
+function ViajePeriodo({ p }) {
+  const pct = (a, b) => (b > 0 ? Math.round((a / b) * 100) : null)
+  const antes = (n) => `antes: ${n.toLocaleString('es-AR')}`
+  const nodos = [
+    {
+      n: p.visitors, rotulo: 'Pasaron por la puerta',
+      nota: `${p.visitorsNew} por primera vez · ${p.landing} cargas · ${antes(p.antes.visitors)}`,
+    },
+    { n: p.toSignup, rotulo: 'Salieron a anotarse', nota: antes(p.antes.toSignup), conv: pct(p.toSignup, p.visitors) },
+    { n: p.signups, rotulo: 'Se anotaron', nota: antes(p.antes.signups), conv: pct(p.signups, p.toSignup) },
+    {
+      n: p.usedApp, rotulo: 'Usaron la app', costura: 'adentro, mientras tanto',
+      nota: `cuentas de cualquier época · ${antes(p.antes.usedApp)}`,
+    },
+    {
+      n: p.moved.gente, rotulo: 'Movieron cartas',
+      nota: `${p.moved.cartas.toLocaleString('es-AR')} ${p.moved.cartas === 1 ? 'carta tocada' : 'cartas tocadas'} · ${antes(p.antes.moved.gente)}`,
+      conv: pct(p.moved.gente, p.usedApp),
+    },
+  ]
+  return <Espina nodos={nodos} />
 }
 
 function Barra({ rotulo, valor, techo, nota, flaca }) {
@@ -244,9 +287,26 @@ function Barra({ rotulo, valor, techo, nota, flaca }) {
    leyenda» — y tenía razón hasta el fondo: la columna «Álbum» dividía las filas de cada
    persona por la suma de los DOS catálogos, así que tener Cromeros entero se dibujaba
    como 64%. */
+/* Los cuatro períodos del filtro. El id es el del campo `periodos` del servidor. */
+const PERIODOS = [['hoy', 'Hoy'], ['semana', '7 días'], ['mes', 'Este mes'], ['mesPasado', 'Mes pasado']]
+const CLAVE_PERIODO = 'dbz-cromeros-panel-periodo'
+
 export default function Estadisticas({ onCerrar, onSesionMuerta, colecciones }) {
   const [datos, setDatos] = useState(null)
   const [error, setError] = useState(null)
+  /* El período elegido se recuerda en el aparato, como las expansiones plegadas: es una
+     preferencia de ESTE dispositivo, no un dato. Un valor viejo o inventado cae a la
+     semana, que es el que sirve para decidir. */
+  const [periodo, setPeriodo] = useState(() => {
+    try {
+      const g = localStorage.getItem(CLAVE_PERIODO)
+      return PERIODOS.some(([id]) => id === g) ? g : 'semana'
+    } catch { return 'semana' }
+  })
+  const elegir = (id) => {
+    setPeriodo(id)
+    try { localStorage.setItem(CLAVE_PERIODO, id) } catch { /* modo privado */ }
+  }
   const titulo = useRef(null)
   /* Quién tenía el foco antes de abrir, leído en el render: para cuando corren los
      efectos, el autoFocus del diálogo ya se lo llevó. */
@@ -296,37 +356,60 @@ export default function Estadisticas({ onCerrar, onSesionMuerta, colecciones }) 
         </button>
         {/* `tabIndex={-1}` para poder enfocarlo al entrar sin meterlo en el orden del Tab. */}
         <h1 tabIndex={-1} ref={titulo}>Los números</h1>
+        {/* EL FILTRO DE PERÍODO, EN LA CABECERA PEGAJOSA: filtra todo lo que es serie de
+            tiempo, así que tiene que estar a la vista mientras se scrollea. Sólo aparece
+            si el back ya manda los períodos. */}
+        {datos?.periodos && (
+          <div className="periodos" role="group" aria-label="Período">
+            {PERIODOS.map(([id, rotulo]) => (
+              <button key={id} type="button" aria-pressed={periodo === id}
+                      className={periodo === id ? 'activo' : undefined}
+                      onClick={() => elegir(id)}>
+                {rotulo}
+              </button>
+            ))}
+          </div>
+        )}
       </header>
       <div className="panel-cuerpo numeros">
         {error && <p className="nada">{error}</p>}
         {!datos && !error && <p className="nada">Buscando…</p>}
-        {datos && <Cuerpo d={datos} colecciones={colecciones ?? []} />}
+        {datos && <Cuerpo d={datos} colecciones={colecciones ?? []} periodo={periodo} />}
       </div>
     </div>
   )
 }
 
-function Cuerpo({ d, colecciones }) {
+function Cuerpo({ d, colecciones, periodo }) {
   const { usuarios: u, cartas,  gente } = d
 
   const cohortes = d.cohortes ?? []
 
-  /* LAS TRES SERIES DEL RITMO, sobre un MISMO eje de 14 días. El «hoy» compartido es el
-     último día que aparezca en cualquiera de las tres: si cada una armara su propio eje
-     con su última fecha, una serie sin datos de hoy correría sus columnas un día y el
-     ritmo compararía miércoles con jueves sin avisar. */
+  /* EL PERÍODO ELEGIDO, si el back ya lo manda. Sin `periodos` (back viejo) el panel cae
+     al viaje histórico y al ritmo de 14 días, que es lo que había. */
+  const p = d.periodos?.[periodo] ?? null
+
+  /* LAS TRES SERIES DEL RITMO. El rango lo pone el filtro; sin filtro, los últimos 14
+     días terminando en el último día que aparezca en CUALQUIERA de las tres — si cada
+     una armara su eje, una serie sin datos de hoy correría sus columnas un día. */
   const seriePuerta = d.funnel?.visitors?.days ?? null
   const serieAdentro = (d.actividad ?? []).map((x) => ({ dia: x.dia, n: x.personas }))
   const serieAltas = (d.porDia ?? []).map((x) => ({ dia: x.dia, n: x.cuantos }))
-  const hoy14 = [...(seriePuerta ?? []), ...serieAdentro, ...serieAltas]
+  const ultimoDia = [...(seriePuerta ?? []), ...serieAdentro, ...serieAltas]
     .map((x) => x.dia).sort().at(-1) ?? null
-  const v14 = hoy14 && seriePuerta ? fill14(seriePuerta, hoy14) : null
-  const a14 = hoy14 ? fill14(serieAltas, hoy14) : null
+  const hoyReal = d.periodos?.hoy?.hasta ?? ultimoDia
+  const rangoRitmo = p
+    ? (periodo === 'hoy' ? null : { desde: p.desde, hasta: p.hasta })
+    : ultimoDia ? { desde: addDays(ultimoDia, -13), hasta: ultimoDia } : null
   const filasRitmo = [
     ...(seriePuerta ? [{ rotulo: 'En la puerta', unidad: ['persona', 'personas'], dias: seriePuerta }] : []),
     { rotulo: 'Adentro, usando la app', unidad: ['persona', 'personas'], dias: serieAdentro },
     { rotulo: 'Cuentas nuevas', unidad: ['alta', 'altas'], dias: serieAltas },
   ]
+
+  /* Aparatos: del período cuando hay filtro, del total histórico cuando no. */
+  const aparatos = p ? { devices: p.devices, total: p.visitors } :
+    d.funnel?.visitors ? { devices: d.funnel.visitors.devices, total: d.funnel.visitors.total } : null
 
   /* Cada colección con lo que trajo el servidor. `porColeccion` puede venir en null si el
      back es más viejo que el front: entonces no se dibuja nada partido, que es mejor que
@@ -402,39 +485,47 @@ function Cuerpo({ d, colecciones }) {
           línea de la puerta al álbum, que absorbe al embudo y a la pasarela que contaban
           lo mismo partido en dos), después HOY (el pulso del día contra la semana), y
           después EL RITMO (los 14 días de las tres series, columna a columna). */}
+      {/* EL VIAJE, EN EL PERÍODO ELEGIDO. Con filtro, todas las estaciones comparten la
+          ventana y la historia va en una sola escala; sin `periodos` (back viejo) cae al
+          viaje histórico de siempre. El rótulo del filtro ya está en la cabecera. */}
       <h4>El viaje · de la puerta al álbum</h4>
-      <Viaje f={d.funnel} u={u} />
+      {p ? <ViajePeriodo p={p} /> : <Viaje f={d.funnel} u={u} />}
+      {p && p.toLogin > 0 && (
+        <p className="nada">Y {p.toLogin} con cuenta {p.toLogin === 1 ? 'llegó' : 'llegaron'} a entrar por la landing.</p>
+      )}
 
-      {/* HOY, con su comparación honesta: cada cuadro dice la semana en el pie, y la
-          semana anterior sale de las MISMAS series de 14 días que dibuja el ritmo — no
-          hay un segundo cálculo que pueda divergir. */}
-      <h4>Hoy</h4>
-      <div className={`cuadros chicos${v14 ? ' tres' : ''}`}>
-        {v14 && <Cuadro valor={d.funnel.visitors.today} rotulo="Pasaron por la puerta"
-                        pie={`semana: ${sumar(v14.slice(7))} · anterior: ${sumar(v14.slice(0, 7))}`} />}
-        <Cuadro valor={u.activosHoy} rotulo="Usaron la app"
-                pie={`semana: ${u.activos7} personas`} />
-        <Cuadro valor={u.altasHoy ?? 0} rotulo="Cuentas nuevas"
-                pie={a14 ? `semana: ${sumar(a14.slice(7))} · anterior: ${sumar(a14.slice(0, 7))}` : undefined} />
-      </div>
-
-      {/* EL RITMO: las tres series con las columnas ALINEADAS, para que un día se lea en
-          vertical. Reemplaza a las tres tiras sueltas con tres ejes repetidos. */}
-      {hoy14 && (
+      {/* LO DE SIEMPRE, aparte del período: los totales históricos que el viaje del
+          filtro ya no muestra. Chicos a propósito — son el contexto, no la historia. */}
+      {p && (
         <>
-          <h4>El ritmo · últimos 14 días</h4>
-          <Ritmo hoy={hoy14} filas={filasRitmo} />
+          <h4>Desde siempre</h4>
+          <div className="cuadros chicos cuatro">
+            <Cuadro valor={u.total} rotulo="Cuentas" pie={u.altas7 ? `+${u.altas7} esta semana` : undefined} />
+            <Cuadro valor={u.conCartas} rotulo="Con cartas" de={u.total} />
+            <Cuadro valor={u.volvieron} rotulo="Volvieron alguna vez" de={u.total} />
+            <Cuadro valor={u.conApp} rotulo="Con la app" de={u.total} />
+          </div>
         </>
       )}
 
-      {d.funnel?.visitors && d.funnel.visitors.devices.length > 0 && (
+      {/* EL RITMO: las series con las columnas ALINEADAS sobre el rango del filtro —
+          7 columnas la semana, el mes corrido, el mes pasado entero. Con «Hoy» no hay
+          nada que dibujar: un gráfico de una columna es un número disfrazado. */}
+      {rangoRitmo && (
+        <>
+          <h4>El ritmo · día por día</h4>
+          <Ritmo desde={rangoRitmo.desde} hasta={rangoRitmo.hasta} hoyReal={hoyReal} filas={filasRitmo} />
+        </>
+      )}
+
+      {aparatos && aparatos.devices.length > 0 && (
         <>
           <h4>Por aparato</h4>
           <div className="grupo">
-            {d.funnel.visitors.devices.map((x) => (
+            {aparatos.devices.map((x) => (
               <Barra key={x.device} rotulo={APARATOS[x.device] ?? x.device} valor={x.n}
-                     techo={d.funnel.visitors.total}
-                     nota={`${Math.round((x.n / d.funnel.visitors.total) * 100)}%`} />
+                     techo={aparatos.total}
+                     nota={`${Math.round((x.n / aparatos.total) * 100)}%`} />
             ))}
           </div>
         </>
