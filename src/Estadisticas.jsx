@@ -191,29 +191,24 @@ function Espina({ nodos }) {
 
    Cada estación lleva su «antes»: el período equivalente anterior (ayer, la semana
    previa, el MISMO TRAMO del mes pasado), que calcula el servidor. */
-/* El «antes» de cada filtro tiene nombre propio — «antes: 0» a secas obligaba a
-   preguntar antes de qué (preguntó Angel, que es la prueba). */
-const ANTES = { hoy: 'ayer', semana: 'sem. anterior', mes: 'mismo tramo del mes pasado', mesPasado: 'mes anterior' }
-
-function ViajePeriodo({ p, periodo }) {
+/* Acá hubo un «antes» espejo por estación (ayer / sem. anterior / mismo tramo…) y lo
+   sacó Angel el 2026-09-30: «no quiero gastar procesamiento al pedo» — eran cuatro
+   paquetes extra de COUNT(DISTINCT) por apertura. El back deja de calcularlos en el
+   paso dos; este front ya no los lee. */
+function ViajePeriodo({ p }) {
   const pct = (a, b) => (b > 0 ? Math.round((a / b) * 100) : null)
-  const antes = (n) => `${ANTES[periodo] ?? 'antes'}: ${n.toLocaleString('es-AR')}`
   /* Rótulos de DATO, no de relato — Angel: «quiero datos puros, es un dashboard». La
-     poesía quedó en la landing, que es donde vende. */
+     estación de arriba cuenta VISITANTES NUEVOS (primera vez de ese navegador), que es
+     el que entra al embudo — también pedido suyo: «4 / 4 nuevos» era el mismo número
+     dicho dos veces. Los aparatos siguen repartiendo sobre los únicos totales. */
   const nodos = [
-    {
-      n: p.visitors, rotulo: 'Visitantes únicos',
-      nota: `${p.visitorsNew} nuevos · ${p.landing} cargas · ${antes(p.antes.visitors)}`,
-    },
-    { n: p.toSignup, rotulo: 'Clicks a anotarse', nota: antes(p.antes.toSignup), conv: pct(p.toSignup, p.visitors) },
-    { n: p.signups, rotulo: 'Registros', nota: antes(p.antes.signups), conv: pct(p.signups, p.toSignup) },
-    {
-      n: p.usedApp, rotulo: 'Usuarios activos', costura: 'Actividad en la app',
-      nota: antes(p.antes.usedApp),
-    },
+    { n: p.visitorsNew, rotulo: 'Visitantes únicos nuevos', nota: `${p.landing} cargas` },
+    { n: p.toSignup, rotulo: 'Clicks a anotarse', conv: pct(p.toSignup, p.visitorsNew) },
+    { n: p.signups, rotulo: 'Registros', conv: pct(p.signups, p.toSignup) },
+    { n: p.usedApp, rotulo: 'Usuarios activos', costura: 'Actividad en la app' },
     {
       n: p.moved.gente, rotulo: 'Movieron cartas',
-      nota: `${p.moved.cartas.toLocaleString('es-AR')} ${p.moved.cartas === 1 ? 'carta' : 'cartas'} · ${antes(p.antes.moved.gente)}`,
+      nota: `${p.moved.cartas.toLocaleString('es-AR')} ${p.moved.cartas === 1 ? 'carta' : 'cartas'}`,
       conv: pct(p.moved.gente, p.usedApp),
     },
   ]
@@ -339,7 +334,6 @@ export default function Estadisticas({ onCerrar, onSesionMuerta, colecciones }) 
 function Cuerpo({ d, colecciones, periodo }) {
   const { usuarios: u, cartas,  gente } = d
 
-  const cohortes = d.cohortes ?? []
 
   /* EL PERÍODO ELEGIDO, si el back ya lo manda. Sin `periodos` (back viejo) el panel cae
      al embudo histórico, que es lo que había. */
@@ -424,7 +418,7 @@ function Cuerpo({ d, colecciones, periodo }) {
           la conversión va en una sola escala; sin `periodos` (back viejo) cae al embudo
           histórico. Títulos de dato y no de relato — Angel: «quiero datos puros». */}
       <h4>Embudo</h4>
-      {p ? <ViajePeriodo p={p} periodo={periodo} /> : <Viaje f={d.funnel} u={u} />}
+      {p ? <ViajePeriodo p={p} /> : <Viaje f={d.funnel} u={u} />}
       {p && p.toLogin > 0 && (
         <p className="nada">Logins desde la landing: {p.toLogin}</p>
       )}
@@ -458,45 +452,12 @@ function Cuerpo({ d, colecciones, periodo }) {
         </>
       )}
 
-      {cohortes.length > 0 && (
-        <>
-          <h4>Semana por semana</h4>
-          {/* Sube acá, de sexta a segunda: es lo único del panel que contesta «¿está
-              mejorando?», que es la pregunta que sigue al embudo. Antes estaba debajo de
-              dos bloques de cartas.
-
-              Un total acumulado no sirve mientras la app crece: cada semana entra gente que
-              todavía no tuvo tiempo de volver, así que el promedio baja solo aunque nada
-              empeore. Por semana de alta sí se puede comparar una contra otra.
-
-              Y SE LE SACAN LOS PORCENTAJES. Con cohortes de cinco a ocho personas, «43%» es
-              una precisión inventada: el denominador está en la columna de al lado y
-              «7 / 3 / 1» alineado se lee solo. De paso desaparece el lugar donde el número
-              y el porcentaje se veían pegados. */}
-          <div className="tablon">
-            <table className="gente">
-              <thead>
-                <tr><th>Semana</th><th>Entraron</th><th>Cargaron</th><th>Volvieron</th></tr>
-              </thead>
-              <tbody>
-                {cohortes.map((c) => (
-                  <tr key={c.semana}>
-                    <td>{dia(c.semana)}</td>
-                    <td>{c.gente}</td>
-                    <td>{c.cargaron}</td>
-                    <td>{c.volvieron}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <p className="nada">Antes del 18/09 los días de uso quedan cortos.</p>
-        </>
-      )}
-
-      {/* «La usaron, últimos 14 días» vivió acá como tira suelta y se mudó al RITMO de
-          arriba, alineada con la puerta y las altas: tres gráficos con el mismo eje se
-          leen como una historia; tres tiras con tres ejes, no. */}
+      {/* ACÁ VIVIERON «Semana por semana» (las cohortes) y antes la tira de uso, y los
+          dos se extinguieron el 2026-09-30 por lo mismo: con el embudo filtrado por
+          período se leían como la misma información repetida — lo marcó Angel. El
+          servidor sigue mandando `cohortes` (dos pasos). Si algún día vuelve la
+          pregunta de las camadas («¿las cohortes nuevas retienen mejor?»), esa tabla es
+          la respuesta y está a un git log de distancia. */}
 
       <h4>Las cartas</h4>
       {/* TODO LO DE CARTAS, JUNTO. Antes «Qué colección usan» estaba entre el embudo y las
