@@ -32,13 +32,13 @@
  * Si alguna vez se reintenta, la prueba es esa: que el tiempo hasta las CARTAS mejore en
  * dos experimentos seguidos, no en uno.
  *
- * HACE DOS COSAS y las dos tienen que vivir acá: atrapar `beforeinstallprompt` (que se
- * dispara una vez y muy temprano) y el pulso de la landing — que no puede ir en el bundle
- * porque la landing NO carga el bundle, y no amerita un archivo propio: sería otro pedido
- * en la única página que ve un desconocido. Cualquier otra cosa va en otro lado.
- *
- * Y ojo al agregar: `})()` seguido de `(function` en el renglón siguiente no recibe punto
- * y coma automático y la segunda IIFE se lee como una llamada al resultado de la primera.
+ * No hace nada más. El pulso de la landing VIVIÓ acá unas horas y se mudó a `resume.js`,
+ * y no fue una preferencia: al que tiene sesión resume lo redirige en su primer renglón
+ * útil, y este script es async — perdía la carrera y el beacon del que ya entró no salía
+ * nunca. Si algún día hace falta que esto haga otra cosa, casi seguro que va en otro
+ * lado — y si igual va acá, ojo: `})()` seguido de `(function` en el renglón siguiente no
+ * recibe punto y coma automático y la segunda IIFE se lee como una llamada al resultado
+ * de la primera.
  */
 ;(function () {
   window.__dbzInstalador = null
@@ -54,28 +54,4 @@
   window.addEventListener('appinstalled', function () {
     window.__dbzInstalador = null
   })
-})()
-
-;(function () {
-  /* EL PULSO DE LA LANDING: una visita anónima para la pasarela del panel — sin IPs, sin
-     cookies, sin identificadores. Cuenta sólo cuando este documento ES la landing (que
-     además es el 404 del sitio): las dos páginas de la app son archivos concretos y se
-     excluyen por camino. Y sólo sin sesión y fuera de la app instalada — el que ya entró
-     se cuenta en `visita`, y además `resume.js` lo está redirigiendo en este mismo
-     instante: contarlo acá inflaría la landing con gente que no la ve.
-
-     El cuerpo es texto plano a propósito: el POST queda como pedido simple y no paga el
-     OPTIONS previo. La dirección de la API está escrita acá igual que en
-     `almacenamiento.js` — este archivo es estático y no puede importarla. */
-  if (location.pathname === '/login' || location.pathname === '/collection') return
-  var conSesion = false
-  try { conSesion = !!localStorage.getItem('dbz-cromeros-token') } catch (e) {}
-  var instalada = false
-  try {
-    instalada = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) ||
-      navigator.standalone === true
-  } catch (e) {}
-  if (conSesion || instalada || !navigator.sendBeacon) return
-  var api = /(^|\.)cromeros\.com\.ar$/.test(location.hostname) ? 'https://api.cromeros.com.ar' : ''
-  try { navigator.sendBeacon(api + '/api/pulse', 'landing') } catch (e) {}
 })()

@@ -157,6 +157,70 @@ function Tira({ dias, unidad = ['persona', 'personas'] }) {
   )
 }
 
+/* Cómo se llama cada aparato. La clasificación gruesa la hace el servidor sobre el
+   User-Agent (sin guardarlo crudo); acá sólo se le pone nombre. */
+const APARATOS = { iphone: 'iPhone', android: 'Android', windows: 'Windows', mac: 'Mac', ipad: 'iPad', otro: 'Otro' }
+
+/* LA PASARELA: el tramo de ANTES de tener cuenta, que hasta el 2026-09-29 no se medía
+   taxativamente. PERSONAS PRIMERO Y CARGAS DESPUÉS, que fue la corrección de Angel el
+   mismo día del estreno: «si es la misma persona 10 veces cuenta 1, pero 10 personas
+   cuentan 10, aunque tengan sesión». Persona = navegador distinto (el `vid` anónimo de
+   `resume.js`), que es el techo honesto de la medición y el pie del cuadro lo dice.
+
+   `visitors` puede faltar si el back es más viejo que el front: entonces se dibujan las
+   cargas solas, que es lo que había. Los porcentajes de los aparatos van SIN capar,
+   como manda la regla del panel — es un reparto de verdad sobre el total de personas.
+
+   Y LA TIRA DE ALTAS VOLVIÓ acá adentro: lo que se fue por pedido de Angel era la lista
+   vertical que crecía; esto es la misma tira fija de 14 columnas del uso, y el campo
+   `porDia` había quedado viajando a propósito. */
+function Pasarela({ f, porDia }) {
+  const v = f.visitors
+  return (
+    <>
+      <h4>La pasarela · desde el {dia(f.since)}</h4>
+      {v && (
+        <div className="cuadros">
+          <Cuadro valor={v.total} rotulo="Personas distintas" pie="navegadores distintos" />
+          <Cuadro valor={v.today} rotulo="Pasaron hoy" />
+          <Cuadro valor={v.withSession} rotulo="Ya tenían cuenta" de={v.total || undefined} />
+          <Cuadro valor={f.signups ?? 0} rotulo="Se anotaron" de={v.total || undefined} />
+        </div>
+      )}
+      <div className={`cuadros chicos${v ? ' tres' : ''}`}>
+        <Cuadro valor={f.landing} rotulo="Cargas de la landing" />
+        <Cuadro valor={f.toSignup} rotulo="Tocaron «Anotá tus faltantes»" />
+        <Cuadro valor={f.toLogin} rotulo="Fueron a entrar" />
+      </div>
+      {v && v.devices.length > 0 && (
+        <>
+          <p className="tira-cabeza">Por aparato</p>
+          <div className="grupo">
+            {v.devices.map((x) => (
+              <Barra key={x.device} rotulo={APARATOS[x.device] ?? x.device} valor={x.n}
+                     techo={v.total} nota={`${Math.round((x.n / v.total) * 100)}%`} />
+            ))}
+          </div>
+        </>
+      )}
+      {v && (
+        <>
+          <p className="tira-cabeza">Personas distintas, por día</p>
+          <Tira dias={v.days.map((x) => ({ dia: x.dia, personas: x.n }))} unidad={['persona', 'personas']} />
+        </>
+      )}
+      <p className="tira-cabeza">Cargas de la landing, por día</p>
+      <Tira dias={f.days.map((x) => ({ dia: x.dia, personas: x.n }))} unidad={['carga', 'cargas']} />
+      {porDia.length > 0 && (
+        <>
+          <p className="tira-cabeza">Altas, por día</p>
+          <Tira dias={porDia.map((x) => ({ dia: x.dia, personas: x.cuantos }))} unidad={['alta', 'altas']} />
+        </>
+      )}
+    </>
+  )
+}
+
 function Barra({ rotulo, valor, techo, nota, flaca }) {
   return (
     <div className={`renglon${flaca ? ' flaca' : ''}`}>
@@ -359,25 +423,7 @@ function Cuerpo({ d, colecciones }) {
           pedido de Angel («cada vez más largo»); esto es otra cosa — la misma tira FIJA
           de 14 columnas del uso, que él pidió de vuelta el 2026-09-29 («faltan gráficos
           de registros»). El campo `porDia` seguía viniendo del servidor a propósito. */}
-      {d.funnel && (
-        <>
-          <h4>La pasarela · desde el {dia(d.funnel.since)}</h4>
-          <div className="cuadros">
-            <Cuadro valor={d.funnel.landing} rotulo="Vieron la landing" pie="visitas, no personas" />
-            <Cuadro valor={d.funnel.toSignup} rotulo="Salieron a anotarse" de={d.funnel.landing || undefined} />
-            <Cuadro valor={d.funnel.signups ?? 0} rotulo="Se anotaron" de={d.funnel.landing || undefined} />
-            <Cuadro valor={d.funnel.toLogin} rotulo="Fueron a entrar" pie="ya tenían cuenta, o directo" />
-          </div>
-          <p className="tira-cabeza">Visitas a la landing, por día</p>
-          <Tira dias={d.funnel.days.map((x) => ({ dia: x.dia, personas: x.n }))} unidad={['visita', 'visitas']} />
-          {(d.porDia ?? []).length > 0 && (
-            <>
-              <p className="tira-cabeza">Altas, por día</p>
-              <Tira dias={d.porDia.map((x) => ({ dia: x.dia, personas: x.cuantos }))} unidad={['alta', 'altas']} />
-            </>
-          )}
-        </>
-      )}
+      {d.funnel && <Pasarela f={d.funnel} porDia={d.porDia ?? []} />}
 
       {cohortes.length > 0 && (
         <>

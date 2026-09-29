@@ -120,10 +120,19 @@ test('la pasarela: los marcadores f= de la landing son los que lee el formulario
   assert.equal(new Set(fs).size, 4, `se esperaban 4 marcadores distintos y hay: ${fs.join(', ')}`)
   const lista = read('src/Entrar.jsx').match(/const FROM = new Set\(\[([^\]]+)\]\)/)?.[1] ?? ''
   for (const f of fs) assert.ok(lista.includes(`'${f}'`), `la landing manda f=${f} y Entrar no lo lista`)
-  /* Y temprano.js manda la clave de la landing al mismo endpoint. */
-  const temprano = read('public/temprano.js')
-  assert.ok(temprano.includes(`'/api/pulse'`), 'temprano.js perdió el endpoint del pulso')
-  assert.ok(temprano.includes(`'landing'`), 'temprano.js perdió la clave de la landing')
+  /* Y el beacon del visitante vive en RESUME.JS, no en temprano: al que tiene sesión,
+     resume lo redirige antes de que un script async llegue a correr — en temprano, el
+     beacon del que ya entró no salía nunca. Se mira que mande el `v1|` con el vid y que
+     dispare ANTES del replace, porque después ya no hay página. */
+  const resumeSrc = read('public/resume.js')
+  assert.ok(resumeSrc.includes("'/api/pulse'"), 'resume.js perdió el endpoint del pulso')
+  assert.ok(resumeSrc.includes("'v1|'"), 'resume.js perdió el formato v1 del visitante')
+  assert.ok(resumeSrc.includes('dbz-cromeros-vid'), 'resume.js perdió la clave del vid')
+  assert.ok(
+    resumeSrc.indexOf('sendBeacon') < resumeSrc.indexOf('location.replace'),
+    'el beacon tiene que dispararse ANTES del replace'
+  )
+  assert.ok(!read('public/temprano.js').includes('sendBeacon'), 'el beacon volvió a temprano.js, donde pierde la carrera')
 })
 
 test('el parámetro que pone la landing es el que lee Entrar.jsx', () => {

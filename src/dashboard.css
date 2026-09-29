@@ -219,6 +219,7 @@ body:has(.pagina-panel) {
 /* Los del pulso: la misma caja con el número más chico. El salto de 30 a 20 es lo que dice
    que son secundarios — no un `opacity`, que en este proyecto está prohibido sobre texto. */
 .numeros .cuadros.chicos { grid-template-columns: repeat(2, minmax(0, 190px)); margin-bottom: 18px; }
+.numeros .cuadros.chicos.tres { grid-template-columns: repeat(3, minmax(0, 200px)); }
 .numeros .cuadros.chicos .cuadro b { font-size: 20px; }
 
 /* --------------------------------- la tira -------------------------------- */

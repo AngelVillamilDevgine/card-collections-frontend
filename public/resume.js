@@ -45,6 +45,39 @@
      archivo no corre nunca y el cartel no aparece jamás. */
   if (runningAsApp) { try { sessionStorage.setItem(FROM_ROOT, '1') } catch (e) {} }
 
+  /* EL VISITANTE DE LA LANDING, ANTES DE REDIRIGIR A NADIE. Va acá y no en temprano.js
+     por una razón física: al que tiene sesión este archivo lo saca de la página en el
+     renglón de abajo, y un script async pierde esa carrera — el beacon no salía nunca.
+     `sendBeacon` está diseñado para sobrevivir a la navegación, así que mandarlo acá,
+     un instante antes del replace, cuenta a TODOS los que pasan por la puerta — que es
+     lo que pidió Angel: personas, tengan o no sesión.
+
+     El `vid` es un ID AL AZAR de 16 hex en localStorage: anónimo, first-party, sin un
+     dato de la persona. «Misma persona» = mismo navegador, que es el techo honesto.
+     Sin `crypto.getRandomValues` no se inventa un id (serían todos iguales): se cuenta
+     la visita cruda sola. El cuerpo va en texto plano — pedido simple, sin OPTIONS — y
+     la dirección de la API está escrita acá igual que en `almacenamiento.js`: este
+     archivo es estático y no puede importarla. */
+  try {
+    var vid = ''
+    try {
+      vid = localStorage.getItem('dbz-cromeros-vid') || ''
+      if (!/^[a-f0-9]{16}$/.test(vid)) {
+        vid = ''
+        if (window.crypto && crypto.getRandomValues) {
+          var bytes = new Uint8Array(8)
+          crypto.getRandomValues(bytes)
+          for (var i = 0; i < 8; i++) vid += (bytes[i] + 256).toString(16).slice(1)
+          localStorage.setItem('dbz-cromeros-vid', vid)
+        }
+      }
+    } catch (e) { vid = '' /* modo privado: visita cruda sin único */ }
+    if (navigator.sendBeacon) {
+      var api = /(^|\.)cromeros\.com\.ar$/.test(location.hostname) ? 'https://api.cromeros.com.ar' : ''
+      navigator.sendBeacon(api + '/api/pulse', 'v1|' + vid + '|' + (hasToken ? 1 : 0) + '|' + (runningAsApp ? 1 : 0))
+    }
+  } catch (e) { /* medir jamás puede frenar el ruteo */ }
+
   var rest = location.search + location.hash
 
   /* Con sesión, a las cartas. Sin sesión pero corriendo como app, al formulario: a alguien
