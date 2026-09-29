@@ -485,9 +485,12 @@ function Cuerpo({ d, colecciones }) {
             {ordenada.map((g) => (
               <tr key={g.usuario}
                   className={[g.cartas ? '' : 'apagada', g.app ? 'con-app' : ''].filter(Boolean).join(' ') || undefined}>
+                {/* El chip ANTES del nombre: después, un mail largo lo recortaba con el
+                    elipsis y quedaba una cajita vacía. Adelante queda entero siempre y los
+                    de la app se encuentran bajando por la columna. */}
                 <td className="quien" title={g.usuario}>
-                  {g.usuario}
                   {g.app && <span className="chip" title="Entra desde la app instalada">app</span>}
+                  {g.usuario}
                 </td>
                 <td>{dia(g.alta)}</td>
                 <td>{dia(g.ultima)}</td>

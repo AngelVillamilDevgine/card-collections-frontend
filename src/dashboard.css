@@ -2,7 +2,7 @@
 
    El panel entra por `lazy()`, así que su JavaScript ya viaja en un chunk propio. Pero
    el CSS importado desde `main.jsx` NO se parte por eso: Vite lo emite igual en la hoja
-   principal, y estas 26 reglas las bajaban las 39 personas que no son administradoras
+   principal, y estas reglas las bajaban las 39 personas que no son administradoras
    para no usarlas nunca. Importándolo desde el componente perezoso, Vite le da su propia
    hoja y la carga recién cuando alguien abre el panel.
 
@@ -10,15 +10,31 @@
    solo, sin convención de nombres, donde ya pasó que `.barra` del panel pisara a `.barra`
    de la barrita de progreso. El panel va a crecer; que crezca en su propio archivo.
 
-   Sigue colgando todo de `.numeros`, que es la clase que ya usan estas reglas. */
+   EL PANEL HABLA EL IDIOMA DE LA LANDING, desde el 2026-09-29 y lo pidió Angel: «hacé el
+   panel completo tomando todo lo que aprendimos de diseño con la landing». Fondo noche,
+   crema, dorado, Anton para los números grandes, overlines, y la cinta holo como firma de
+   la cabecera. No contradice el «nada de gris oscuro con degradés» de la app: esa regla
+   es contra el slop de gradientes radiales y emojis, no contra esta paleta — que Angel
+   iteró y aprobó en la landing — y el panel es una PÁGINA aparte que ve una sola cuenta.
+   La estética de la app (papel, contenida) sigue intacta del otro lado del botón.
 
-/* ------------------------------ los números ------------------------------- */
-/* Todo cuelga de .numeros: son nombres comunes y .barra ya estaba tomada por la
-   barrita de progreso de cada expansión.
-   El panel del administrador. Sobrio a propósito: la paleta de papel de la app y nada de
-   gris oscuro con degradés, que es lo que hacía que la primera versión gritara «hecho con
-   IA». Las cajas para los contadores SÍ van — las pidió Angel el 2026-09-28 — pero con ese
-   papel y un borde fino, no con sombras. */
+   Lo que NO cambió es la estructura, que salió del rechazo del 2026-09-28 («dashboard mal
+   gerarquizado») y está toda razonada en los comentarios de Estadisticas.jsx: el orden por
+   preguntas, los cuadros con el número primero, la tira horizontal, ningún porcentaje
+   capado a 100, la nota medida por su contenido. Esto es la piel, no el esqueleto.
+
+   TODOS LOS PARES DE CONTRASTE ESTÁN MEDIDOS (WCAG, sobre #101d33 y #16273f):
+   crema 14.1/12.6 · secundario #c9c0aa 9.3/8.3 · terciario #b9ae95 7.7/6.8 ·
+   dorado 8.6/7.7 · rojo de alarma #ff8c73 6.6 · medidor dorado vs riel #0b1526 9.3 ·
+   azul Leyenda #7fa8e6 vs riel 7.5. El piso exigido: 4.5 texto, 3:1 no textual. */
+
+/* La misma Anton de la landing, servida desde el mismo archivo: no hay segundo woff2.
+   Se declara acá y no en estilos.css para que sólo la baje quien abre el panel. */
+@font-face {
+  font-family: 'Anton';
+  src: url('/landing/anton.woff2') format('woff2');
+  font-display: swap;
+}
 
 /* EL PANEL ES UNA PÁGINA, no un diálogo.
  *
@@ -33,19 +49,36 @@
  * si no se dibujan flotando sobre el panel.
  *
  * El `env(safe-area-inset-*)` no es opcional: sin él, la cabecera se mete debajo de la
- * isla del iPhone y el último renglón debajo de la barra de gestos. */
+ * isla del iPhone y el último renglón debajo de la barra de gestos.
+ *
+ * Los tokens van ACÁ y con prefijo `--p-`, no en el `:root` de estilos.css: el panel no
+ * comparte paleta con la app y un token global llamado parecido es la clase de trampa que
+ * este proyecto ya pagó dos veces. */
 .pagina-panel {
+  --p-bg: #101d33;      /* la noche de la landing */
+  --p-card: #16273f;
+  --p-line: #24374f;
+  --p-rail: #0b1526;    /* más oscuro que la card: el medidor vive adentro */
+  --p-text: #f3ead7;    /* crema */
+  --p-text2: #c9c0aa;
+  --p-text3: #b9ae95;
+  --p-gold: #e6b13c;    /* el dorado de las únicas — y el color de Cromeros */
+  --p-blue: #7fa8e6;    /* el azul frío de la cinta holo — el color de Leyenda */
+  --p-bad: #ff8c73;     /* alarma sobre noche: 6.6:1 */
   position: fixed;
   inset: 0;
   z-index: 70;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  background: var(--papel);
+  background: var(--p-bg);
+  color: var(--p-text);
   padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px));
 }
 
-/* Pegajosa: en una tabla larga, «Volver» tiene que estar siempre a mano. */
+/* Pegajosa: en una tabla larga, «Volver» tiene que estar siempre a mano.
+   La cinta holo de abajo es la firma de la landing (su acto 2025) y ES todo el arcoíris
+   que hay en el panel — más que esto ya empieza a gritar otra cosa. */
 .panel-cabecera {
   position: sticky;
   top: 0;
@@ -55,34 +88,45 @@
   gap: 12px;
   padding: 10px 16px;
   padding-top: calc(10px + env(safe-area-inset-top, 0px));
-  background: var(--papel);
-  border-bottom: 1px solid var(--linea);
+  background: var(--p-bg);
+}
+.panel-cabecera::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 3px;
+  background: linear-gradient(90deg, #e6b13c, #7fd0c0, #7fa8e6, #c78fd6, #e6b13c);
 }
 
+/* El título en la voz display de la landing: Anton, mayúsculas, aire entre letras. */
 .panel-cabecera h1 {
   margin: 0;
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-family: Anton, 'Arial Narrow', system-ui, sans-serif;
+  font-weight: 400;
+  font-size: 19px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--p-text);
 }
 .panel-cabecera h1:focus { outline: none; }
-.panel-cabecera h1:focus-visible { outline: 2px solid var(--acento); outline-offset: 3px; }
+.panel-cabecera h1:focus-visible { outline: 2px solid var(--p-gold); outline-offset: 3px; }
 
 .panel-cabecera .volver {
   display: inline-flex;
   align-items: center;
   gap: 5px;
   padding: 7px 12px 7px 9px;
-  border: 1px solid var(--linea2);
+  border: 1px solid var(--p-line);
   border-radius: 999px;
-  background: var(--blanco);
-  color: var(--tinta2);
+  background: var(--p-card);
+  color: var(--p-text);
   font: inherit;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
 }
-.panel-cabecera .volver:hover { border-color: var(--acento); color: var(--acento); }
+.panel-cabecera .volver:hover { border-color: var(--p-gold); color: var(--p-gold); }
+.panel-cabecera .volver:focus-visible { outline: 2px solid var(--p-gold); outline-offset: 2px; }
 
 /* El cuerpo con un ancho cómodo de lectura y su canaleta a los costados. La canaleta va
    acá y no en `.pagina-panel`, para que la cabecera pegajosa llegue de borde a borde. */
@@ -93,27 +137,32 @@
   padding-block: 18px 0;
 }
 
+/* Los títulos de sección como los overlines de la landing. */
 .numeros h4 {
-  margin: 22px 0 10px;
+  margin: 24px 0 10px;
   font-size: 12px;
-  letter-spacing: 0.08em;
+  font-weight: 700;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--tinta3);
-  border-bottom: 1px solid var(--linea);
+  color: var(--p-text3);
+  border-bottom: 1px solid var(--p-line);
   padding-bottom: 6px;
 }
 
 .numeros .grupo { display: flex; flex-direction: column; gap: 7px; }
 
+/* «Buscando…», la nota de cohortes y el renglón de cartas marcadas: en estilos.css
+   `.nada` está pensada para el papel y acá quedaría ilegible. */
+.numeros .nada { color: var(--p-text3); }
+
 /* ------------------------------- los cuadros ------------------------------ */
 /* Los pidió Angel el 2026-09-28: «los contadores son unos textos, deberían ser unos cuadros
-   o algo». Eran seis textos corridos en un renglón, que es la forma en que menos se lee un
-   número.
+   o algo». El número primero y grande — ahora en Anton, que es exactamente cómo la landing
+   dice «1936 CARTAS» — y el rótulo abajo explicándolo.
 
-   Lo que los separa del papel es UN BORDE DE UN PÍXEL y nada más: ni sombra, ni degradé,
-   ni ícono, ni un color por métrica. Esa estética es la que hacía que la primera versión de
-   la app gritara «hecho con IA», y eso el CLAUDE.md lo sigue prohibiendo — lo que dejó de
-   estar prohibido es la caja, no el brillo. */
+   Lo que separa un cuadro del fondo sigue siendo UN BORDE DE UN PÍXEL y nada más: ni
+   sombra, ni degradé, ni ícono, ni un color por métrica. La caja es la misma que los
+   `.features` de la landing. */
 .numeros .cuadros {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -124,50 +173,50 @@
   display: flex;
   flex-direction: column;
   gap: 3px;
-  padding: 10px 12px;
-  background: var(--blanco);
-  border: 1px solid var(--linea);
-  border-radius: 8px;
+  padding: 12px 14px;
+  background: var(--p-card);
+  border: 1px solid var(--p-line);
+  border-radius: 10px;
 }
-/* El número primero y grande: es lo que se viene a ver. */
+/* El número primero y grande: es lo que se viene a ver. Anton no trae cifras tabulares,
+   y acá no hace falta: es un número solo por cuadro, no una columna que alinear. */
 .numeros .cuadro b {
-  font-size: 26px;
-  font-weight: 700;
+  font-family: Anton, 'Arial Narrow', system-ui, sans-serif;
+  font-size: 30px;
+  font-weight: 400;
   line-height: 1.05;
-  color: var(--tinta);
-  font-variant-numeric: tabular-nums;
+  color: var(--p-text);
 }
 /* El rótulo NO va en versalitas: ésas ya son del `h4` y usarlas acá deja dos cosas
    distintas con la misma voz. */
-.numeros .cuadro-rotulo { font-size: 12px; font-weight: 600; color: var(--tinta2); line-height: 1.25; }
-.numeros .cuadro-pie { font-size: 11px; color: var(--tinta3); font-variant-numeric: tabular-nums; }
+.numeros .cuadro-rotulo { font-size: 12px; font-weight: 600; color: var(--p-text2); line-height: 1.25; }
+.numeros .cuadro-pie { font-size: 11px; color: var(--p-text3); font-variant-numeric: tabular-nums; }
 
 /* El medidor: 4 px, sin números encima. Dice de un vistazo si son muchos o pocos; el
-   cuánto ya está arriba en grande. `--acento` sobre `--linea` da 3.80:1, que es lo que
-   pide un elemento no textual que informa (WCAG 1.4.11) — `--naranja` daría 1.88 y no
-   llega, que es la misma razón por la que la barra de progreso de la app lo cambió. */
+   cuánto ya está arriba en grande. Dorado sobre el riel #0b1526 da 9.3:1 — un elemento
+   no textual que informa pide 3:1 (WCAG 1.4.11). */
 .numeros .medidor {
   height: 4px;
   border-radius: 2px;
-  background: var(--linea);
+  background: var(--p-rail);
   overflow: hidden;
   margin-top: 2px;
 }
 /* `min-width` para que «1 de 40» se vea: sin eso son 2.5% y no se dibuja nada. */
-.numeros .medidor > span { display: block; height: 100%; min-width: 3px; border-radius: 2px; background: var(--acento); }
+.numeros .medidor > span { display: block; height: 100%; min-width: 3px; border-radius: 2px; background: var(--p-gold); }
 
-/* Los del pulso: la misma caja con el número más chico. El salto de 26 a 18 es lo que dice
+/* Los del pulso: la misma caja con el número más chico. El salto de 30 a 20 es lo que dice
    que son secundarios — no un `opacity`, que en este proyecto está prohibido sobre texto. */
 .numeros .cuadros.chicos { grid-template-columns: repeat(2, minmax(0, 190px)); margin-bottom: 18px; }
-.numeros .cuadros.chicos .cuadro b { font-size: 18px; }
+.numeros .cuadros.chicos .cuadro b { font-size: 20px; }
 
 /* --------------------------------- la tira -------------------------------- */
 /* Catorce días de izquierda a derecha, que es como se lee una serie de tiempo. Antes eran
    DOS listas verticales de catorce renglones, pegadas y casi iguales, que juntas se comían
    dos pantallas de teléfono para mostrar veintiocho números de un dígito. */
 .numeros .tira { margin: 0 0 18px; }
-.numeros .tira-resumen { margin: 0 0 8px; font-size: 13px; color: var(--tinta2); }
-.numeros .tira-resumen b { color: var(--tinta); font-variant-numeric: tabular-nums; }
+.numeros .tira-resumen { margin: 0 0 8px; font-size: 13px; color: var(--p-text2); }
+.numeros .tira-resumen b { color: var(--p-text); font-variant-numeric: tabular-nums; }
 .numeros .tira-barras { display: flex; align-items: flex-end; gap: 4px; height: 62px; }
 .numeros .tira-dia {
   flex: 1 1 0;
@@ -181,7 +230,7 @@
 }
 .numeros .tira-barra {
   display: block;
-  background: var(--acento);
+  background: var(--p-gold);
   border-radius: 2px 2px 0 0;
   /* Un día sin nadie se dibuja igual, finito: si se omitiera, dos días separados por una
      semana quedarían pegados y se leerían como consecutivos. */
@@ -194,19 +243,18 @@
 .numeros .tira-dia em {
   font-style: normal;
   font-size: 10px;
-  color: var(--tinta3);
+  color: var(--p-text3);
   text-align: center;
   margin-top: 4px;
   font-variant-numeric: tabular-nums;
 }
-.numeros .tira-dia.hoy em { color: var(--tinta); font-weight: 700; }
+.numeros .tira-dia.hoy em { color: var(--p-text); font-weight: 700; }
 
 
 /* LA COLUMNA DE LA NOTA SE MIDE POR SU CONTENIDO, y ésa es la diferencia entre que esto se
    lea o no. Estaba en 42 px —y en las barras flacas, en CERO— así que «19 personas · 230
    repetidas» y «3 por la app» se partían letra por letra en cuatro o cinco renglones, y
-   cada fila pasaba a medir el triple. Angel, mirándolo: «el "Lo usaron por día" es
-   realmente una poronga» y «"Qué colección usan" está acomodado medio mal».
+   cada fila pasaba a medir el triple.
 
    Lo peor es que el arreglo YA ESTABA ESCRITO, adentro del `@media (max-width: 560px)`,
    con el problema explicado al lado: apilar la nota porque en cuatro columnas «se partía
@@ -224,28 +272,35 @@
 }
 .numeros .renglon.flaca { grid-template-columns: 46px minmax(60px, 1fr) 44px auto; font-size: 12px; }
 
-.numeros .renglon-rotulo { color: var(--tinta2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.numeros .riel { height: 12px; background: var(--papel); border-radius: 6px; overflow: hidden; }
+.numeros .renglon-rotulo { color: var(--p-text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.numeros .riel { height: 12px; background: var(--p-rail); border-radius: 6px; overflow: hidden; }
 .numeros .relleno {
   display: block;
   height: 100%;
   min-width: 2px;
   border-radius: 6px;
-  background: var(--naranja);
+  background: var(--p-gold);
 }
-.numeros .renglon b { text-align: right; font-variant-numeric: tabular-nums; }
-.numeros .renglon-nota { color: var(--tinta3); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* LA DUALIDAD DE LA LANDING, EN LAS DOS BARRAS DE COLECCIÓN: Cromeros en el dorado de
+   2007 y Leyenda en el azul frío de 2025 — los mismos dos climas de los actos y de los
+   cuadros del cierre. No es «un color por métrica»: son los DOS álbumes, y la landing ya
+   estableció qué color es cada época. OJO: va por posición (par = segunda colección),
+   porque el orden sale de COLLECTIONS y es estable; una tercera colección volvería al
+   dorado y habría que darle su renglón acá. */
+.numeros .grupo .renglon:nth-child(even) .relleno { background: var(--p-blue); }
+.numeros .renglon b { text-align: right; font-variant-numeric: tabular-nums; color: var(--p-text); }
+.numeros .renglon-nota { color: var(--p-text3); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 /* EL PORCENTAJE, SEPARADO DEL NÚMERO QUE TIENE AL LADO. No tenía ninguna regla, así que
    salía pegado y en itálica: «1673» y «86%» se leían como «167386%», un número de seis
    cifras que no quiere decir nada. Angel: «porcentajes inentendibles». Lo que los separa
    no es sólo el espacio — es que el porcentaje sea visiblemente el dato de después: más
-   chico, más callado y sin itálica. `--tinta3` sobre papel da 4.5, que pasa AA. */
+   chico, más callado y sin itálica. `--p-text3` sobre la noche da 7.7. */
 .numeros table.gente td i {
   font-style: normal;
   font-size: 11px;
   font-weight: 400;
-  color: var(--tinta3);
+  color: var(--p-text3);
   margin-left: 7px;
 }
 
@@ -255,9 +310,9 @@
   gap: 6px 18px;
   margin-top: 14px;
   font-size: 13px;
-  color: var(--tinta2);
+  color: var(--p-text2);
 }
-.numeros .sueltos b { color: var(--tinta); font-variant-numeric: tabular-nums; }
+.numeros .sueltos b { color: var(--p-text); font-variant-numeric: tabular-nums; }
 
 .numeros .tablon { overflow-x: auto; }
 
@@ -273,7 +328,7 @@
   font-size: 11px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--tinta3);
+  color: var(--p-text3);
   padding: 0 0 6px 10px;
 }
 /* EL ENCABEZADO ES UN BOTÓN, para poder ordenar por esa columna. Hereda todo del `th` y
@@ -293,24 +348,24 @@
   width: 100%;
   text-align: inherit;
 }
-.numeros table.gente th .ordenar:hover { color: var(--acento); }
-.numeros table.gente th .ordenar:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+.numeros table.gente th .ordenar:hover { color: var(--p-gold); }
+.numeros table.gente th .ordenar:focus-visible { outline: 2px solid var(--p-gold); outline-offset: 2px; }
 /* La columna por la que se ordena, marcada también sin depender de la flecha. */
-.numeros table.gente th[aria-sort] .ordenar { color: var(--tinta); }
+.numeros table.gente th[aria-sort] .ordenar { color: var(--p-text); }
 
-.numeros table.gente td { text-align: right; padding: 5px 0 5px 10px; border-top: 1px solid var(--linea); }
+.numeros table.gente td { text-align: right; padding: 5px 0 5px 10px; border-top: 1px solid var(--p-line); }
 .numeros table.gente th:first-child, .numeros table.gente td:first-child { text-align: left; padding-left: 0; }
 .numeros table.gente .quien { max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Callada cuando está bien; sólo se hace ver cuando hay algo que mirar. */
 .numeros .resumen-tabla {
   margin: 0 0 8px;
   font-size: 13px;
-  color: var(--tinta2);
+  color: var(--p-text2);
 }
-.numeros .resumen-tabla b { color: var(--tinta); }
-/* La fila de quien entra desde la app, para poder encontrarla sin recorrer la tabla. */
-.numeros .gente tr.con-app > td { background: #eef4ec; }
-.numeros .gente tr.con-app.apagada > td { background: #f2f5f0; }
+.numeros .resumen-tabla b { color: var(--p-text); }
+/* La fila de quien entra desde la app: un tinte del dorado, no un verde de otra paleta. */
+.numeros .gente tr.con-app > td { background: rgba(230, 177, 60, 0.09); }
+.numeros .gente tr.con-app.apagada > td { background: rgba(230, 177, 60, 0.05); }
 
 .numeros .salud {
   display: flex;
@@ -318,31 +373,34 @@
   gap: 4px;
   margin: 0 0 16px;
   padding: 10px 12px;
-  border-radius: 6px;
-  border: 1px solid var(--linea);
-  background: var(--papel);
+  border-radius: 10px;
+  border: 1px solid var(--p-line);
+  background: var(--p-card);
   font-size: 13px;
-  color: var(--tinta2);
+  color: var(--p-text2);
 }
-.numeros .salud.atencion { border-color: var(--reem-linea); background: var(--reem-fondo); }
-.numeros .salud b { color: var(--tinta); font-weight: 600; }
-.numeros .salud .mal, .numeros .salud .mal b { color: var(--reem-tinta); font-weight: 700; }
+/* La alarma en el rojo medido para la noche (6.6:1) — el `--reem-*` de la app es de la
+   paleta de papel y acá desaparecía. */
+.numeros .salud.atencion { border-color: var(--p-bad); background: rgba(255, 140, 115, 0.08); }
+.numeros .salud b { color: var(--p-text); font-weight: 600; }
+.numeros .salud .mal, .numeros .salud .mal b { color: var(--p-bad); font-weight: 700; }
 
 .numeros .chip {
-  margin-left: 6px;
+  margin-right: 6px;
   padding: 1px 5px;
   border-radius: 4px;
-  background: var(--perf-fondo);
-  border: 1px solid var(--perf-linea);
-  color: var(--perf-tinta);
+  background: rgba(230, 177, 60, 0.12);
+  border: 1px solid rgba(230, 177, 60, 0.5);
+  color: var(--p-gold);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.03em;
   text-transform: uppercase;
 }
 
-/* Quien no cargó ninguna carta se anotó y se fue: que se note de un vistazo. */
-.numeros table.gente .apagada { color: var(--tinta3); }
+/* Quien no cargó ninguna carta se anotó y se fue: que se note de un vistazo.
+   `--p-text3` da 7.7 sobre la noche — apagado en la jerarquía, nunca bajo el 4.5. */
+.numeros table.gente .apagada { color: var(--p-text3); }
 
 /* ---------------------------- en el teléfono ----------------------------- */
 /* Las tablas tienen siete columnas y ahí no hay ancho que alcance: scrollean de costado
@@ -366,7 +424,7 @@
      rótulo «Volvieron otro día» se partiría en tres renglones. De a dos, cada uno mide
      ~180 px y el rótulo entra en uno o dos. */
   .numeros .cuadros { grid-template-columns: repeat(2, 1fr); }
-  .numeros .cuadro b { font-size: 22px; }
+  .numeros .cuadro b { font-size: 25px; }
   /* Y la tira se achica un poco: a 320 px son 14 columnas de ~18 px. */
   .numeros .tira-barras { height: 52px; gap: 3px; }
 
