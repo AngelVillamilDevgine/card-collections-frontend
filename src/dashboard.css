@@ -264,16 +264,17 @@ body:has(.pagina-panel) {
    cambia de «desde que se mide» a «todas las épocas»— va en el azul de Leyenda, para que
    el cambio de régimen se vea sin leer. */
 .numeros .journey { list-style: none; margin: 0 0 8px; padding: 0; }
-/* El número ARRANCA pegado a la espina (columna angosta y alineado a la izquierda):
-   con 84px alineados a la derecha, un «3» quedaba a media pantalla del punto que le
-   corresponde — lo marcó Angel. 58px banca cuatro cifras en Anton. */
+/* TODO PEGADO: punto → número → textos, sin columna fantasma ni nada colgado a la
+   derecha (la conversión vive en el subtítulo). `max-content` para el número con un
+   mínimo chico: las cifras de uno y dos dígitos quedan casi alineadas y nada viaja
+   lejos — la tercera vuelta de Angel sobre los aires de esta lista. */
 .numeros .journey li {
   position: relative;
   display: grid;
-  grid-template-columns: 58px minmax(0, 1fr) auto;
+  grid-template-columns: minmax(26px, max-content) minmax(0, 1fr);
   align-items: center;
-  gap: 4px 12px;
-  padding: 8px 0 8px 24px;
+  gap: 2px 10px;
+  padding: 7px 0 7px 20px;
 }
 /* El tramo de línea de cada estación; la primera arranca en su nodo y la última muere
    en el suyo. */
@@ -311,12 +312,13 @@ body:has(.pagina-panel) {
 .numeros .journey-body { display: flex; flex-direction: column; min-width: 0; }
 .numeros .journey-label { font-size: 13.5px; font-weight: 600; color: var(--p-text2); }
 .numeros .journey-note { font-size: 11.5px; color: var(--p-text3); }
+/* La conversión, adentro del subtítulo y en dorado: es el dato que se viene a leer. */
 .numeros .journey-conv {
   font-style: normal;
-  font-size: 12px;
+  font-size: 11.5px;
+  font-weight: 700;
   color: var(--p-gold);
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
 }
 
 /* ACÁ VIVIÓ «EL RITMO» (las tiras diarias alineadas) y se extinguió el 2026-09-30 con

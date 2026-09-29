@@ -170,11 +170,19 @@ function Spine({ nodes }) {
         {s.items.map((x) => (
           <li key={x.rotulo}>
             <b>{x.n.toLocaleString('es-AR')}</b>
+            {/* Título y subtítulo, y NADA colgado a la derecha: la conversión va en el
+                renglón de abajo, donde el ojo ya está — lo marcó Angel («es como si
+                siempre algo tuviera que estar lejos»). */}
             <div className="journey-body">
               <span className="journey-label">{x.rotulo}</span>
-              {x.nota && <span className="journey-note">{x.nota}</span>}
+              {(x.conv != null || x.nota) && (
+                <span className="journey-note">
+                  {x.conv != null && <i className="journey-conv">{x.conv}%{x.deCuentas ? ' de las cuentas' : ''}</i>}
+                  {x.conv != null && x.nota ? ' · ' : ''}
+                  {x.nota}
+                </span>
+              )}
             </div>
-            {x.conv != null && <i className="journey-conv">{x.conv}%{x.deCuentas ? ' de las cuentas' : ''}</i>}
           </li>
         ))}
       </ol>
@@ -246,16 +254,17 @@ export default function Estadisticas({ onCerrar, onSesionMuerta, colecciones }) 
   const [datos, setDatos] = useState(null)
   const [error, setError] = useState(null)
   /* El período elegido se recuerda en el aparato, como las expansiones plegadas: es una
-     preferencia de ESTE dispositivo, no un dato. Un valor viejo o inventado cae a la
-     semana, que es el que sirve para decidir. */
-  const [period, setPeriodo] = useState(() => {
+     preferencia de ESTE dispositivo, no un dato. Sin nada guardado (o con un valor
+     inventado) arranca en HOY — lo pidió Angel: el panel se abre para ver qué está
+     pasando ahora. */
+  const [period, setPeriod] = useState(() => {
     try {
       const g = localStorage.getItem(PERIOD_KEY)
-      return PERIODS.some(([id]) => id === g) ? g : 'semana'
-    } catch { return 'semana' }
+      return PERIODS.some(([id]) => id === g) ? g : 'hoy'
+    } catch { return 'hoy' }
   })
   const pick = (id) => {
-    setPeriodo(id)
+    setPeriod(id)
     try { localStorage.setItem(PERIOD_KEY, id) } catch { /* modo privado */ }
   }
   const titulo = useRef(null)
