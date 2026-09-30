@@ -439,6 +439,24 @@ function Cuerpo({ d, colecciones, period }) {
       <h4>Embudo</h4>
       {p ? <PeriodFunnel p={p} /> : <HistoricFunnel f={d.funnel} u={u} />}
 
+      {/* PEGADO AL EMBUDO Y CON DUEÑO EN EL TÍTULO: el reparto es de los VISITANTES de
+          la landing (el vid anónimo, clasificado por User-Agent) — los usuarios logueados
+          entran directo a /collection y no tienen aparato registrado. Estaba después de
+          los totales y se llamaba «Por aparato» a secas: Angel leyó 3+1 activos contra
+          1 aparato y con razón no entendía de quién era el reparto. */}
+      {devices && devices.devices.length > 0 && (
+        <>
+          <h4>Visitantes por aparato</h4>
+          <div className="grupo">
+            {devices.devices.map((x) => (
+              <Barra key={x.device} rotulo={APARATOS[x.device] ?? x.device} valor={x.n}
+                     techo={devices.total}
+                     nota={`${Math.round((x.n / devices.total) * 100)}%`} />
+            ))}
+          </div>
+        </>
+      )}
+
       {/* Los totales históricos, aparte del período. */}
       {p && (
         <>
@@ -448,22 +466,6 @@ function Cuerpo({ d, colecciones, period }) {
             <Cuadro valor={u.conCartas} rotulo="Con cartas" de={u.total} />
             <Cuadro valor={u.volvieron} rotulo="Volvieron alguna vez" de={u.total} />
             <Cuadro valor={u.conApp} rotulo="Con la app" de={u.total} />
-          </div>
-        </>
-      )}
-
-      {/* EL RITMO: las series con las columnas ALINEADAS sobre el rango del filtro —
-          7 columnas la semana, el mes corrido, el mes pasado entero. Con «Hoy» no hay
-          nada que dibujar: un gráfico de una columna es un número disfrazado. */}
-      {devices && devices.devices.length > 0 && (
-        <>
-          <h4>Por aparato</h4>
-          <div className="grupo">
-            {devices.devices.map((x) => (
-              <Barra key={x.device} rotulo={APARATOS[x.device] ?? x.device} valor={x.n}
-                     techo={devices.total}
-                     nota={`${Math.round((x.n / devices.total) * 100)}%`} />
-            ))}
           </div>
         </>
       )}
