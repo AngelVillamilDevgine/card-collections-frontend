@@ -122,7 +122,16 @@ function Cuadro({ valor, rotulo, de, pie, chico }) {
 
 /* Cómo se llama cada aparato. La clasificación gruesa la hace el servidor sobre el
    User-Agent (sin guardarlo crudo); acá sólo se le pone nombre. */
-const DEVICE_NAMES = { iphone: 'iPhone', android: 'Android', windows: 'Windows', mac: 'Mac', ipad: 'iPad', otro: 'Otro' }
+/* «Sin identificar» y no «Otro»: es lo que pasó de verdad — el servidor no pudo decir
+   qué aparato era. Desde el 2026-09-30 el clasificador reconoce Linux, ChromeOS, TV y
+   consolas, saca a los robots, y deja en el log de la API el UA de lo que no reconozca,
+   así que este renglón debería quedar vacío o casi. Los tres primeros sin identificar
+   son anteriores a eso y no hay registro de qué fueron. */
+const DEVICE_NAMES = {
+  iphone: 'iPhone', android: 'Android', windows: 'Windows', mac: 'Mac', ipad: 'iPad',
+  linux: 'Linux', chromeos: 'ChromeOS', tv: 'Smart TV', consola: 'Consola',
+  otro: 'Sin identificar',
+}
 
 /* Un color FIJO por aparato, no por posición: así Android es dorado en «Hoy» y en «Mes
    pasado» aunque cambie el orden. Salen de la paleta del panel y de la cinta holo; todos
@@ -130,7 +139,8 @@ const DEVICE_NAMES = { iphone: 'iPhone', android: 'Android', windows: 'Windows',
    color no es el único canal: la leyenda lleva nombre, número y porcentaje. */
 const DEVICE_COLORS = {
   android: '#e6b13c', iphone: '#7fa8e6', windows: '#7fd0c0',
-  mac: '#c78fd6', ipad: '#f3ead7', otro: '#8d8a7c',
+  mac: '#c78fd6', ipad: '#f3ead7', linux: '#f08a5d', chromeos: '#9ed27e',
+  tv: '#f28ab2', consola: '#b8c1d1', otro: '#8d8a7c',
 }
 
 /* LA TORTA — una dona en SVG con el truco del `stroke-dasharray`: con r = 15.9155 la
