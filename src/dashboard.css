@@ -576,7 +576,7 @@ body:has(.pagina-panel) {
    scroll, un nivel más arriba. */
 .pagina-panel:has(.panel-modal) { overflow: hidden; }
 
-.panel-modal-fondo {
+.panel-modal-backdrop {
   position: fixed;
   inset: 0;
   z-index: 80;
@@ -608,7 +608,7 @@ body:has(.pagina-panel) {
 }
 .panel-modal-sub { margin: 4px 0 18px; font-size: 13px; color: var(--p-text2); }
 /* 44×44: es el único botón del modal y se toca con el pulgar. */
-.panel-modal-cerrar {
+.panel-modal-close {
   position: absolute;
   top: 8px;
   right: 8px;
@@ -622,18 +622,18 @@ body:has(.pagina-panel) {
   color: var(--p-text2);
   cursor: pointer;
 }
-.panel-modal-cerrar:hover { color: var(--p-gold); }
-.panel-modal-cerrar:focus-visible { outline: 2px solid var(--p-gold); outline-offset: -4px; }
+.panel-modal-close:hover { color: var(--p-gold); }
+.panel-modal-close:focus-visible { outline: 2px solid var(--p-gold); outline-offset: -4px; }
 
 /* La dona. El número del centro va en Anton, en unidades del viewBox (42). */
-.torta { display: block; width: 180px; height: 180px; margin: 0 auto 18px; }
-.torta-n {
+.pie { display: block; width: 180px; height: 180px; margin: 0 auto 18px; }
+.pie-total {
   font-family: Anton, 'Arial Narrow', system-ui, sans-serif;
   font-size: 9px;
   fill: var(--p-text);
 }
-.torta-leyenda { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
-.torta-leyenda li {
+.pie-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.pie-legend li {
   display: grid;
   grid-template-columns: 12px minmax(0, 1fr) auto 44px;
   align-items: center;
@@ -641,6 +641,6 @@ body:has(.pagina-panel) {
   font-size: 14px;
   color: var(--p-text2);
 }
-.torta-leyenda .muestra { width: 12px; height: 12px; border-radius: 3px; }
-.torta-leyenda b { color: var(--p-text); font-variant-numeric: tabular-nums; }
-.torta-leyenda i { font-style: normal; text-align: right; color: var(--p-text3); font-variant-numeric: tabular-nums; }
+.pie-legend .swatch { width: 12px; height: 12px; border-radius: 3px; }
+.pie-legend b { color: var(--p-text); font-variant-numeric: tabular-nums; }
+.pie-legend i { font-style: normal; text-align: right; color: var(--p-text3); font-variant-numeric: tabular-nums; }

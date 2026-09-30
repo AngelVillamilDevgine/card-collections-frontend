@@ -108,7 +108,8 @@ async function pedir(ruta, opciones = {}) {
 async function entrarPor(ruta, usuario, clave) {
   const dicho = await pedir(ruta + marcaApp(), { method: 'POST', cuerpo: { usuario, clave }, credenciales: true })
   recordarToken(dicho.token)
-  return { usuario: dicho.usuario, admin: !!dicho.admin }
+  // `mustChange`: entró con una clave provisoria y tiene que elegir la suya.
+  return { usuario: dicho.usuario, admin: !!dicho.admin, mustChange: !!dicho.mustChange }
 }
 
 export const registrarse = (usuario, clave) => entrarPor('/registro', usuario, clave)
@@ -127,8 +128,18 @@ export async function salir() {
 // Al abrir: ¿el token guardado sigue sirviendo? Si no, se muestra la pantalla de entrada.
 export async function quienSoy() {
   if (!token()) return null
+  /* LA CUENTA SE ARMA A MANO, y cada campo nuevo de /api/yo hay que DEJARLO PASAR acá.
+     No pasaba `salud`: el punto rojo del botón «Panel» —el aviso de que la copia de la
+     base está vieja, lo único que Angel pidió que le avise— lee `cuenta.salud`, y desde
+     que existe (2026-09-28) nunca pudo encenderse. Se descubrió el 2026-09-30 agregando
+     `mustChange`, que sin este cambio tampoco llegaba. Hay test en pages.test.js. */
   return pedir('/yo' + marcaApp())
-    .then((d) => ({ usuario: d.usuario, admin: !!d.admin }))
+    .then((d) => ({
+      usuario: d.usuario,
+      admin: !!d.admin,
+      mustChange: !!d.mustChange,
+      ...(d.salud ? { salud: d.salud } : {}),
+    }))
     /* `null` quiere decir UNA sola cosa: no hay sesión, andá al formulario. Antes se
        tragaba cualquier error y devolvía null igual, así que el servidor caído, un
        deploy a medio terminar o el teléfono sin datos te mandaban al mismo lugar que

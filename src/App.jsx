@@ -459,7 +459,12 @@ const queSeCerro = (n) =>
     : n === 1 ? 'Se cerró la sesión que había en otro aparato.'
       : `Se cerraron las ${n} sesiones que había en otros aparatos.`
 
-function CambiarClave({ onCerrar, onSesionMuerta }) {
+/* `forced`: entró con una clave provisoria (`bin/reset-password.js` del backend) y no
+   puede seguir hasta elegir la suya. Es el mismo diálogo —la ruta es la misma y ya cierra
+   las otras sesiones— pero sin salida: ni «Mejor no», ni Escape, ni el telón, y tampoco
+   Atrás (no entra en `hayDialogo`). La marca vive en el SERVIDOR y viaja en /api/yo, así
+   que recargar o cerrar la app lo vuelve a traer acá. */
+function CambiarClave({ onCerrar, onSesionMuerta, forced = false }) {
   const [actual, setActual] = useState('')
   const [nueva, setNueva] = useState('')
   const [error, setError] = useState(null)
@@ -467,8 +472,11 @@ function CambiarClave({ onCerrar, onSesionMuerta }) {
   const [yendo, setYendo] = useState(false)
   const caja = useRef(null)
   const abrio = useRef(document.activeElement)
+  /* Obligatorio: antes de elegir la clave no hay forma de cerrar. Después sí — el
+     «Listo» es lo que le avisa a la app que ya está. */
+  const closable = !forced || listo !== null
 
-  usarEscape(onCerrar)
+  usarEscape(() => { if (closable) onCerrar() })
   useEffect(() => atraparFoco(caja.current, abrio.current), [])
 
   async function enviar(ev) {
@@ -487,10 +495,11 @@ function CambiarClave({ onCerrar, onSesionMuerta }) {
   }
 
   return (
-    <div className="telon" onClick={onCerrar}>
-      <div className="dialogo" role="dialog" aria-modal="true" aria-label="Cambiar mi clave"
+    <div className="telon" onClick={() => { if (closable) onCerrar() }}>
+      <div className="dialogo" role="dialog" aria-modal="true"
+           aria-label={forced ? 'Elegí una clave nueva' : 'Cambiar mi clave'}
            ref={caja} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
-        <h3>Cambiar mi clave</h3>
+        <h3>{forced ? 'Elegí una clave nueva' : 'Cambiar mi clave'}</h3>
         {/* UNA SOLA nota, siempre en el DOM, y lo que cambia es el texto de adentro. Es el
             mismo patrón que el pie, y por el mismo motivo: un `role="status"` que NACE con
             su texto no se anuncia. Una región viva se anuncia cuando CAMBIA, y para eso
@@ -500,13 +509,15 @@ function CambiarClave({ onCerrar, onSesionMuerta }) {
             «Listo», que es lo único que se llevaba el foco y lo único que se leía. */}
         <p className="nota-dialogo" role="status">
           {listo === null
-            ? 'Al cambiarla se cierran las sesiones abiertas en otros aparatos. En éste seguís adentro.'
+            ? forced
+              ? 'Entraste con una clave provisoria. Elegí la tuya para seguir; tus cartas están todas.'
+              : 'Al cambiarla se cierran las sesiones abiertas en otros aparatos. En éste seguís adentro.'
             : `Listo, ya es la nueva. ${queSeCerro(listo)}`}
         </p>
         {listo === null ? (
           <form className="entrar" onSubmit={enviar}>
             <label>
-              Tu clave de ahora
+              {forced ? 'La clave provisoria que te pasaron' : 'Tu clave de ahora'}
               <input type="password" value={actual} onChange={(e) => setActual(e.target.value)}
                      autoComplete="current-password" autoFocus required />
             </label>
@@ -517,9 +528,9 @@ function CambiarClave({ onCerrar, onSesionMuerta }) {
             </label>
             {error && <p className="error" role="alert">{error}</p>}
             <button type="submit" className="principal" disabled={yendo}>
-              {yendo ? 'Un segundo…' : 'Cambiarla'}
+              {yendo ? 'Un segundo…' : forced ? 'Guardar mi clave' : 'Cambiarla'}
             </button>
-            <button type="button" className="secundario" onClick={onCerrar}>Mejor no</button>
+            {!forced && <button type="button" className="secundario" onClick={onCerrar}>Mejor no</button>}
           </form>
         ) : (
           <button className="principal" onClick={onCerrar} autoFocus>Listo</button>
@@ -2095,8 +2106,15 @@ export default function App() {
         </div>
       </footer>
 
-      {cambiandoClave && (
+      {cambiandoClave && !cuenta?.mustChange && (
         <CambiarClave onCerrar={() => setCambiandoClave(false)} onSesionMuerta={sesionMuerta} />
+      )}
+      {/* LA CLAVE PROVISORIA: obligatorio y sin salida hasta elegir una propia. Al
+          terminar, apaga la marca en la cuenta local — la del servidor ya la apagó
+          `/api/clave`. Fuera de `hayDialogo` a propósito: Atrás no lo cierra. */}
+      {cuenta?.mustChange && (
+        <CambiarClave forced onSesionMuerta={sesionMuerta}
+                      onCerrar={() => setCuenta((c) => (c ? { ...c, mustChange: false } : c))} />
       )}
 
       {/* Fuera del pie: es una barra fija abajo, y sólo aparece en teléfono. */}

@@ -151,24 +151,24 @@ const DEVICE_COLORS = {
 function Pie({ rows, total }) {
   const R = 15.9155
   const gap = rows.length > 1 ? 0.8 : 0
-  let acumulado = 0
-  const tramos = rows.map((r) => {
+  let acc = 0
+  const segs = rows.map((r) => {
     const pct = (r.n / total) * 100
-    const tramo = { ...r, largo: Math.max(0.4, pct - gap), offset: 25 - acumulado }
-    acumulado += pct
-    return tramo
+    const seg = { ...r, len: Math.max(0.4, pct - gap), offset: 25 - acc }
+    acc += pct
+    return seg
   })
-  const resumen = rows.map((r) => `${DEVICE_NAMES[r.device] ?? r.device} ${r.n}`).join(', ')
+  const summary = rows.map((r) => `${DEVICE_NAMES[r.device] ?? r.device} ${r.n}`).join(', ')
   return (
-    <svg className="torta" viewBox="0 0 42 42" role="img"
-         aria-label={`${total} visitantes: ${resumen}`}>
+    <svg className="pie" viewBox="0 0 42 42" role="img"
+         aria-label={`${total} visitantes: ${summary}`}>
       <circle cx="21" cy="21" r={R} fill="none" stroke="var(--p-rail)" strokeWidth="6" />
-      {tramos.map((t) => (
+      {segs.map((t) => (
         <circle key={t.device} cx="21" cy="21" r={R} fill="none"
                 stroke={DEVICE_COLORS[t.device] ?? DEVICE_COLORS.otro} strokeWidth="6"
-                strokeDasharray={`${t.largo} ${100 - t.largo}`} strokeDashoffset={t.offset} />
+                strokeDasharray={`${t.len} ${100 - t.len}`} strokeDashoffset={t.offset} />
       ))}
-      <text x="21" y="21" className="torta-n" textAnchor="middle" dominantBaseline="central">{total}</text>
+      <text x="21" y="21" className="pie-total" textAnchor="middle" dominantBaseline="central">{total}</text>
     </svg>
   )
 }
@@ -186,30 +186,30 @@ function Pie({ rows, total }) {
    estación), y el subtítulo dice cuántos y que son de la landing: los logueados entran
    directo a sus cartas y no tienen aparato — fue la confusión de la vez anterior. */
 function DevicesModal({ rows, total, periodLabel, onClose }) {
-  const caja = useRef(null)
-  const antes = useRef(document.activeElement)
+  const box = useRef(null)
+  const prevFocus = useRef(document.activeElement)
   usarEscape(onClose)
   usarAtras(true, onClose)
-  useEffect(() => atraparFoco(caja.current, antes.current), [])
+  useEffect(() => atraparFoco(box.current, prevFocus.current), [])
   return (
-    <div className="panel-modal-fondo" onClick={onClose}>
-      <div className="panel-modal" ref={caja} role="dialog" aria-modal="true"
-           aria-labelledby="modal-aparatos" onClick={(e) => e.stopPropagation()}>
-        <button type="button" className="panel-modal-cerrar" onClick={onClose} aria-label="Cerrar">
+    <div className="panel-modal-backdrop" onClick={onClose}>
+      <div className="panel-modal" ref={box} role="dialog" aria-modal="true"
+           aria-labelledby="devices-modal-title" onClick={(e) => e.stopPropagation()}>
+        <button type="button" className="panel-modal-close" onClick={onClose} aria-label="Cerrar">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
             <path d="M6 6l12 12M18 6L6 18" />
           </svg>
         </button>
-        <h2 id="modal-aparatos">Visitantes por aparato</h2>
+        <h2 id="devices-modal-title">Visitantes por aparato</h2>
         <p className="panel-modal-sub">
           {periodLabel} · {total} {total === 1 ? 'visitante único' : 'visitantes únicos'} de la landing
         </p>
         <Pie rows={rows} total={total} />
-        <ul className="torta-leyenda">
+        <ul className="pie-legend">
           {rows.map((r) => (
             <li key={r.device}>
-              <span className="muestra" style={{ background: DEVICE_COLORS[r.device] ?? DEVICE_COLORS.otro }} />
+              <span className="swatch" style={{ background: DEVICE_COLORS[r.device] ?? DEVICE_COLORS.otro }} />
               <span>{DEVICE_NAMES[r.device] ?? r.device}</span>
               <b>{r.n}</b>
               <i>{Math.round((r.n / total) * 100)}%</i>
@@ -237,14 +237,14 @@ function HistoricFunnel({ f, u }) {
   const pct = (a, b) => (b > 0 ? Math.round((a / b) * 100) : null)
   const nodes = []
   if (f && v) {
-    nodes.push({ n: v.total, rotulo: 'Pasaron por la puerta', nota: `personas distintas, con o sin cuenta · desde el ${dia(f.since)}` })
-    nodes.push({ n: f.toSignup, rotulo: 'Salieron a anotarse', nota: 'tocaron «Anotá tus faltantes»', conv: pct(f.toSignup, v.total) })
-    nodes.push({ n: f.signups ?? 0, rotulo: 'Se anotaron', nota: 'cuentas nuevas desde que se mide la puerta', conv: pct(f.signups ?? 0, f.toSignup) })
+    nodes.push({ n: v.total, label: 'Pasaron por la puerta', note: `personas distintas, con o sin cuenta · desde el ${dia(f.since)}` })
+    nodes.push({ n: f.toSignup, label: 'Salieron a anotarse', note: 'tocaron «Anotá tus faltantes»', conv: pct(f.toSignup, v.total) })
+    nodes.push({ n: f.signups ?? 0, label: 'Se anotaron', note: 'cuentas nuevas desde que se mide la puerta', conv: pct(f.signups ?? 0, f.toSignup) })
   }
-  nodes.push({ n: u.total, rotulo: 'Tienen cuenta', nota: `todas las épocas${u.altas7 ? ` · +${u.altas7} esta semana` : ''}`, costura: nodes.length > 0 ? 'Totales históricos' : undefined })
-  nodes.push({ n: u.conCartas, rotulo: 'Cargaron cartas', conv: pct(u.conCartas, u.total), deCuentas: true })
-  nodes.push({ n: u.volvieron, rotulo: 'Volvieron otro día', conv: pct(u.volvieron, u.total), deCuentas: true })
-  nodes.push({ n: u.conApp, rotulo: 'La instalaron', nota: 'el paso que más hace volver', conv: pct(u.conApp, u.total), deCuentas: true })
+  nodes.push({ n: u.total, label: 'Tienen cuenta', note: `todas las épocas${u.altas7 ? ` · +${u.altas7} esta semana` : ''}`, section: nodes.length > 0 ? 'Totales históricos' : undefined })
+  nodes.push({ n: u.conCartas, label: 'Cargaron cartas', conv: pct(u.conCartas, u.total), ofAccounts: true })
+  nodes.push({ n: u.volvieron, label: 'Volvieron otro día', conv: pct(u.volvieron, u.total), ofAccounts: true })
+  nodes.push({ n: u.conApp, label: 'La instalaron', note: 'el paso que más hace volver', conv: pct(u.conApp, u.total), ofAccounts: true })
 
   return <Spine nodes={nodes} />
 }
@@ -255,28 +255,28 @@ function HistoricFunnel({ f, u }) {
    como un renglón adentro del nodo, corrido a la derecha, y Angel lo enterró con razón:
    un cambio de sección se marca como todas las demás secciones, no con un injerto. */
 function Spine({ nodes }) {
-  const segmentos = [{ titulo: null, items: [] }]
+  const segments = [{ title: null, items: [] }]
   for (const x of nodes) {
-    if (x.costura) segmentos.push({ titulo: x.costura, items: [] })
-    segmentos[segmentos.length - 1].items.push(x)
+    if (x.section) segments.push({ title: x.section, items: [] })
+    segments[segments.length - 1].items.push(x)
   }
-  return segmentos.map((s, i) => (
-    <div key={s.titulo ?? i}>
-      {s.titulo && <p className="journey-break">{s.titulo}</p>}
+  return segments.map((s, i) => (
+    <div key={s.title ?? i}>
+      {s.title && <p className="journey-break">{s.title}</p>}
       <ol className="journey">
         {s.items.map((x) => (
-          <li key={x.rotulo}>
+          <li key={x.label}>
             <b>{x.n.toLocaleString('es-AR')}</b>
             {/* Título y subtítulo, y NADA colgado a la derecha: la conversión va en el
                 renglón de abajo, donde el ojo ya está — lo marcó Angel («es como si
                 siempre algo tuviera que estar lejos»). */}
             <div className="journey-body">
-              <span className="journey-label">{x.rotulo}</span>
-              {(x.conv != null || x.nota) && (
+              <span className="journey-label">{x.label}</span>
+              {(x.conv != null || x.note) && (
                 <span className="journey-note">
-                  {x.conv != null && <i className="journey-conv">{x.conv}%{x.deCuentas ? ' de las cuentas' : ''}</i>}
-                  {x.conv != null && x.nota ? ' · ' : ''}
-                  {x.nota}
+                  {x.conv != null && <i className="journey-conv">{x.conv}%{x.ofAccounts ? ' de las cuentas' : ''}</i>}
+                  {x.conv != null && x.note ? ' · ' : ''}
+                  {x.note}
                 </span>
               )}
             </div>
@@ -296,7 +296,7 @@ function Spine({ nodes }) {
 
    Cada estación lleva su «antes»: el período equivalente anterior (ayer, la semana
    previa, el MISMO TRAMO del mes pasado), que calcula el servidor. */
-/* Acá hubo un «antes» espejo por estación (ayer / sem. anterior / mismo tramo…) y lo
+/* Acá hubo un «antes» espejo por estación (ayer / sem. anterior / mismo seg…) y lo
    sacó Angel el 2026-09-30: «no quiero gastar procesamiento al pedo» — eran cuatro
    paquetes extra de COUNT(DISTINCT) por apertura. El back deja de calcularlos en el
    paso dos; este front ya no los lee. */
@@ -314,15 +314,15 @@ function PeriodFunnel({ p, periodLabel }) {
      que el botón no aparece — un modal vacío es peor que no ofrecerlo. */
   const nodes = [
     {
-      n: p.visitorsNew, rotulo: 'Visitantes únicos nuevos',
-      nota: devices.length > 0 && (
+      n: p.visitorsNew, label: 'Visitantes únicos nuevos',
+      note: devices.length > 0 && (
         <button type="button" className="journey-link" onClick={() => setShowDevices(true)}>
           Ver dispositivos
         </button>
       ),
     },
-    { n: p.toSignup, rotulo: 'Clicks a anotarse', conv: pct(p.toSignup, p.visitorsNew) },
-    { n: p.signups, rotulo: 'Registros', conv: pct(p.signups, p.toSignup) },
+    { n: p.toSignup, label: 'Clicks a anotarse', conv: pct(p.toSignup, p.visitorsNew) },
+    { n: p.signups, label: 'Registros', conv: pct(p.signups, p.toSignup) },
     /* El uso, partido por dónde entraron — lo pidió Angel: «usuarios que usaron la
        página, y abajo uno nuevo que diga usuarios que usaron la app». La bandera es por
        día, así que web y app pueden solaparse y no tienen por qué sumar el total; la
@@ -330,13 +330,13 @@ function PeriodFunnel({ p, periodLabel }) {
        back viejo sin el desglose, queda la estación única de antes. */
     ...(p.usedWeb != null
       ? [
-          { n: p.usedWeb, rotulo: 'Usaron la página', costura: 'Actividad en la app' },
-          { n: p.usedInstalled, rotulo: 'Usaron la app instalada' },
+          { n: p.usedWeb, label: 'Usaron la página', section: 'Actividad en la app' },
+          { n: p.usedInstalled, label: 'Usaron la app instalada' },
         ]
-      : [{ n: p.usedApp, rotulo: 'Usuarios activos', costura: 'Actividad en la app' }]),
+      : [{ n: p.usedApp, label: 'Usuarios activos', section: 'Actividad en la app' }]),
     {
-      n: p.moved.gente, rotulo: 'Movieron cartas',
-      nota: `${p.moved.cartas.toLocaleString('es-AR')} ${p.moved.cartas === 1 ? 'carta' : 'cartas'}`,
+      n: p.moved.gente, label: 'Movieron cartas',
+      note: `${p.moved.cartas.toLocaleString('es-AR')} ${p.moved.cartas === 1 ? 'carta' : 'cartas'}`,
       conv: pct(p.moved.gente, p.usedApp),
     },
   ]
