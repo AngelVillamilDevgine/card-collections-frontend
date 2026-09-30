@@ -503,6 +503,11 @@ body:has(.pagina-panel) {
      rótulo «Volvieron otro día» se partiría en tres renglones. De a dos, cada uno mide
      ~180 px y el rótulo entra en uno o dos. */
   .numeros .cuadros { grid-template-columns: repeat(2, 1fr); }
+  /* Los totales históricos también de a dos — lo pidió Angel. Hace falta la regla con
+     la MISMA especificidad que la de cuatro (`.cuadros.chicos.cuatro`, fuera del media
+     query): la de arriba sola pierde, y en 412 px quedaban cuatro columnas de ~85 px
+     con «Volvieron alguna vez» partido en tres renglones. */
+  .numeros .cuadros.chicos.cuatro { grid-template-columns: repeat(2, 1fr); }
   .numeros .cuadro b { font-size: 25px; }
   /* EN EL TELÉFONO CADA BARRA SE APILA, y no es una preferencia: en cuatro columnas la
      nota se partía letra por letra. «3 por la app» salía como «3 / po / la / ap» en una
