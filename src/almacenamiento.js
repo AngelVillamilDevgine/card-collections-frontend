@@ -120,6 +120,16 @@ export const entrar = (usuario, clave) => entrarPor('/sesion', usuario, clave)
 export const cambiarClave = (actual, nueva) =>
   pedir('/clave', { method: 'PUT', cuerpo: { actual, nueva }, credenciales: true })
 
+/* «Mi perfil»: nombre, segundo nombre, apellido, WhatsApp y ciudad, todo opcional. El
+   PUT manda los cinco campos siempre —el servidor reemplaza el perfil entero— y contesta
+   con cómo quedó guardado. */
+export const getProfile = () => pedir('/profile')
+export const saveProfile = (profile) => pedir('/profile', { method: 'PUT', cuerpo: profile })
+
+/* La clave provisoria de otra cuenta, desde el panel. Sólo el admin: a otro le da 404. */
+export const resetUserPassword = (usuario) =>
+  pedir('/admin/reset-password', { method: 'POST', cuerpo: { usuario } })
+
 export async function salir() {
   await pedir('/sesion', { method: 'DELETE' }).catch(() => {})
   recordarToken(null)

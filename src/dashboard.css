@@ -644,3 +644,60 @@ body:has(.pagina-panel) {
 .devices-legend .swatch { width: 12px; height: 12px; border-radius: 3px; }
 .devices-legend b { color: var(--p-text); font-variant-numeric: tabular-nums; }
 .devices-legend i { font-style: normal; text-align: right; color: var(--p-text3); font-variant-numeric: tabular-nums; }
+
+/* ----------------------------- la ficha de un usuario ----------------------------- */
+/* La cuenta de cada renglón es el botón de su ficha. Se ve como el texto que era, con
+   un subrayado punteado que avisa que se toca; el elipsis tiene que vivir en el botón
+   (el de la celda no alcanza a un hijo de bloque). */
+.numeros table.gente .quien .who {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: underline dotted var(--p-line);
+  text-underline-offset: 4px;
+}
+.numeros table.gente .quien .who:hover { color: var(--p-gold); }
+.numeros table.gente .quien .who:focus-visible { outline: 2px solid var(--p-gold); outline-offset: 2px; }
+
+.panel-modal .user-facts { margin: 0 0 16px; display: flex; flex-direction: column; gap: 8px; }
+.panel-modal .user-facts div { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 10px; font-size: 14px; }
+.panel-modal .user-facts dt { color: var(--p-text3); }
+.panel-modal .user-facts dd { margin: 0; color: var(--p-text); overflow-wrap: anywhere; }
+.panel-modal .user-note { margin: 0 0 12px; font-size: 13px; color: var(--p-text2); }
+.panel-modal .user-error { margin: 0 0 12px; font-size: 13px; color: var(--p-bad); font-weight: 600; }
+.panel-modal .user-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+/* El botón de la acción, con el dorado macizo del filtro elegido: es lo único que se
+   toca en la ficha. `.quiet` es el de cancelar, con borde y sin relleno. 44 px de alto. */
+.panel-modal .user-button {
+  min-height: 44px;
+  padding: 10px 18px;
+  border: 1px solid var(--p-gold);
+  border-radius: 999px;
+  background: var(--p-gold);
+  color: #1c1508;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.panel-modal .user-button.quiet { background: none; color: var(--p-text); border-color: var(--p-line); }
+.panel-modal .user-button:disabled { opacity: 1; background: var(--p-rail); border-color: var(--p-line); color: var(--p-text3); cursor: default; }
+.panel-modal .user-button:focus-visible { outline: 2px solid var(--p-text); outline-offset: 2px; }
+/* La provisoria, grande y espaciada: se dicta de a dígitos. */
+.panel-modal .user-temp {
+  margin: 0 0 14px;
+  font-family: Anton, 'Arial Narrow', system-ui, sans-serif;
+  font-size: 36px;
+  letter-spacing: 0.12em;
+  color: var(--p-gold);
+  font-variant-numeric: tabular-nums;
+}

@@ -5,7 +5,7 @@
 // detalle. Si alguna vez se cobra algo, se le cobra a los que vuelven.
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { usarEscape, usarAtras, atraparFoco } from './foco'
-import { estadisticas } from './almacenamiento'
+import { estadisticas, resetUserPassword } from './almacenamiento'
 import { albumPercent } from './collections'
 import { isStale } from './health'
 import './dashboard.css'
@@ -185,7 +185,11 @@ function Pie({ rows, total }) {
    La torta reparte los visitantes ÚNICOS del período (todos, no sólo los nuevos de la
    estación), y el subtítulo dice cuántos y que son de la landing: los logueados entran
    directo a sus cartas y no tienen aparato — fue la confusión de la vez anterior. */
-function DevicesModal({ rows, total, periodLabel, onClose }) {
+/* EL ARMAZÓN DE LOS MODALES DEL PANEL — hoy los aparatos y la ficha de un usuario. Todo
+   lo que hace de un modal un diálogo de verdad vive acá una sola vez: Atrás lo cierra sin
+   cerrar el panel (`usarAtras`), el foco queda adentro y vuelve al botón, Escape y el
+   telón cierran. El Escape del PANEL se hace a un lado cuando hay un `.panel-modal`. */
+function PanelModal({ titleId, title, sub, onClose, children }) {
   const box = useRef(null)
   const prevFocus = useRef(document.activeElement)
   usarEscape(onClose)
@@ -194,30 +198,139 @@ function DevicesModal({ rows, total, periodLabel, onClose }) {
   return (
     <div className="panel-modal-backdrop" onClick={onClose}>
       <div className="panel-modal" ref={box} role="dialog" aria-modal="true"
-           aria-labelledby="devices-modal-title" onClick={(e) => e.stopPropagation()}>
+           aria-labelledby={titleId} onClick={(e) => e.stopPropagation()}>
         <button type="button" className="panel-modal-close" onClick={onClose} aria-label="Cerrar">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
             <path d="M6 6l12 12M18 6L6 18" />
           </svg>
         </button>
-        <h2 id="devices-modal-title">Visitantes por aparato</h2>
-        <p className="panel-modal-sub">
-          {periodLabel} · {total} {total === 1 ? 'visitante único' : 'visitantes únicos'} de la landing
-        </p>
-        <Pie rows={rows} total={total} />
-        <ul className="devices-legend">
-          {rows.map((r) => (
-            <li key={r.device}>
-              <span className="swatch" style={{ background: DEVICE_COLORS[r.device] ?? DEVICE_COLORS.otro }} />
-              <span>{DEVICE_NAMES[r.device] ?? r.device}</span>
-              <b>{r.n}</b>
-              <i>{Math.round((r.n / total) * 100)}%</i>
-            </li>
-          ))}
-        </ul>
+        <h2 id={titleId}>{title}</h2>
+        {sub && <p className="panel-modal-sub">{sub}</p>}
+        {children}
       </div>
     </div>
+  )
+}
+
+function DevicesModal({ rows, total, periodLabel, onClose }) {
+  return (
+    <PanelModal titleId="devices-modal-title" title="Visitantes por aparato" onClose={onClose}
+                sub={`${periodLabel} · ${total} ${total === 1 ? 'visitante único' : 'visitantes únicos'} de la landing`}>
+      <Pie rows={rows} total={total} />
+      <ul className="devices-legend">
+        {rows.map((r) => (
+          <li key={r.device}>
+            <span className="swatch" style={{ background: DEVICE_COLORS[r.device] ?? DEVICE_COLORS.otro }} />
+            <span>{DEVICE_NAMES[r.device] ?? r.device}</span>
+            <b>{r.n}</b>
+            <i>{Math.round((r.n / total) * 100)}%</i>
+          </li>
+        ))}
+      </ul>
+    </PanelModal>
+  )
+}
+
+/* LA FICHA DE UN USUARIO, al tocar su cuenta en la lista. Lo pidió Angel: un botón para
+   sacarle la clave provisoria a quien se la olvidó — y como la ficha ya existe, muestra
+   también su perfil, que es lo que hace falta para contactarlo.
+
+   EL BOTÓN PIDE CONFIRMACIÓN, y no es ceremonia: la clave actual de esa persona deja de
+   andar en el acto, y un toque de más en una lista de doscientas cuentas le cambiaría la
+   clave a alguien que no pidió nada. La confirmación dice exactamente eso.
+
+   La provisoria se muestra UNA vez, grande y con «Copiar»: el servidor no la guarda en
+   claro en ningún lado, así que si se cierra la ficha sin copiarla hay que generar otra. */
+function UserModal({ user, onClose, onSesionMuerta }) {
+  const [step, setStep] = useState('idle') // idle | confirm | working | done
+  const [temp, setTemp] = useState(null)
+  const [error, setError] = useState(null)
+  const [copied, setCopied] = useState(false)
+  const pr = user.profile ?? {}
+  const fullName = [pr.firstName, pr.middleName, pr.lastName].filter(Boolean).join(' ')
+
+  async function generate() {
+    setStep('working')
+    setError(null)
+    try {
+      const r = await resetUserPassword(user.usuario)
+      setTemp(r.temp)
+      setStep('done')
+    } catch (e) {
+      if (e?.sesion) return onSesionMuerta?.()
+      setError(e.message)
+      setStep('confirm')
+    }
+  }
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(temp)
+      setCopied(true)
+    } catch { /* sin permiso de portapapeles: la clave está a la vista igual */ }
+  }
+
+  const rows = [
+    ['Nombre', fullName],
+    ['WhatsApp', pr.whatsapp],
+    ['Ciudad', pr.city],
+    ['Alta', dia(user.alta)],
+    ['Última vez', dia(user.ultima)],
+    ['Cartas', user.cartas?.toLocaleString('es-AR')],
+  ]
+
+  return (
+    <PanelModal titleId="user-modal-title" title="Usuario" sub={user.usuario} onClose={onClose}>
+      <dl className="user-facts">
+        {rows.map(([label, value]) => (
+          <div key={label}>
+            <dt>{label}</dt>
+            <dd>{value || '—'}</dd>
+          </div>
+        ))}
+      </dl>
+      {user.mustChange && step !== 'done' && (
+        <p className="user-note">Tiene una clave provisoria que todavía no cambió.</p>
+      )}
+
+      {/* Una región viva siempre en el DOM: la confirmación, el resultado y los errores
+          cambian el texto de adentro, que es lo que un lector de pantalla anuncia. */}
+      <div className="user-action" role="status">
+        {step === 'idle' && (
+          <button type="button" className="user-button" onClick={() => setStep('confirm')}>
+            Generar clave provisoria
+          </button>
+        )}
+        {(step === 'confirm' || step === 'working') && (
+          <>
+            <p className="user-note">
+              Su clave actual deja de andar ya, y al entrar con la provisoria la app le va a
+              pedir que elija una nueva. Sus cartas no se tocan.
+            </p>
+            {error && <p className="user-error">{error}</p>}
+            <div className="user-buttons">
+              <button type="button" className="user-button" onClick={generate} disabled={step === 'working'}>
+                {step === 'working' ? 'Un segundo…' : 'Sí, generarla'}
+              </button>
+              <button type="button" className="user-button quiet" onClick={() => setStep('idle')}
+                      disabled={step === 'working'}>
+                Cancelar
+              </button>
+            </div>
+          </>
+        )}
+        {step === 'done' && (
+          <>
+            <p className="user-note">Clave provisoria — dictásela, se muestra una sola vez:</p>
+            <p className="user-temp">{temp}</p>
+            <button type="button" className="user-button" onClick={copy}>
+              {copied ? 'Copiada' : 'Copiar'}
+            </button>
+          </>
+        )}
+      </div>
+    </PanelModal>
   )
 }
 
@@ -470,13 +583,14 @@ export default function Estadisticas({ onCerrar, onSesionMuerta, colecciones }) 
         )}
         {error && <p className="nada">{error}</p>}
         {!datos && !error && <p className="nada">Buscando…</p>}
-        {datos && <Cuerpo d={datos} colecciones={colecciones ?? []} period={period} />}
+        {datos && <Cuerpo d={datos} colecciones={colecciones ?? []} period={period} onSesionMuerta={onSesionMuerta} />}
       </div>
     </div>
   )
 }
 
-function Cuerpo({ d, colecciones, period }) {
+function Cuerpo({ d, colecciones, period, onSesionMuerta }) {
+  const [selectedUser, setSelectedUser] = useState(null)
   const { usuarios: u, cartas,  gente } = d
 
 
@@ -672,9 +786,14 @@ function Cuerpo({ d, colecciones, period }) {
                 {/* El chip ANTES del nombre: después, un mail largo lo recortaba con el
                     elipsis y quedaba una cajita vacía. Adelante queda entero siempre y los
                     de la app se encuentran bajando por la columna. */}
-                <td className="quien" title={g.usuario}>
-                  {g.app && <span className="chip" title="Entra desde la app instalada">app</span>}
-                  {g.usuario}
+                {/* LA CUENTA ES EL BOTÓN DE SU FICHA (perfil y clave provisoria). Se ve
+                    como texto con subrayado punteado: un botón de verdad por renglón sería
+                    doscientos botones compitiendo con los datos. */}
+                <td className="quien">
+                  <button type="button" className="who" title={g.usuario} onClick={() => setSelectedUser(g)}>
+                    {g.app && <span className="chip" title="Entra desde la app instalada">app</span>}
+                    {g.usuario}
+                  </button>
                 </td>
                 <td>{dia(g.alta)}</td>
                 <td>{dia(g.ultima)}</td>
@@ -725,6 +844,10 @@ function Cuerpo({ d, colecciones, period }) {
           entero — no hace falta verlo primero para verlo. */}
       <h4>Infra</h4>
       <Salud salud={d.salud} />
+
+      {selectedUser && (
+        <UserModal user={selectedUser} onClose={() => setSelectedUser(null)} onSesionMuerta={onSesionMuerta} />
+      )}
     </>
   )
 }

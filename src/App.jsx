@@ -21,7 +21,7 @@ import {
   ErrorApi,
   descargar, restaurar, quienSoy, salir,
   leerColeccion, guardarCarta, reemplazarColeccion,
-  cambiarClave, token, CLAVE_TOKEN,
+  cambiarClave, token, CLAVE_TOKEN, getProfile, saveProfile,
 } from './almacenamiento'
 
 /* Los tres listados que un coleccionista realmente necesita: qué buscar,
@@ -454,6 +454,102 @@ function Reemplazar({ mias, copia, onConfirmar, onCerrar }) {
    sesiones abiertas no echa a nadie —el token no sabe nada de la clave— y cerrar
    sesiones sin cambiarla deja entrar de nuevo al que la sabe. Por separado, cada mitad
    da una falsa sensación de haber resuelto algo. */
+/* «MI PERFIL». Lo pidió Angel el 2026-09-30: con sólo un mail no hay forma de saber quién
+   es quién ni de contactar a nadie. NADA ES OBLIGATORIO — un campo vacío es «no lo
+   cargué» —, y la nota dice quién ve estos datos, porque pedir un WhatsApp sin decir para
+   qué es la forma más rápida de que nadie lo complete.
+
+   Es el mismo diálogo y el mismo formulario que «Cambiar mi clave» (`.dialogo`,
+   `.entrar`), con los `autoComplete` estándar para que el teléfono ofrezca los datos que
+   ya sabe. El PUT manda los cinco campos y el servidor contesta con cómo quedaron: lo que
+   se muestra después de guardar es lo guardado, no lo tipeado. */
+const PROFILE_FIELDS = [
+  ['firstName', 'Nombre', 'given-name'],
+  ['middleName', 'Segundo nombre', 'additional-name'],
+  ['lastName', 'Apellido', 'family-name'],
+  ['whatsapp', 'WhatsApp', 'tel'],
+  ['city', 'Ciudad', 'address-level2'],
+]
+
+function ProfileDialog({ onClose, onSesionMuerta }) {
+  const [form, setForm] = useState(null) // null mientras llega
+  const [account, setAccount] = useState('')
+  const [error, setError] = useState(null)
+  const [saved, setSaved] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const box = useRef(null)
+  const prevFocus = useRef(document.activeElement)
+
+  usarEscape(onClose)
+  useEffect(() => atraparFoco(box.current, prevFocus.current), [])
+  useEffect(() => {
+    getProfile()
+      .then(({ usuario, ...fields }) => { setAccount(usuario); setForm(fields) })
+      .catch((e) => (e?.sesion ? onSesionMuerta() : setError(e.message)))
+  }, [])
+
+  async function submit(ev) {
+    ev.preventDefault()
+    setError(null)
+    setSaving(true)
+    try {
+      const { usuario, ...fields } = await saveProfile(form)
+      setForm(fields)
+      setSaved(true)
+    } catch (e) {
+      if (e?.sesion) return onSesionMuerta()
+      setError(e.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const change = (key) => (ev) => {
+    setForm((f) => ({ ...f, [key]: ev.target.value }))
+    setSaved(false)
+  }
+
+  return (
+    <div className="telon" onClick={onClose}>
+      <div className="dialogo" role="dialog" aria-modal="true" aria-label="Mi perfil"
+           ref={box} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
+        <h3>Mi perfil</h3>
+        {/* Región viva SIEMPRE en el DOM, con el texto cambiando adentro — la regla de
+            este proyecto para que el «Guardado» se anuncie. */}
+        <p className="nota-dialogo" role="status">
+          {form === null && !error
+            ? 'Cargando…'
+            : saved
+              ? 'Guardado.'
+              : 'Nada es obligatorio. Lo que completes lo ve sólo el administrador de la app, para poder contactarte.'}
+        </p>
+        {account && <p className="profile-account">Tu cuenta: <b>{account}</b></p>}
+        <form className="entrar" onSubmit={submit}>
+          {PROFILE_FIELDS.map(([key, label, autoComplete]) => (
+            <label key={key}>
+              {label}
+              <input
+                type={key === 'whatsapp' ? 'tel' : 'text'}
+                inputMode={key === 'whatsapp' ? 'tel' : undefined}
+                value={form?.[key] ?? ''}
+                onChange={change(key)}
+                autoComplete={autoComplete}
+                disabled={form === null}
+                maxLength={key === 'whatsapp' ? 30 : key === 'city' ? 80 : 60}
+              />
+            </label>
+          ))}
+          {error && <p className="error" role="alert">{error}</p>}
+          <button type="submit" className="principal" disabled={saving || form === null}>
+            {saving ? 'Un segundo…' : 'Guardar'}
+          </button>
+          <button type="button" className="secundario" onClick={onClose}>Cerrar</button>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 const queSeCerro = (n) =>
   n === 0 ? 'No había ninguna otra sesión abierta.'
     : n === 1 ? 'Se cerró la sesión que había en otro aparato.'
@@ -678,6 +774,7 @@ export default function App() {
   const [plegadas, setPlegadas] = useState(leerPlegadas)
   const [avisoAlias, setAvisoAlias] = useState(null)
   const [cambiandoClave, setCambiandoClave] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false)
   const [sacando, setSacando] = useState(false)
   const [preguntandoVariante, setPreguntandoVariante] = useState(null)
 
@@ -685,11 +782,12 @@ export default function App() {
      —el telón se come los clicks de atrás— así que alcanza con «hay alguno» y «cerrá el
      que sea». Si algún día se pueden apilar, esto pasa a ser uno por diálogo. */
   const hayDialogo =
-    exportando || cambiandoClave || sacando ||
+    exportando || cambiandoClave || profileOpen || sacando ||
     !!preguntando || !!preguntandoVariante || !!porRestaurar
   const cerrarDialogo = useCallback(() => {
     setExportando(false)
     setCambiandoClave(false)
+    setProfileOpen(false)
     setSacando(false)
     setPreguntando(null)
     setPreguntandoVariante(null)
@@ -1708,6 +1806,11 @@ export default function App() {
               cuatro filtros el 20% que tienen cada uno. El encabezado es donde vive lo que
               no es la colección. */}
           <div className="lado">
+            {/* LOS BOTONES DE LA CUENTA, JUNTOS: «Panel» (sólo el admin) y «Mi perfil»
+                (todos). Van en un envoltorio para que en el teléfono ocupen UNA celda de la
+                grilla del encabezado —la del renglón del logo— y no se auto-coloque ninguno
+                en una fila implícita, que es lo que ya infló este encabezado una vez. */}
+            <div className="header-actions">
             {cuenta.admin && (
               /* LA MARCA CUANDO LA COPIA ESTÁ VIEJA. Angel: «lo único que me importa es que
                  se haga la copia de seguridad, y si no se hace que ahí sí me avise».
@@ -1738,6 +1841,17 @@ export default function App() {
                 Panel
               </button>
             )}
+              {/* «MI PERFIL». Un ícono solo, con su nombre para el lector de pantalla y sin
+                  `title` (con los dos, el lector lee el nombre dos veces). */}
+              <button type="button" className="profile-button" aria-label="Mi perfil"
+                      onClick={() => setProfileOpen(true)}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     strokeWidth="2.2" strokeLinecap="round" aria-hidden="true" focusable="false">
+                  <circle cx="12" cy="8" r="4" />
+                  <path d="M4 21c0-4 3.6-7 8-7s8 3 8 7" />
+                </svg>
+              </button>
+            </div>
             <div className="progreso">
               <div className="avance">
                 <span className="grande">{resumen.tengo}</span>
@@ -2108,6 +2222,9 @@ export default function App() {
 
       {cambiandoClave && !cuenta?.mustChange && (
         <CambiarClave onCerrar={() => setCambiandoClave(false)} onSesionMuerta={sesionMuerta} />
+      )}
+      {profileOpen && !cuenta?.mustChange && (
+        <ProfileDialog onClose={() => setProfileOpen(false)} onSesionMuerta={sesionMuerta} />
       )}
       {/* LA CLAVE PROVISORIA: obligatorio y sin salida hasta elegir una propia. Al
           terminar, apaga la marca en la cuenta local — la del servidor ya la apagó

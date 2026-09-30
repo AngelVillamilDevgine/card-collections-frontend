@@ -949,6 +949,35 @@ button { cursor: pointer; }
   font-weight: 600;
 }
 .a-panel:hover { border-color: var(--acento); color: var(--acento); }
+
+/* Los botones de la cuenta, juntos en un renglón: «Panel» (sólo el admin) y «Mi perfil»
+   (todos). En el teléfono este envoltorio es UNA celda de la grilla del encabezado — ver
+   el @media de abajo. */
+.header-actions { display: flex; align-items: center; gap: 8px; }
+
+/* «Mi perfil»: un círculo con el mismo borde que «Panel», para que se lean como una
+   familia. 34 px dibujados y 44 de blanco de toque con un `::after` estirado, que es como
+   se agranda todo en esta app sin mover el layout. */
+.profile-button {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--linea2);
+  border-radius: 50%;
+  background: none;
+  color: var(--tinta2);
+  cursor: pointer;
+}
+.profile-button:hover { border-color: var(--acento); color: var(--acento); }
+.profile-button::after { content: ''; position: absolute; inset: -5px; }
+
+/* La cuenta, arriba del formulario de «Mi perfil». Un mail largo se parte donde haga
+   falta en vez de empujar el diálogo de costado. */
+.profile-account { margin: -2px 0 14px; font-size: 13.5px; color: var(--tinta2); overflow-wrap: anywhere; }
+.profile-account b { color: var(--tinta); }
 .a-panel svg { flex: none; }
 
 /* CUANDO LA COPIA DE LA BASE ESTÁ VIEJA. Lo único que Angel pidió que le avise, y hasta hoy
@@ -1026,7 +1055,10 @@ button { cursor: pointer; }
      subtítulo lo partía en dos y dejaba un «2008» solo abajo: el logo mide 240 px fijos
      y a su derecha hay lugar de sobra, el subtítulo no. */
   .encabezado h1 { grid-area: 1 / 1; align-self: center; }
-  .encabezado .a-panel { grid-area: 1 / 2; align-self: center; }
+  /* Desde que existe «Mi perfil», la celda es del ENVOLTORIO de los botones y no de
+     «Panel»: así los dos comparten el renglón del logo, también para quien no es admin y
+     sólo tiene el de perfil. */
+  .encabezado .header-actions { grid-area: 1 / 2; align-self: center; }
   /* El selector ocupa el renglón que dejó el subtítulo, así que el encabezado NO gana una
      fila. Sin `grid-area` se auto-colocaría en una fila implícita, que es exactamente lo
      que llevó este encabezado de 162 a 266 px la primera vez. */
