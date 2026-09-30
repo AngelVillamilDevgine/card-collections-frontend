@@ -160,7 +160,7 @@ function Pie({ rows, total }) {
   })
   const summary = rows.map((r) => `${DEVICE_NAMES[r.device] ?? r.device} ${r.n}`).join(', ')
   return (
-    <svg className="pie" viewBox="0 0 42 42" role="img"
+    <svg className="devices-pie" viewBox="0 0 42 42" role="img"
          aria-label={`${total} visitantes: ${summary}`}>
       <circle cx="21" cy="21" r={R} fill="none" stroke="var(--p-rail)" strokeWidth="6" />
       {segs.map((t) => (
@@ -168,7 +168,7 @@ function Pie({ rows, total }) {
                 stroke={DEVICE_COLORS[t.device] ?? DEVICE_COLORS.otro} strokeWidth="6"
                 strokeDasharray={`${t.len} ${100 - t.len}`} strokeDashoffset={t.offset} />
       ))}
-      <text x="21" y="21" className="pie-total" textAnchor="middle" dominantBaseline="central">{total}</text>
+      <text x="21" y="21" className="devices-pie-total" textAnchor="middle" dominantBaseline="central">{total}</text>
     </svg>
   )
 }
@@ -206,7 +206,7 @@ function DevicesModal({ rows, total, periodLabel, onClose }) {
           {periodLabel} · {total} {total === 1 ? 'visitante único' : 'visitantes únicos'} de la landing
         </p>
         <Pie rows={rows} total={total} />
-        <ul className="pie-legend">
+        <ul className="devices-legend">
           {rows.map((r) => (
             <li key={r.device}>
               <span className="swatch" style={{ background: DEVICE_COLORS[r.device] ?? DEVICE_COLORS.otro }} />

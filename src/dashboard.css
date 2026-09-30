@@ -626,14 +626,14 @@ body:has(.pagina-panel) {
 .panel-modal-close:focus-visible { outline: 2px solid var(--p-gold); outline-offset: -4px; }
 
 /* La dona. El número del centro va en Anton, en unidades del viewBox (42). */
-.pie { display: block; width: 180px; height: 180px; margin: 0 auto 18px; }
-.pie-total {
+.devices-pie { display: block; width: 180px; height: 180px; margin: 0 auto 18px; }
+.devices-pie-total {
   font-family: Anton, 'Arial Narrow', system-ui, sans-serif;
   font-size: 9px;
   fill: var(--p-text);
 }
-.pie-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
-.pie-legend li {
+.devices-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.devices-legend li {
   display: grid;
   grid-template-columns: 12px minmax(0, 1fr) auto 44px;
   align-items: center;
@@ -641,6 +641,6 @@ body:has(.pagina-panel) {
   font-size: 14px;
   color: var(--p-text2);
 }
-.pie-legend .swatch { width: 12px; height: 12px; border-radius: 3px; }
-.pie-legend b { color: var(--p-text); font-variant-numeric: tabular-nums; }
-.pie-legend i { font-style: normal; text-align: right; color: var(--p-text3); font-variant-numeric: tabular-nums; }
+.devices-legend .swatch { width: 12px; height: 12px; border-radius: 3px; }
+.devices-legend b { color: var(--p-text); font-variant-numeric: tabular-nums; }
+.devices-legend i { font-style: normal; text-align: right; color: var(--p-text3); font-variant-numeric: tabular-nums; }
