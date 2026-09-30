@@ -213,7 +213,17 @@ function PeriodFunnel({ p }) {
     { n: p.visitorsNew, rotulo: 'Visitantes únicos nuevos', nota: `${p.landing} cargas` },
     { n: p.toSignup, rotulo: 'Clicks a anotarse', conv: pct(p.toSignup, p.visitorsNew) },
     { n: p.signups, rotulo: 'Registros', conv: pct(p.signups, p.toSignup) },
-    { n: p.usedApp, rotulo: 'Usuarios activos', costura: 'Actividad en la app' },
+    /* El uso, partido por dónde entraron — lo pidió Angel: «usuarios que usaron la
+       página, y abajo uno nuevo que diga usuarios que usaron la app». La bandera es por
+       día, así que web y app pueden solaparse y no tienen por qué sumar el total; la
+       conversión de abajo sigue siendo contra el total de activos (`usedApp`). Con un
+       back viejo sin el desglose, queda la estación única de antes. */
+    ...(p.usedWeb != null
+      ? [
+          { n: p.usedWeb, rotulo: 'Usaron la página', costura: 'Actividad en la app' },
+          { n: p.usedInstalled, rotulo: 'Usaron la app instalada' },
+        ]
+      : [{ n: p.usedApp, rotulo: 'Usuarios activos', costura: 'Actividad en la app' }]),
     {
       n: p.moved.gente, rotulo: 'Movieron cartas',
       nota: `${p.moved.cartas.toLocaleString('es-AR')} ${p.moved.cartas === 1 ? 'carta' : 'cartas'}`,
