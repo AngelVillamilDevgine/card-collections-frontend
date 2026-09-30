@@ -4,7 +4,7 @@
 // vuelve: arriba el embudo de "se anotó" a "volvió otro día", y recién después el
 // detalle. Si alguna vez se cobra algo, se le cobra a los que vuelven.
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { usarEscape } from './foco'
+import { usarEscape, usarAtras, atraparFoco } from './foco'
 import { estadisticas } from './almacenamiento'
 import { albumPercent } from './collections'
 import { isStale } from './health'
@@ -122,7 +122,94 @@ function Cuadro({ valor, rotulo, de, pie, chico }) {
 
 /* Cómo se llama cada aparato. La clasificación gruesa la hace el servidor sobre el
    User-Agent (sin guardarlo crudo); acá sólo se le pone nombre. */
-const APARATOS = { iphone: 'iPhone', android: 'Android', windows: 'Windows', mac: 'Mac', ipad: 'iPad', otro: 'Otro' }
+const DEVICE_NAMES = { iphone: 'iPhone', android: 'Android', windows: 'Windows', mac: 'Mac', ipad: 'iPad', otro: 'Otro' }
+
+/* Un color FIJO por aparato, no por posición: así Android es dorado en «Hoy» y en «Mes
+   pasado» aunque cambie el orden. Salen de la paleta del panel y de la cinta holo; todos
+   pasan 3:1 contra el fondo de la tarjeta (el gris de «Otro», el más justo, da 4.3). El
+   color no es el único canal: la leyenda lleva nombre, número y porcentaje. */
+const DEVICE_COLORS = {
+  android: '#e6b13c', iphone: '#7fa8e6', windows: '#7fd0c0',
+  mac: '#c78fd6', ipad: '#f3ead7', otro: '#8d8a7c',
+}
+
+/* LA TORTA — una dona en SVG con el truco del `stroke-dasharray`: con r = 15.9155 la
+   circunferencia mide 100, así que cada tramo se dibuja con su porcentaje tal cual. Sin
+   librería de gráficos: son veinte líneas y el panel viaja en su propio chunk. Arranca
+   arriba (offset 25) y gira en el sentido del reloj. Entre tramos queda una ranura de
+   0.8 para que dos colores vecinos no se fundan; con un solo aparato, círculo entero. */
+function Pie({ rows, total }) {
+  const R = 15.9155
+  const gap = rows.length > 1 ? 0.8 : 0
+  let acumulado = 0
+  const tramos = rows.map((r) => {
+    const pct = (r.n / total) * 100
+    const tramo = { ...r, largo: Math.max(0.4, pct - gap), offset: 25 - acumulado }
+    acumulado += pct
+    return tramo
+  })
+  const resumen = rows.map((r) => `${DEVICE_NAMES[r.device] ?? r.device} ${r.n}`).join(', ')
+  return (
+    <svg className="torta" viewBox="0 0 42 42" role="img"
+         aria-label={`${total} visitantes: ${resumen}`}>
+      <circle cx="21" cy="21" r={R} fill="none" stroke="var(--p-rail)" strokeWidth="6" />
+      {tramos.map((t) => (
+        <circle key={t.device} cx="21" cy="21" r={R} fill="none"
+                stroke={DEVICE_COLORS[t.device] ?? DEVICE_COLORS.otro} strokeWidth="6"
+                strokeDasharray={`${t.largo} ${100 - t.largo}`} strokeDashoffset={t.offset} />
+      ))}
+      <text x="21" y="21" className="torta-n" textAnchor="middle" dominantBaseline="central">{total}</text>
+    </svg>
+  )
+}
+
+/* EL MODAL DE LOS APARATOS. Lo pidió Angel: «Ver dispositivos» en el subtítulo de la
+   primera estación, que abre la torta — y el bloque de barras del cuerpo desaparece.
+
+   Es un diálogo DE VERDAD encima de una página, así que lleva lo que llevan los de la
+   app (`foco.js`): Atrás lo cierra sin cerrar el panel (`usarAtras` empuja una entrada
+   sin tocar el hash, así que `#panel` sigue en pie), el foco queda adentro y vuelve al
+   botón al cerrar, y Escape cierra. El Escape del PANEL mira si hay un modal abierto y
+   se hace a un lado — si no, un Escape cerraba los dos. Tocar el telón también cierra.
+
+   La torta reparte los visitantes ÚNICOS del período (todos, no sólo los nuevos de la
+   estación), y el subtítulo dice cuántos y que son de la landing: los logueados entran
+   directo a sus cartas y no tienen aparato — fue la confusión de la vez anterior. */
+function DevicesModal({ rows, total, periodLabel, onClose }) {
+  const caja = useRef(null)
+  const antes = useRef(document.activeElement)
+  usarEscape(onClose)
+  usarAtras(true, onClose)
+  useEffect(() => atraparFoco(caja.current, antes.current), [])
+  return (
+    <div className="panel-modal-fondo" onClick={onClose}>
+      <div className="panel-modal" ref={caja} role="dialog" aria-modal="true"
+           aria-labelledby="modal-aparatos" onClick={(e) => e.stopPropagation()}>
+        <button type="button" className="panel-modal-cerrar" onClick={onClose} aria-label="Cerrar">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
+        <h2 id="modal-aparatos">Visitantes por aparato</h2>
+        <p className="panel-modal-sub">
+          {periodLabel} · {total} {total === 1 ? 'visitante único' : 'visitantes únicos'} de la landing
+        </p>
+        <Pie rows={rows} total={total} />
+        <ul className="torta-leyenda">
+          {rows.map((r) => (
+            <li key={r.device}>
+              <span className="muestra" style={{ background: DEVICE_COLORS[r.device] ?? DEVICE_COLORS.otro }} />
+              <span>{DEVICE_NAMES[r.device] ?? r.device}</span>
+              <b>{r.n}</b>
+              <i>{Math.round((r.n / total) * 100)}%</i>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  )
+}
 
 /* EL VIAJE: la historia del panel contada como UNA línea — de la puerta al álbum. Lo
    pidió Angel el 2026-09-29: «que sea más como un storytelling, para darle seguimiento
@@ -203,14 +290,27 @@ function Spine({ nodes }) {
    sacó Angel el 2026-09-30: «no quiero gastar procesamiento al pedo» — eran cuatro
    paquetes extra de COUNT(DISTINCT) por apertura. El back deja de calcularlos en el
    paso dos; este front ya no los lee. */
-function PeriodFunnel({ p }) {
+function PeriodFunnel({ p, periodLabel }) {
+  const [showDevices, setShowDevices] = useState(false)
   const pct = (a, b) => (b > 0 ? Math.round((a / b) * 100) : null)
+  const devices = p.devices ?? []
   /* Rótulos de DATO, no de relato — Angel: «quiero datos puros, es un dashboard». La
      estación de arriba cuenta VISITANTES NUEVOS (primera vez de ese navegador), que es
      el que entra al embudo — también pedido suyo: «4 / 4 nuevos» era el mismo número
-     dicho dos veces. Los devices siguen repartiendo sobre los únicos totales. */
+     dicho dos veces.
+
+     Su subtítulo era «N cargas» y Angel lo bajó («al pedo»): ahora es el botón que abre
+     el reparto por aparato. Sin visitantes en el período no hay torta que mostrar, así
+     que el botón no aparece — un modal vacío es peor que no ofrecerlo. */
   const nodes = [
-    { n: p.visitorsNew, rotulo: 'Visitantes únicos nuevos', nota: `${p.landing} cargas` },
+    {
+      n: p.visitorsNew, rotulo: 'Visitantes únicos nuevos',
+      nota: devices.length > 0 && (
+        <button type="button" className="journey-link" onClick={() => setShowDevices(true)}>
+          Ver dispositivos
+        </button>
+      ),
+    },
     { n: p.toSignup, rotulo: 'Clicks a anotarse', conv: pct(p.toSignup, p.visitorsNew) },
     { n: p.signups, rotulo: 'Registros', conv: pct(p.signups, p.toSignup) },
     /* El uso, partido por dónde entraron — lo pidió Angel: «usuarios que usaron la
@@ -230,7 +330,18 @@ function PeriodFunnel({ p }) {
       conv: pct(p.moved.gente, p.usedApp),
     },
   ]
-  return <Spine nodes={nodes} />
+  return (
+    <>
+      <Spine nodes={nodes} />
+      {/* El total de la torta es la SUMA DE SUS TRAMOS y no `p.visitors`: hoy son
+          iguales (cada navegador tiene un solo aparato), pero si alguna vez divergieran,
+          la dona mostraría un hueco sin explicación y los porcentajes no cerrarían. */}
+      {showDevices && (
+        <DevicesModal rows={devices} total={devices.reduce((a, r) => a + r.n, 0)}
+                      periodLabel={periodLabel} onClose={() => setShowDevices(false)} />
+      )}
+    </>
+  )
 }
 
 function Barra({ rotulo, valor, techo, nota, flaca }) {
@@ -293,7 +404,12 @@ export default function Estadisticas({ onCerrar, onSesionMuerta, colecciones }) 
       .catch((e) => (e?.sesion ? onSesionMuerta?.() : setError(e.message)))
   }, [])
 
-  usarEscape(onCerrar)
+  /* Con un modal abierto encima (los aparatos), Escape es SUYO: los dos escuchan en
+     `window`, y sin esta guarda un Escape cerraba el modal Y el panel — dos
+     `history.back()` seguidos. Se mira el DOM y no un estado porque el modal vive
+     adentro de otro componente; este listener se registró antes, así que corre primero
+     y todavía encuentra el modal en pantalla. */
+  usarEscape(() => { if (!document.querySelector('.panel-modal')) onCerrar() })
 
   /* UNA PÁGINA NO ATRAPA EL FOCO, un diálogo sí. Esto era un `.dialogo` y usaba
      `atraparFoco`, que cicla el Tab adentro — correcto para algo que flota encima de otra
@@ -358,9 +474,6 @@ function Cuerpo({ d, colecciones, period }) {
      al embudo histórico, que es lo que había. */
   const p = d.periodos?.[period] ?? null
 
-  /* Aparatos: del período cuando hay filtro, del total histórico cuando no. */
-  const devices = p ? { devices: p.devices, total: p.visitors } :
-    d.funnel?.visitors ? { devices: d.funnel.visitors.devices, total: d.funnel.visitors.total } : null
 
   /* Cada colección con lo que trajo el servidor. `porColeccion` puede venir en null si el
      back es más viejo que el front: entonces no se dibuja nada partido, que es mejor que
@@ -437,25 +550,13 @@ function Cuerpo({ d, colecciones, period }) {
           la conversión va en una sola escala; sin `periodos` (back viejo) cae al embudo
           histórico. Títulos de dato y no de relato — Angel: «quiero datos puros». */}
       <h4>Embudo</h4>
-      {p ? <PeriodFunnel p={p} /> : <HistoricFunnel f={d.funnel} u={u} />}
+      {p
+        ? <PeriodFunnel p={p} periodLabel={PERIODS.find(([id]) => id === period)?.[1] ?? ''} />
+        : <HistoricFunnel f={d.funnel} u={u} />}
 
-      {/* PEGADO AL EMBUDO Y CON DUEÑO EN EL TÍTULO: el reparto es de los VISITANTES de
-          la landing (el vid anónimo, clasificado por User-Agent) — los usuarios logueados
-          entran directo a /collection y no tienen aparato registrado. Estaba después de
-          los totales y se llamaba «Por aparato» a secas: Angel leyó 3+1 activos contra
-          1 aparato y con razón no entendía de quién era el reparto. */}
-      {devices && devices.devices.length > 0 && (
-        <>
-          <h4>Visitantes por aparato</h4>
-          <div className="grupo">
-            {devices.devices.map((x) => (
-              <Barra key={x.device} rotulo={APARATOS[x.device] ?? x.device} valor={x.n}
-                     techo={devices.total}
-                     nota={`${Math.round((x.n / devices.total) * 100)}%`} />
-            ))}
-          </div>
-        </>
-      )}
+      {/* «Visitantes por aparato» vivió acá como bloque de barras y se mudó al modal de
+          la torta, que abre el «Ver dispositivos» de la primera estación — pedido de
+          Angel: un dato de detalle no ocupa lugar en el principal. */}
 
       {/* Los totales históricos, aparte del período. */}
       {p && (
