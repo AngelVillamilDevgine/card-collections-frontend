@@ -609,7 +609,7 @@ button { cursor: pointer; }
    puesto invisible encima de la bandera —en el teléfono abre la lista del sistema, y con
    el teclado anda como cualquier select—; lo que se ve es sólo el dibujo. La caja copia la
    del campo de al lado: mismo borde, mismo alto, el mismo foco naranja. */
-.login-form .phone-field { display: flex; flex-direction: column; gap: 6px; }
+.login-form .stacked-field { display: flex; flex-direction: column; gap: 6px; }
 .phone { display: flex; gap: 8px; }
 .phone input { flex: 1; min-width: 0; }
 .phone-country {
@@ -653,11 +653,51 @@ button { cursor: pointer; }
 }
 /* Inválido se ve también con el foco puesto, que es como se lo ve primero: al marcar el
    error el foco va al campo, y el borde rojizo al lado del anillo naranja no se distinguía. */
-.login-form .phone input[aria-invalid],
-.login-form .phone input[aria-invalid]:focus {
+.login-form .stacked-field input[aria-invalid],
+.login-form .stacked-field input[aria-invalid]:focus {
   border-color: var(--replace-ink);
   box-shadow: 0 0 0 3px rgb(150 67 28 / 0.22);
 }
+
+/* LA PROVINCIA: un campo de texto con la lista colgando abajo (o arriba, si abajo no entra:
+   lo decide Profile.jsx midiendo). La lista flota sobre lo que sigue —Guardar, Cerrar— en
+   vez de empujarlo, para que los botones no salten mientras se escribe. El alto máximo es
+   el LIST_HEIGHT de Profile.jsx: si se cambia uno, se cambia el otro. */
+.province { position: relative; }
+.login-form .province input { padding-right: 38px; }
+.province-chevron {
+  position: absolute;
+  right: 14px;
+  top: 17px;
+  color: var(--ink3);
+  pointer-events: none;
+}
+.province-pop {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 2;
+  max-height: 232px;
+  overflow-y: auto;
+  background: var(--white);
+  border: 1px solid var(--line2);
+  border-radius: 6px;
+  box-shadow: 0 10px 28px rgba(32, 29, 26, 0.18);
+}
+.province.up .province-pop { top: auto; bottom: calc(100% + 4px); }
+.province-pop ul { list-style: none; margin: 0; padding: 4px 0; }
+/* 44 px de alto por opción: es para el dedo. */
+.province-pop li {
+  padding: 12px 14px;
+  font-size: 15px;
+  line-height: 20px;
+  color: var(--ink);
+  cursor: pointer;
+}
+.province-pop li[aria-selected="true"] { background: rgb(168 89 13 / 0.1); }
+.province-pop li.chosen { font-weight: 600; }
+.province-none { margin: 6px 0 0; font-size: 13px; color: var(--ink2); }
 
 /* SIN `.login-form` ADELANTE, y no es una limpieza: había dos botones sin ningún estilo.
    Estas dos clases nacieron en la pantalla de entrada y se quedaron colgadas de ella, pero

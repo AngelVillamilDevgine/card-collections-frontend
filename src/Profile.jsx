@@ -9,13 +9,14 @@ import {
   canonical, countryOptions, dialCode, formatNational, fromStored, isTooLong,
   placeholderFor, readInput, toWire,
 } from './phone'
+import { PROVINCES, findProvinces, fold, resolveProvince } from './provinces'
 
 const FIELDS = [
   ['firstName', 'Nombre', 'given-name'],
   ['middleName', 'Segundo nombre', 'additional-name'],
   ['lastName', 'Apellido', 'family-name'],
   ['whatsapp'],
-  ['city', 'Ciudad', 'address-level2'],
+  ['province'],
 ]
 
 /* Las banderas son SVG sueltos de `country-flag-icons` (de 250 bytes a 5 KB): cada una se
@@ -160,6 +161,198 @@ function PhoneField({ value, onChange, disabled, invalid, describedBy, inputRef 
   )
 }
 
+/* LA PROVINCIA: se escribe para buscar y se elige de la lista. Un combobox de los de la
+   guía de ARIA y no un <select>, porque con 24 opciones escribir «cord» es más rápido que
+   recorrerlas, y no un <datalist>, porque el del navegador no encuentra «Córdoba» si se
+   escribe «cordoba», que es como lo escribe medio país desde el teléfono.
+
+   - Escribir abre la lista filtrada, con la primera marcada: «cord» + Enter es Córdoba. Con
+     el campo vacío no se marca ninguna: si no, borrar la provincia y apretar Enter elegía
+     Buenos Aires.
+   - Flechas para recorrer, Enter para elegir, Escape cierra la lista SIN cerrar el diálogo
+     (la segunda Escape, con la lista cerrada, sí lo cierra). Tab se lleva la opción sólo
+     si se llegó a ella con las flechas, no la que quedó marcada sola al escribir.
+   - Tocar una opción la elige sin que el campo pierda el foco (onMouseDown la frena).
+   - Lo que queda guardado lo decide resolveProvince, igual al salir, con Enter o con Guardar.
+   - La lista se abre donde entra, medido contra lo que de verdad se ve: la caja del
+     diálogo, que scrollea y recorta, y la pantalla menos el teclado del teléfono. */
+const LIST_HEIGHT = 232
+
+function ProvinceField({ value, onChange, disabled, invalid, describedBy, inputRef }) {
+  const [open, setOpen] = useState(false)
+  const [filtering, setFiltering] = useState(false) // false: muestra las 24 aunque haya una elegida
+  const [active, setActive] = useState(-1)
+  const [room, setRoom] = useState({ up: false, max: LIST_HEIGHT })
+  const navigated = useRef(false) // ¿la marcada la eligió con las flechas?
+  const list = useRef(null)
+  const options = filtering ? findProvinces(value) : PROVINCES
+  const expanded = open && options.length > 0
+  const unknown = !invalid && resolveProvince(value) === null && findProvinces(value).length === 0
+
+  /* Medido contra la ventana —lo primero que se hizo— abría para abajo con lugar de sobra en
+     la pantalla, pero la caja del diálogo recortaba los últimos 90 px de la lista. */
+  function place() {
+    const el = inputRef.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    const vv = window.visualViewport
+    let top = vv ? vv.offsetTop : 0
+    let bottom = vv ? vv.offsetTop + vv.height : window.innerHeight
+    const box = el.closest('.dialog')?.getBoundingClientRect()
+    if (box) { top = Math.max(top, box.top); bottom = Math.min(bottom, box.bottom) }
+    const below = bottom - r.bottom - 8
+    const above = r.top - top - 8
+    const up = below < LIST_HEIGHT && above > below
+    setRoom({ up, max: Math.max(88, Math.min(LIST_HEIGHT, up ? above : below)) })
+  }
+
+  function show(filter) {
+    setFiltering(filter)
+    const shown = filter ? findProvinces(value) : PROVINCES
+    setActive(filter && fold(value) ? (shown.length ? 0 : -1) : shown.indexOf(value))
+    navigated.current = false
+    place()
+    setOpen(true)
+  }
+
+  // El teclado del teléfono aparece DESPUÉS de abrir: se vuelve a medir.
+  useEffect(() => {
+    if (!open || !window.visualViewport) return
+    const vv = window.visualViewport
+    vv.addEventListener('resize', place)
+    return () => vv.removeEventListener('resize', place)
+  }, [open])
+
+  /* La marcada a la vista moviendo SÓLO la lista. Con scrollIntoView se movía también el
+     diálogo —la lista colgaba fuera de su caja—, y el toque siguiente, en el mismo lugar,
+     caía sobre otra provincia y la elegía sin aviso. */
+  useEffect(() => {
+    const ul = list.current
+    const li = ul?.children[active]
+    if (!expanded || !li) return
+    const pop = ul.parentElement
+    if (li.offsetTop < pop.scrollTop) pop.scrollTop = li.offsetTop
+    else if (li.offsetTop + li.offsetHeight > pop.scrollTop + pop.clientHeight)
+      pop.scrollTop = li.offsetTop + li.offsetHeight - pop.clientHeight
+  }, [expanded, active])
+
+  function pick(name) {
+    onChange(name)
+    setOpen(false)
+    setFiltering(false)
+    setActive(-1)
+  }
+
+  function type(ev) {
+    const text = ev.target.value
+    /* Sin el foco, lo que llega es el autocompletado del navegador (que ignora el «off»):
+       se resuelve como al salir y la lista no se abre, porque sin foco no habría blur que
+       la cierre y quedaría tapando Guardar. */
+    if (document.activeElement !== ev.target) {
+      onChange(resolveProvince(text) ?? text)
+      return
+    }
+    onChange(text)
+    const shown = findProvinces(text)
+    setFiltering(true)
+    setActive(fold(text) && shown.length ? 0 : -1)
+    navigated.current = false
+    if (!open) place()
+    setOpen(true)
+  }
+
+  function move(step) {
+    navigated.current = true
+    setActive((a) => {
+      if (!options.length) return -1
+      if (a < 0) return step > 0 ? 0 : options.length - 1
+      return (a + step + options.length) % options.length
+    })
+  }
+
+  function key(ev) {
+    if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
+      ev.preventDefault()
+      if (!expanded) return show(filtering)
+      move(ev.key === 'ArrowDown' ? 1 : -1)
+    } else if (ev.key === 'Enter' && expanded) {
+      // Con la lista a la vista, Enter elige; no manda el formulario.
+      ev.preventDefault()
+      if (active >= 0) pick(options[active])
+      else setOpen(false)
+    } else if (ev.key === 'Escape' && expanded) {
+      // Cierra la lista y nada más: el diálogo escucha Escape en window, y esto lo frena antes.
+      ev.preventDefault()
+      ev.stopPropagation()
+      setOpen(false)
+    } else if (ev.key === 'Tab' && expanded && active >= 0 && navigated.current) {
+      pick(options[active]) // sin preventDefault: el foco sigue de largo
+    }
+  }
+
+  function leave() {
+    setOpen(false)
+    setActive(-1)
+    setFiltering(false)
+    const chosen = resolveProvince(value)
+    if (chosen !== null && chosen !== value) onChange(chosen)
+  }
+
+  const hint = unknown ? 'profile-province-hint' : null
+  return (
+    <div className={`province${room.up ? ' up' : ''}`}>
+      <input
+        id="profile-province"
+        ref={inputRef}
+        type="text"
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded={expanded}
+        aria-controls="profile-province-list"
+        aria-activedescendant={expanded && active >= 0 ? `profile-province-${active}` : undefined}
+        aria-invalid={invalid || undefined}
+        aria-describedby={[describedBy, hint].filter(Boolean).join(' ') || undefined}
+        autoComplete="off"
+        spellCheck={false}
+        maxLength={40}
+        placeholder="Elegí o escribí la tuya"
+        value={value}
+        disabled={disabled}
+        onChange={type}
+        onKeyDown={key}
+        onClick={() => (expanded ? setOpen(false) : show(false))}
+        onBlur={leave}
+      />
+      <svg className="province-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M6 9l6 6 6-6" />
+      </svg>
+      {expanded && (
+        // onMouseDown frena el blur del campo: sin eso, tocar una opción —o la barra de
+        // desplazamiento de la lista— cerraba la lista antes del click.
+        <div className="province-pop" style={{ maxHeight: room.max }} onMouseDown={(e) => e.preventDefault()}>
+          <ul id="profile-province-list" role="listbox" aria-label="Provincias" ref={list}>
+            {options.map((name, i) => (
+              <li key={name} id={`profile-province-${i}`} role="option" aria-selected={i === active}
+                  className={name === value ? 'chosen' : undefined}
+                  onClick={() => pick(name)}
+                  onMouseMove={() => i !== active && setActive(i)}>
+                {name}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {/* Abajo del campo y NO flotando: flotando caía justo encima de Guardar, y en el
+          teléfono el toque le daba al cartel. Y depende de lo escrito, no del foco: si se
+          fuera al salir del campo, todo lo de abajo subiría entre que se apoya el dedo en
+          Guardar y se levanta, y el toque erraría el botón. Atado al campo por
+          aria-describedby: si no, el lector no lo decía nunca. */}
+      {unknown && <p className="province-none" id="profile-province-hint">Ninguna provincia se llama así.</p>}
+    </div>
+  )
+}
+
 /* Lo pidió Angel el 2026-09-30: con sólo un mail no hay forma de saber quién es quién ni de
    contactar a nadie. NADA ES OBLIGATORIO — un campo vacío es «no lo cargué» —, y la nota
    dice quién ve estos datos, porque pedir un WhatsApp sin decir para qué es la forma más
@@ -170,11 +363,12 @@ export default function ProfileDialog({ onClose, onSesionMuerta }) {
   const [phone, setPhone] = useState(() => fromStored(''))
   const [account, setAccount] = useState('')
   const [error, setError] = useState(null)
-  const [phoneError, setPhoneError] = useState(false)
+  const [fieldError, setFieldError] = useState(null) // 'whatsapp' | 'province': el error va al lado de ése
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
   const box = useRef(null)
   const phoneInput = useRef(null)
+  const provinceInput = useRef(null)
   const prevFocus = useRef(document.activeElement)
 
   usarEscape(onClose)
@@ -189,22 +383,32 @@ export default function ProfileDialog({ onClose, onSesionMuerta }) {
       .catch((e) => (e?.sesion ? onSesionMuerta() : setError(e.message)))
   }, [])
 
+  function flag(field, message, input) {
+    setError(message)
+    setFieldError(field)
+    input.current?.focus()
+  }
+
   async function submit(ev) {
     ev.preventDefault()
     setError(null)
-    setPhoneError(false)
-    /* El número se revisa acá antes de mandarlo, con la misma regla que el servidor: un
-       número a medias se dice al lado del campo, sin viaje. */
+    setFieldError(null)
+    /* El número y la provincia se revisan acá antes de mandarlos, con la misma regla que el
+       servidor: lo que no va se dice al lado del campo, sin viaje. */
     const wire = toWire(phone.country, phone.national)
-    if (wire.error) {
-      setError(wire.error)
-      setPhoneError(true)
-      phoneInput.current?.focus()
-      return
-    }
+    if (wire.error) return flag('whatsapp', wire.error, phoneInput)
+    const province = resolveProvince(form.province ?? '')
+    if (province === null) return flag('province', 'Elegí la provincia de la lista.', provinceInput)
     setSaving(true)
     try {
-      const { usuario, ...fields } = await saveProfile({ ...form, whatsapp: wire.value })
+      const { usuario, ...fields } = await saveProfile({ ...form, whatsapp: wire.value, province })
+      /* Un servidor que todavía no sabe de provincias —el rato de un deploy, o un rollback—
+         guarda todo lo demás y la tira sin decir nada. Se dice, y no se borra del campo. */
+      if (!('province' in fields)) {
+        setForm({ ...fields, province })
+        setPhone(fromStored(fields.whatsapp))
+        return setError('Se guardó todo menos la provincia: la app se está actualizando. Probá de nuevo en unos minutos.')
+      }
       setForm(fields)
       setPhone(fromStored(fields.whatsapp))
       setSaved(true)
@@ -216,16 +420,29 @@ export default function ProfileDialog({ onClose, onSesionMuerta }) {
     }
   }
 
+  function edited(field) {
+    setSaved(false)
+    if (fieldError === field) { setFieldError(null); setError(null) }
+  }
   const change = (key) => (ev) => {
     setForm((f) => ({ ...f, [key]: ev.target.value }))
-    setSaved(false)
+    edited(key)
   }
-
   function changePhone(next) {
     setPhone(next)
-    setSaved(false)
-    if (phoneError) { setPhoneError(false); setError(null) }
+    edited('whatsapp')
   }
+  function changeProvince(text) {
+    setForm((f) => ({ ...f, province: text }))
+    edited('province')
+  }
+
+  /* El error del campo, al lado del campo y atado a él: abajo de todo, el lector anunciaba
+     «entrada no válida» sin decir por qué al volver al campo. */
+  const errorOf = (field) => fieldError === field && (
+    <p className="error" id={`profile-${field}-error`} role="alert">{error}</p>
+  )
+  const describe = (field) => (fieldError === field ? `profile-${field}-error` : undefined)
 
   return (
     <div className="overlay" onClick={onClose}>
@@ -245,30 +462,38 @@ export default function ProfileDialog({ onClose, onSesionMuerta }) {
         <form className="login-form" onSubmit={submit} noValidate>
           {FIELDS.map(([key, label, autoComplete]) => key === 'whatsapp'
             ? (
-              <div className="phone-field" key={key}>
+              <div className="stacked-field" key={key}>
                 <label htmlFor="profile-whatsapp">WhatsApp</label>
                 <PhoneField value={phone} onChange={changePhone} disabled={form === null}
-                            invalid={phoneError} inputRef={phoneInput}
-                            describedBy={phoneError ? 'profile-whatsapp-error' : undefined} />
-                {/* Al lado del campo y atado a él: abajo de todo, el lector anunciaba
-                    «entrada no válida» sin decir por qué al volver al campo. */}
-                {phoneError && <p className="error" id="profile-whatsapp-error" role="alert">{error}</p>}
+                            invalid={fieldError === 'whatsapp'} inputRef={phoneInput}
+                            describedBy={describe('whatsapp')} />
+                {errorOf('whatsapp')}
               </div>
             )
-            : (
-              <label key={key}>
-                {label}
-                <input
-                  type="text"
-                  value={form?.[key] ?? ''}
-                  onChange={change(key)}
-                  autoComplete={autoComplete}
-                  disabled={form === null}
-                  maxLength={key === 'city' ? 80 : 60}
-                />
-              </label>
-            ))}
-          {error && !phoneError && <p className="error" role="alert">{error}</p>}
+            : key === 'province'
+              ? (
+                <div className="stacked-field" key={key}>
+                  <label htmlFor="profile-province">Provincia</label>
+                  <ProvinceField value={form?.province ?? ''} onChange={changeProvince} disabled={form === null}
+                                 invalid={fieldError === 'province'} inputRef={provinceInput}
+                                 describedBy={describe('province')} />
+                  {errorOf('province')}
+                </div>
+              )
+              : (
+                <label key={key}>
+                  {label}
+                  <input
+                    type="text"
+                    value={form?.[key] ?? ''}
+                    onChange={change(key)}
+                    autoComplete={autoComplete}
+                    disabled={form === null}
+                    maxLength={60}
+                  />
+                </label>
+              ))}
+          {error && !fieldError && <p className="error" role="alert">{error}</p>}
           <button type="submit" className="primary" disabled={saving || form === null}>
             {saving ? 'Un segundo…' : 'Guardar'}
           </button>

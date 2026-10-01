@@ -280,7 +280,7 @@ function UserModal({ user, onClose, onSesionMuerta }) {
         {displayInternational(pr.whatsapp)}
       </a>
     )],
-    ['Ciudad', pr.city],
+    ['Provincia', pr.province],
     ['Alta', dia(user.alta)],
     ['Última vez', dia(user.ultima)],
     ['Cartas', user.cartas?.toLocaleString('es-AR')],
