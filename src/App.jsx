@@ -21,7 +21,7 @@ import {
   ErrorApi,
   descargar, restaurar, quienSoy, salir,
   leerColeccion, guardarCarta, reemplazarColeccion,
-  cambiarClave, token, CLAVE_TOKEN, getProfile, saveProfile,
+  cambiarClave, token, CLAVE_TOKEN,
 } from './almacenamiento'
 
 /* Los tres listados que un coleccionista realmente necesita: qué buscar,
@@ -454,99 +454,44 @@ function Reemplazar({ mias, copia, onConfirmar, onCerrar }) {
    sesiones abiertas no echa a nadie —el token no sabe nada de la clave— y cerrar
    sesiones sin cambiarla deja entrar de nuevo al que la sabe. Por separado, cada mitad
    da una falsa sensación de haber resuelto algo. */
-/* «MI PERFIL». Lo pidió Angel el 2026-09-30: con sólo un mail no hay forma de saber quién
-   es quién ni de contactar a nadie. NADA ES OBLIGATORIO — un campo vacío es «no lo
-   cargué» —, y la nota dice quién ve estos datos, porque pedir un WhatsApp sin decir para
-   qué es la forma más rápida de que nadie lo complete.
+/* «MI PERFIL» vive en Profile.jsx y baja recién al tocar el ícono: su campo de WhatsApp
+   trae la librería de teléfonos, que no tiene por qué bajar todo el que entra a marcar
+   cartas. Mientras llega se ve la misma caja diciendo «Cargando…», que es lo primero que
+   muestra el diálogo de verdad, así que al montar no salta nada.
 
-   Es el mismo diálogo y el mismo formulario que «Cambiar mi clave» (`.dialogo`,
-   `.entrar`), con los `autoComplete` estándar para que el teléfono ofrezca los datos que
-   ya sabe. El PUT manda los cinco campos y el servidor contesta con cómo quedaron: lo que
-   se muestra después de guardar es lo guardado, no lo tipeado. */
-const PROFILE_FIELDS = [
-  ['firstName', 'Nombre', 'given-name'],
-  ['middleName', 'Segundo nombre', 'additional-name'],
-  ['lastName', 'Apellido', 'family-name'],
-  ['whatsapp', 'WhatsApp', 'tel'],
-  ['city', 'Ciudad', 'address-level2'],
-]
+   Si el pedazo no baja —una pestaña abierta de antes de un deploy pide un archivo que ya
+   no existe— queda la misma caja con el motivo, y no la pantalla en blanco. */
+const ProfileDialog = lazy(() => import('./Profile').catch(() => ({ default: ProfileUnavailable })))
 
-function ProfileDialog({ onClose, onSesionMuerta }) {
-  const [form, setForm] = useState(null) // null mientras llega
-  const [account, setAccount] = useState('')
-  const [error, setError] = useState(null)
-  const [saved, setSaved] = useState(false)
-  const [saving, setSaving] = useState(false)
+/* Escape la cierra, como al diálogo de verdad. El foco NO se mueve mientras carga: el
+   diálogo guarda al montarse de dónde vino el foco para devolverlo al cerrar, y si lo
+   tuviera esta caja, que para entonces ya no existe, se perdería. La de «no se pudo» sí
+   lo atrapa, porque no viene nada después. */
+function ProfileShell({ onClose, trap = false, children }) {
   const box = useRef(null)
   const prevFocus = useRef(document.activeElement)
-
   usarEscape(onClose)
-  useEffect(() => atraparFoco(box.current, prevFocus.current), [])
-  useEffect(() => {
-    getProfile()
-      .then(({ usuario, ...fields }) => { setAccount(usuario); setForm(fields) })
-      .catch((e) => (e?.sesion ? onSesionMuerta() : setError(e.message)))
-  }, [])
-
-  async function submit(ev) {
-    ev.preventDefault()
-    setError(null)
-    setSaving(true)
-    try {
-      const { usuario, ...fields } = await saveProfile(form)
-      setForm(fields)
-      setSaved(true)
-    } catch (e) {
-      if (e?.sesion) return onSesionMuerta()
-      setError(e.message)
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const change = (key) => (ev) => {
-    setForm((f) => ({ ...f, [key]: ev.target.value }))
-    setSaved(false)
-  }
-
+  useEffect(() => (trap ? atraparFoco(box.current, prevFocus.current) : undefined), [trap])
   return (
     <div className="overlay" onClick={onClose}>
       <div className="dialog" role="dialog" aria-modal="true" aria-label="Mi perfil"
            ref={box} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
         <h3>Mi perfil</h3>
-        {/* Región viva SIEMPRE en el DOM, con el texto cambiando adentro — la regla de
-            este proyecto para que el «Guardado» se anuncie. */}
-        <p className="dialog-note" role="status">
-          {form === null && !error
-            ? 'Cargando…'
-            : saved
-              ? 'Guardado.'
-              : 'Nada es obligatorio. Lo que completes lo ve sólo el administrador de la app, para poder contactarte.'}
-        </p>
-        {account && <p className="profile-account">Tu cuenta: <b>{account}</b></p>}
-        <form className="login-form" onSubmit={submit}>
-          {PROFILE_FIELDS.map(([key, label, autoComplete]) => (
-            <label key={key}>
-              {label}
-              <input
-                type={key === 'whatsapp' ? 'tel' : 'text'}
-                inputMode={key === 'whatsapp' ? 'tel' : undefined}
-                value={form?.[key] ?? ''}
-                onChange={change(key)}
-                autoComplete={autoComplete}
-                disabled={form === null}
-                maxLength={key === 'whatsapp' ? 30 : key === 'city' ? 80 : 60}
-              />
-            </label>
-          ))}
-          {error && <p className="error" role="alert">{error}</p>}
-          <button type="submit" className="primary" disabled={saving || form === null}>
-            {saving ? 'Un segundo…' : 'Guardar'}
-          </button>
-          <button type="button" className="secondary" onClick={onClose}>Cerrar</button>
-        </form>
+        {children}
       </div>
     </div>
+  )
+}
+
+function ProfileUnavailable({ onClose }) {
+  return (
+    <ProfileShell onClose={onClose} trap>
+      {/* role="alert" y no "status": la caja aparece con el texto ya adentro, y un status
+          que nace lleno muchas veces no se lee. */}
+      <p className="dialog-note" role="alert">No se pudo abrir tu perfil. Recargá la página y probá de nuevo.</p>
+      <button className="primary" onClick={() => location.reload()}>Recargar</button>
+      <button className="secondary" onClick={onClose}>Cerrar</button>
+    </ProfileShell>
   )
 }
 
@@ -2224,7 +2169,13 @@ export default function App() {
         <CambiarClave onCerrar={() => setCambiandoClave(false)} onSesionMuerta={sesionMuerta} />
       )}
       {profileOpen && !cuenta?.mustChange && (
-        <ProfileDialog onClose={() => setProfileOpen(false)} onSesionMuerta={sesionMuerta} />
+        <Suspense fallback={
+          <ProfileShell onClose={() => setProfileOpen(false)}>
+            <p className="dialog-note" role="status">Cargando…</p>
+          </ProfileShell>
+        }>
+          <ProfileDialog onClose={() => setProfileOpen(false)} onSesionMuerta={sesionMuerta} />
+        </Suspense>
       )}
       {/* LA CLAVE PROVISORIA: obligatorio y sin salida hasta elegir una propia. Al
           terminar, apaga la marca en la cuenta local — la del servidor ya la apagó

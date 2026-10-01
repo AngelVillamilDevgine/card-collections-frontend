@@ -8,6 +8,7 @@ import { usarEscape, usarAtras, atraparFoco } from './foco'
 import { estadisticas, resetUserPassword } from './almacenamiento'
 import { albumPercent } from './collections'
 import { isStale } from './health'
+import { displayInternational, whatsappLink } from './phone'
 import './dashboard.css'
 
 const dia = (f) => (f ? f.slice(8, 10) + '/' + f.slice(5, 7) : '—')
@@ -273,7 +274,12 @@ function UserModal({ user, onClose, onSesionMuerta }) {
 
   const rows = [
     ['Nombre', fullName],
-    ['WhatsApp', pr.whatsapp],
+    /* El número entero para leer, y tocarlo abre el chat: para eso se pidió. */
+    ['WhatsApp', pr.whatsapp && (
+      <a href={whatsappLink(pr.whatsapp)} target="_blank" rel="noopener noreferrer">
+        {displayInternational(pr.whatsapp)}
+      </a>
+    )],
     ['Ciudad', pr.city],
     ['Alta', dia(user.alta)],
     ['Última vez', dia(user.ultima)],

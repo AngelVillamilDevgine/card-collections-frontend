@@ -701,3 +701,4 @@ body:has(.panel-page) {
   color: var(--p-gold);
   font-variant-numeric: tabular-nums;
 }
+.panel-modal .user-facts dd a { color: var(--p-gold); text-underline-offset: 3px; }

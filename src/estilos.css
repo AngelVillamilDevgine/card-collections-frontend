@@ -605,6 +605,60 @@ button { cursor: pointer; }
   box-shadow: 0 0 0 3px rgb(168 89 13 / 0.15); /* el mismo naranja que --accent */
 }
 
+/* EL WHATSAPP: bandera y código adelante, número al lado. El país es un <select> de verdad
+   puesto invisible encima de la bandera —en el teléfono abre la lista del sistema, y con
+   el teclado anda como cualquier select—; lo que se ve es sólo el dibujo. La caja copia la
+   del campo de al lado: mismo borde, mismo alto, el mismo foco naranja. */
+.login-form .phone-field { display: flex; flex-direction: column; gap: 6px; }
+.phone { display: flex; gap: 8px; }
+.phone input { flex: 1; min-width: 0; }
+.phone-country {
+  position: relative;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 10px 0 12px;
+  font-size: 16px;
+  color: var(--ink);
+  background: var(--white);
+  border: 1px solid var(--line2);
+  border-radius: 6px;
+}
+.phone-country svg { color: var(--ink3); }
+.phone-country select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  font-size: 16px;   /* el mismo motivo que el input: Safari hace zoom por debajo de 16 */
+}
+.phone-country select:disabled { cursor: default; }
+/* `:focus-within` y no `:has(select:focus-visible)`: `:has` llegó a Chrome en 2022, y en un
+   Android viejo el país se quedaba sin foco visible. El select es lo único enfocable acá. */
+.phone-country:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgb(168 89 13 / 0.15);
+}
+/* El borde finito es para las banderas con blanco en el borde, que sobre el campo blanco
+   se cortarían a la mitad. Y el hueco vacío mide lo mismo, para que no salte al llegar. */
+.phone-flag {
+  display: block;
+  width: 21px;
+  height: 14px;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.14);
+}
+/* Inválido se ve también con el foco puesto, que es como se lo ve primero: al marcar el
+   error el foco va al campo, y el borde rojizo al lado del anillo naranja no se distinguía. */
+.login-form .phone input[aria-invalid],
+.login-form .phone input[aria-invalid]:focus {
+  border-color: var(--replace-ink);
+  box-shadow: 0 0 0 3px rgb(150 67 28 / 0.22);
+}
+
 /* SIN `.login-form` ADELANTE, y no es una limpieza: había dos botones sin ningún estilo.
    Estas dos clases nacieron en la pantalla de entrada y se quedaron colgadas de ella, pero
    después se usaron en otros dos lados que NO están adentro de un `.login-form`:
