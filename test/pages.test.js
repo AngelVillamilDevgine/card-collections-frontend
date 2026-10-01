@@ -43,9 +43,9 @@ test('los dos cascarones de la app dicen exactamente lo mismo en #root', () => {
 test('y eso es lo mismo que dibuja App.jsx mientras no sabe si hay sesión', () => {
   /* El estado `cuenta === undefined`. Si esto cambia en App.jsx y no en los HTML, al montar
      React reemplaza un cartel por otro distinto y se ve un salto. */
-  assert.match(app, /cuenta === undefined\) return <div className="hoja"><p className="cargando">Cargando…<\/p><\/div>/)
+  assert.match(app, /cuenta === undefined\) return <div className="sheet"><p className="loading">Cargando…<\/p><\/div>/)
   for (const html of [login, collection])
-    assert.equal(root(html), '<div id="root"><div class="hoja"><p class="cargando">Cargando…</p></div></div>')
+    assert.equal(root(html), '<div id="root"><div class="sheet"><p class="loading">Cargando…</p></div></div>')
 })
 
 // --------------------------------------------------------------- la landing

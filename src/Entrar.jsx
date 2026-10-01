@@ -61,16 +61,16 @@ export default function Entrar({ onEntro, aviso }) {
   }
 
   return (
-    <main className="entrada">
-      <div className="entrada-caja">
-        <img className="entrada-logo" src="./logo.png" alt="Dragon Ball Z"
+    <main className="login">
+      <div className="login-box">
+        <img className="login-logo" src="./logo.png" alt="Dragon Ball Z"
              width="660" height="168" />
         {/* Los álbumes salen de `COLLECTIONS`: acá decía «Cartas Cromeros · 2007–2008» y
             quedó sin cambiar el día que entró Leyenda, que es de otra editorial y de otra
             década. Es lo primero que lee alguien que llega. */}
-        <p className="entrada-bajada">Mi colección · {albumNames()}</p>
+        <p className="login-tagline">Mi colección · {albumNames()}</p>
 
-        <form className="entrar" onSubmit={enviar}>
+        <form className="login-form" onSubmit={enviar}>
           <label>
             {nuevo ? 'Tu mail' : 'Mail o usuario'}
             {/* type="email" sólo al crear la cuenta. Al entrar va de texto: hay cuentas
@@ -101,16 +101,16 @@ export default function Entrar({ onEntro, aviso }) {
 
           {/* Si llegaste acá porque se venció la sesión, que se diga: si no, la
               colección entera desaparece de golpe y sin ninguna explicación. */}
-          {aviso && !error && <p className="aviso-sesion">{aviso}</p>}
+          {aviso && !error && <p className="notice-session">{aviso}</p>}
           {error && <p className="error" role="alert">{error}</p>}
 
-          <button type="submit" className="principal" disabled={yendo}>
+          <button type="submit" className="primary" disabled={yendo}>
             {yendo ? 'Un segundo…' : nuevo ? 'Crear mi colección' : 'Entrar'}
           </button>
 
           <button
             type="button"
-            className="secundario"
+            className="secondary"
             onClick={() => { setNuevo(!nuevo); setError(null) }}
           >
             {nuevo ? 'Ya tengo cuenta' : 'No tengo cuenta todavía'}
@@ -121,7 +121,7 @@ export default function Entrar({ onEntro, aviso }) {
               Angel no tiene que preguntar quién es. */}
           {!nuevo && (
             <a
-              className="olvide"
+              className="forgot"
               href={`https://wa.me/${WSP}?text=${encodeURIComponent(pedido(usuario.trim()))}`}
               target="_blank"
               rel="noopener noreferrer"

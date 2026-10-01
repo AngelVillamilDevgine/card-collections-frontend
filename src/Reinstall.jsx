@@ -46,7 +46,7 @@ const Cross = () => (
 )
 
 const Share = () => (
-  <svg className="glifo" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+  <svg className="glyph" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M12 15V3" />
     <path d="M8 7l4-4 4 4" />
@@ -79,11 +79,11 @@ export default function Reinstall() {
   useEffect(() => {
     if (!visible || !box.current) return
     const height = box.current.offsetHeight + 20
-    document.body.style.setProperty('--height-instalar', height + 'px')
-    document.body.classList.add('con-instalar')
+    document.body.style.setProperty('--install-height', height + 'px')
+    document.body.classList.add('with-install-bar')
     return () => {
-      document.body.classList.remove('con-instalar')
-      document.body.style.removeProperty('--height-instalar')
+      document.body.classList.remove('with-install-bar')
+      document.body.style.removeProperty('--install-height')
     }
   }, [visible])
 
@@ -97,9 +97,9 @@ export default function Reinstall() {
   const ios = esIOS()
 
   return (
-    <aside className="instalar" role="note" ref={box}>
+    <aside className="install" role="note" ref={box}>
       <img src="./icono-192.png" alt="" width="38" height="38" />
-      <div className="instalar-texto">
+      <div className="install-text">
         <b>Tu acceso directo da una vuelta de más</b>
         {ios ? (
           <span>
@@ -113,7 +113,7 @@ export default function Reinstall() {
           </span>
         )}
       </div>
-      <button className="instalar-no" onClick={dismiss} aria-label="Entendido"><Cross /></button>
+      <button className="install-no" onClick={dismiss} aria-label="Entendido"><Cross /></button>
     </aside>
   )
 }

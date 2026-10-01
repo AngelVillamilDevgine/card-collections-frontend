@@ -31,10 +31,10 @@ import {
    el que corresponde: así el layout lo decide una media query y no un `if` sobre el
    ancho, que parpadearía al cargar y habría que volver a calcular al rotar. */
 export const FILTROS = [
-  { id: 'todas',      label: 'Todas',           corto: 'Colección',  pasa: () => true },
-  { id: 'falta',      label: 'Me faltan',       corto: 'Faltan',     pasa: (cant) => cant === 0 },
-  { id: 'repetidas',  label: 'Repetidas',       corto: 'Repetidas',  pasa: (cant) => cant > 1 },
-  { id: 'reemplazar', label: 'Para reemplazar', corto: 'Reemplazar', pasa: (cant, est) => cant > 0 && est === 'reemplazar' },
+  { id: 'todas',      label: 'Todas',           corto: 'Colección',  pasa: () => true, css: 'all' },
+  { id: 'falta',      label: 'Me faltan',       corto: 'Faltan',     pasa: (cant) => cant === 0, css: 'missing' },
+  { id: 'repetidas',  label: 'Repetidas',       corto: 'Repetidas',  pasa: (cant) => cant > 1, css: 'dupes' },
+  { id: 'reemplazar', label: 'Para reemplazar', corto: 'Reemplazar', pasa: (cant, est) => cant > 0 && est === 'reemplazar', css: 'replace' },
 ]
 
 /* Los íconos de esa barra. Trazo de 2, sin relleno y con `currentColor`, igual que los
@@ -181,9 +181,9 @@ const Carta = memo(function Carta({ clave, numero, nombre, detalle, variante, es
        setTimeout y no rAF: tiene que correr DESPUÉS de que React aplique el cambio. */
     setTimeout(() => {
       if (document.activeElement && document.activeElement !== document.body) return
-      const vecina = grilla?.isConnected && grilla.querySelector('.carta')
+      const vecina = grilla?.isConnected && grilla.querySelector('.card')
       if (vecina) vecina.focus()
-      else document.querySelector('.filtro.activo')?.focus()
+      else document.querySelector('.filter.active')?.focus()
     }, 0)
   }
 
@@ -224,7 +224,7 @@ const Carta = memo(function Carta({ clave, numero, nombre, detalle, variante, es
      estado y el número chico de la esquina es la cantidad. */
   return (
     <button
-      className={`carta ${claseDe(estadoVista, cantidadVista)}${sinGuardar ? ' sin-guardar' : ''}${variante ? ' variante' : ''}${restando ? ' restando' : ''}`}
+      className={`card ${claseDe(estadoVista, cantidadVista)}${sinGuardar ? ' unsaved' : ''}${variante ? ' variant' : ''}${restando ? ' subtracting' : ''}`}
       aria-label={`${comoSeLlama}. ${titulo}${sinGuardar ? '. Sin guardar' : ''}`}
       /* La forma estándar de anunciar un atajo de teclado. Restar con Backspace no
          estaba dicho en ningún lado: ni en la ayuda, ni en la etiqueta. Para quien usa
@@ -245,13 +245,13 @@ const Carta = memo(function Carta({ clave, numero, nombre, detalle, variante, es
           ocho (1500). Sin detalle no cambia nada: el número solo, como siempre. */}
       {detalle ? (
         <>
-          <span className="rotulo-detalle">{nombre}</span>
-          <span className="nombre-detalle">{detalle.nombre}</span>
-          {detalle.copias > 0 && <span className="copias-detalle">{detalle.copias.toLocaleString('es-AR')} copias</span>}
+          <span className="detail-label">{nombre}</span>
+          <span className="detail-name">{detalle.nombre}</span>
+          {detalle.copias > 0 && <span className="backup-detail">{detalle.copias.toLocaleString('es-AR')} copias</span>}
         </>
       ) : numero}
-      {variante && <b className="marca-variante">{variante.corto ?? variante.id.toUpperCase()}</b>}
-      {cantidadVista > 1 && <b className="repes">{cantidadVista}</b>}
+      {variante && <b className="variant-mark">{variante.corto ?? variante.id.toUpperCase()}</b>}
+      {cantidadVista > 1 && <b className="dupes">{cantidadVista}</b>}
     </button>
   )
 })
@@ -272,16 +272,16 @@ function Pregunta({ nombre, onElegir, onCerrar }) {
   useEffect(() => atraparFoco(caja.current, abrio.current), [])
 
   return (
-    <div className="telon" onClick={onCerrar}>
-      <div className="dialogo" role="dialog" aria-modal="true" aria-label={`Carta ${nombre}`} ref={caja} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
+    <div className="overlay" onClick={onCerrar}>
+      <div className="dialog" role="dialog" aria-modal="true" aria-label={`Carta ${nombre}`} ref={caja} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
         <h3>Carta {nombre}</h3>
         <p>¿En qué estado está?</p>
         {ESTADOS.map((e) => (
-          <button key={e.id} className={`opcion ${e.id}`} onClick={() => onElegir(e.id)} autoFocus={e.id === 'bien'}>
+          <button key={e.id} className={`option ${e.css}`} onClick={() => onElegir(e.id)} autoFocus={e.id === 'bien'}>
             {e.label}
           </button>
         ))}
-        <button className="cancelar" onClick={onCerrar}>Cancelar</button>
+        <button className="cancel" onClick={onCerrar}>Cancelar</button>
       </div>
     </div>
   )
@@ -324,21 +324,21 @@ function AskVariant({ nombre, variantes, cuentas, onElegir, onCerrar }) {
   useEffect(() => atraparFoco(caja.current, abrio.current), [])
 
   const fila = (id, nombre, autoFoco) => (
-    <button key={id ?? 'base'} className="opcion simple" onClick={() => onElegir(id)} autoFocus={autoFoco}>
+    <button key={id ?? 'base'} className="option simple" onClick={() => onElegir(id)} autoFocus={autoFoco}>
       {nombre}
       {(cuentas[id ?? ''] ?? 0) > 0 && <b>{cuentas[id ?? '']}</b>}
     </button>
   )
 
   return (
-    <div className="telon" onClick={onCerrar}>
-      <div className="dialogo" role="dialog" aria-modal="true" aria-label={`Carta ${nombre}`}
+    <div className="overlay" onClick={onCerrar}>
+      <div className="dialog" role="dialog" aria-modal="true" aria-label={`Carta ${nombre}`}
            ref={caja} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
         <h3>Carta {nombre}</h3>
         <p>¿Cuál tenés?</p>
         {variantes.map((v, i) => fila(v.id, v.nombre, i === 0))}
-        <p className="salidas">
-          <button className="cancelar" onClick={onCerrar}>Cancelar</button>
+        <p className="exits">
+          <button className="cancel" onClick={onCerrar}>Cancelar</button>
         </p>
       </div>
     </div>
@@ -378,8 +378,8 @@ function OrphansDialog({ keys, catalogos, onConfirmar, onCerrar }) {
   const lista = numeros.slice(0, MUESTRA).join(', ')
 
   return (
-    <div className="telon" onClick={onCerrar}>
-      <div className="dialogo" role="dialog" aria-modal="true" aria-label="Sacar las que no están en el catálogo"
+    <div className="overlay" onClick={onCerrar}>
+      <div className="dialog" role="dialog" aria-modal="true" aria-label="Sacar las que no están en el catálogo"
            ref={caja} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
         <h3>Sacar {keys.length} carta{keys.length === 1 ? '' : 's'}</h3>
         <p>
@@ -387,15 +387,15 @@ function OrphansDialog({ keys, catalogos, onConfirmar, onCerrar }) {
           <br />
           <b>{lista}</b>{numeros.length > MUESTRA && <> y {numeros.length - MUESTRA} más</>}.
         </p>
-        <p className="ojo">
+        <p className="eye">
           Si son muchas y seguidas, capaz que lo que está mal es el catálogo y no tu
           colección. Antes se baja sola una copia de lo que tenés ahora, por las dudas.
         </p>
-        <button className="opcion reemplazar" onClick={onConfirmar} autoFocus>
+        <button className="option replace" onClick={onConfirmar} autoFocus>
           Sacarlas igual
         </button>
-        <p className="salidas">
-          <button className="cancelar" onClick={onCerrar}>Cancelar</button>
+        <p className="exits">
+          <button className="cancel" onClick={onCerrar}>Cancelar</button>
         </p>
       </div>
     </div>
@@ -424,23 +424,23 @@ function Reemplazar({ mias, copia, onConfirmar, onCerrar }) {
   const pierde = claves.filter((c) => !traidas.has(c)).length
 
   return (
-    <div className="telon" onClick={onCerrar}>
-      <div className="dialogo" role="dialog" aria-modal="true" aria-label="Restaurar una copia"
+    <div className="overlay" onClick={onCerrar}>
+      <div className="dialog" role="dialog" aria-modal="true" aria-label="Restaurar una copia"
            ref={caja} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
         <h3>Restaurar una copia</h3>
         <p>
           Ahora tenés <b>{tengo}</b> carta{tengo === 1 ? '' : 's'} marcada{tengo === 1 ? '' : 's'}.
           Esta copia trae <b>{trae}</b>.
         </p>
-        <p className="ojo">
+        <p className="eye">
           Se reemplaza <b>toda</b> tu colección por la del archivo.
           {pierde > 0 && <> Vas a perder <b>{pierde}</b>.</>}{' '}
           Antes se baja sola una copia de lo que tenés ahora, por las dudas.
         </p>
-        <button className="opcion reemplazar" onClick={onConfirmar} autoFocus>
+        <button className="option replace" onClick={onConfirmar} autoFocus>
           Reemplazar por la copia
         </button>
-        <button className="cancelar" onClick={onCerrar}>Cancelar, dejar todo como está</button>
+        <button className="cancel" onClick={onCerrar}>Cancelar, dejar todo como está</button>
       </div>
     </div>
   )
@@ -510,13 +510,13 @@ function ProfileDialog({ onClose, onSesionMuerta }) {
   }
 
   return (
-    <div className="telon" onClick={onClose}>
-      <div className="dialogo" role="dialog" aria-modal="true" aria-label="Mi perfil"
+    <div className="overlay" onClick={onClose}>
+      <div className="dialog" role="dialog" aria-modal="true" aria-label="Mi perfil"
            ref={box} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
         <h3>Mi perfil</h3>
         {/* Región viva SIEMPRE en el DOM, con el texto cambiando adentro — la regla de
             este proyecto para que el «Guardado» se anuncie. */}
-        <p className="nota-dialogo" role="status">
+        <p className="dialog-note" role="status">
           {form === null && !error
             ? 'Cargando…'
             : saved
@@ -524,7 +524,7 @@ function ProfileDialog({ onClose, onSesionMuerta }) {
               : 'Nada es obligatorio. Lo que completes lo ve sólo el administrador de la app, para poder contactarte.'}
         </p>
         {account && <p className="profile-account">Tu cuenta: <b>{account}</b></p>}
-        <form className="entrar" onSubmit={submit}>
+        <form className="login-form" onSubmit={submit}>
           {PROFILE_FIELDS.map(([key, label, autoComplete]) => (
             <label key={key}>
               {label}
@@ -540,10 +540,10 @@ function ProfileDialog({ onClose, onSesionMuerta }) {
             </label>
           ))}
           {error && <p className="error" role="alert">{error}</p>}
-          <button type="submit" className="principal" disabled={saving || form === null}>
+          <button type="submit" className="primary" disabled={saving || form === null}>
             {saving ? 'Un segundo…' : 'Guardar'}
           </button>
-          <button type="button" className="secundario" onClick={onClose}>Cerrar</button>
+          <button type="button" className="secondary" onClick={onClose}>Cerrar</button>
         </form>
       </div>
     </div>
@@ -591,8 +591,8 @@ function CambiarClave({ onCerrar, onSesionMuerta, forced = false }) {
   }
 
   return (
-    <div className="telon" onClick={() => { if (closable) onCerrar() }}>
-      <div className="dialogo" role="dialog" aria-modal="true"
+    <div className="overlay" onClick={() => { if (closable) onCerrar() }}>
+      <div className="dialog" role="dialog" aria-modal="true"
            aria-label={forced ? 'Elegí una clave nueva' : 'Cambiar mi clave'}
            ref={caja} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
         <h3>{forced ? 'Elegí una clave nueva' : 'Cambiar mi clave'}</h3>
@@ -603,7 +603,7 @@ function CambiarClave({ onCerrar, onSesionMuerta, forced = false }) {
             se lee. Acá eso importaba: el aviso de que la clave cambió y cuántas sesiones se
             cerraron —el resultado de una acción de seguridad— aparecía junto con el botón
             «Listo», que es lo único que se llevaba el foco y lo único que se leía. */}
-        <p className="nota-dialogo" role="status">
+        <p className="dialog-note" role="status">
           {listo === null
             ? forced
               ? 'Entraste con una clave provisoria. Elegí la tuya para seguir; tus cartas están todas.'
@@ -611,7 +611,7 @@ function CambiarClave({ onCerrar, onSesionMuerta, forced = false }) {
             : `Listo, ya es la nueva. ${queSeCerro(listo)}`}
         </p>
         {listo === null ? (
-          <form className="entrar" onSubmit={enviar}>
+          <form className="login-form" onSubmit={enviar}>
             <label>
               {forced ? 'La clave provisoria que te pasaron' : 'Tu clave de ahora'}
               <input type="password" value={actual} onChange={(e) => setActual(e.target.value)}
@@ -623,13 +623,13 @@ function CambiarClave({ onCerrar, onSesionMuerta, forced = false }) {
                      autoComplete="new-password" required />
             </label>
             {error && <p className="error" role="alert">{error}</p>}
-            <button type="submit" className="principal" disabled={yendo}>
+            <button type="submit" className="primary" disabled={yendo}>
               {yendo ? 'Un segundo…' : forced ? 'Guardar mi clave' : 'Cambiarla'}
             </button>
-            {!forced && <button type="button" className="secundario" onClick={onCerrar}>Mejor no</button>}
+            {!forced && <button type="button" className="secondary" onClick={onCerrar}>Mejor no</button>}
           </form>
         ) : (
-          <button className="principal" onClick={onCerrar} autoFocus>Listo</button>
+          <button className="primary" onClick={onCerrar} autoFocus>Listo</button>
         )}
       </div>
     </div>
@@ -1713,27 +1713,27 @@ export default function App() {
      a alguien a escribir usuario y clave es mentirle sobre lo que pasó y encima no le
      sirve de nada, porque tampoco va a poder entrar. */
   if (arranque) return (
-    <div className="hoja">
-      <p className="cargando">{arranque}</p>
-      <p className="acciones-error">
-        <button className="reintentar" onClick={() => setIntento((n) => n + 1)}>Reintentar</button>
+    <div className="sheet">
+      <p className="loading">{arranque}</p>
+      <p className="error-actions">
+        <button className="retry" onClick={() => setIntento((n) => n + 1)}>Reintentar</button>
       </p>
     </div>
   )
-  if (cuenta === undefined) return <div className="hoja"><p className="cargando">Cargando…</p></div>
+  if (cuenta === undefined) return <div className="sheet"><p className="loading">Cargando…</p></div>
   if (!cuenta) return <Entrar aviso={avisoSesion} onEntro={(c) => { setAvisoSesion(null); setCuenta(c) }} />
 
   /* Un corte de dos segundos al abrir, o el servidor reiniciándose durante un deploy,
      dejaban una pantalla con un texto y un único botón de Salir: la única salida era
      desloguearse. Ahora se puede volver a intentar sin perder la sesión. */
   if (error) return (
-    <div className="hoja">
-      <p className="cargando">{error}</p>
-      <p className="acciones-error">
-        <button className="reintentar" onClick={() => { setError(null); setIntento((n) => n + 1) }}>
+    <div className="sheet">
+      <p className="loading">{error}</p>
+      <p className="error-actions">
+        <button className="retry" onClick={() => { setError(null); setIntento((n) => n + 1) }}>
           Reintentar
         </button>
-        <button className="secundario" onClick={cerrar}>Salir</button>
+        <button className="secondary" onClick={cerrar}>Salir</button>
       </p>
     </div>
   )
@@ -1745,7 +1745,7 @@ export default function App() {
      cantidad 1 PISANDO en el servidor la cantidad de verdad. Y después la colección
      llegaba y devolvía el número bueno a la pantalla, así que no quedaba ni rastro: el
      usuario se entera la próxima vez que abre la app, o nunca. */
-  if (!catalogo || !coleccionLista) return <div className="hoja"><p className="cargando">Cargando…</p></div>
+  if (!catalogo || !coleccionLista) return <div className="sheet"><p className="loading">Cargando…</p></div>
 
   /* Qué está viejo de lo que corre afuera de la app. Vacío para todo el mundo menos el
      admin, porque `/api/yo` sólo le manda `salud` a él. */
@@ -1759,13 +1759,13 @@ export default function App() {
           y cinco botones de la barra. Con teclado o lector de pantalla eso son varios
           tabuladores en CADA visita antes de llegar a lo único que importa. La pantalla
           de entrada ya tenía su <main>; la app, que es donde se pasa el tiempo, no. */}
-      <a className="saltar" href="#cartas">Saltar a las cartas</a>
+      <a className="skip" href="#cartas">Saltar a las cartas</a>
 
       {/* Header, barra y footer van fuera de la columna de las cartas: así el fondo
           de cada franja llega de lado a lado y lo de adentro sigue alineado. */}
-      <header className="encabezado">
-        <div className="columna">
-          <div className="marca">
+      <header className="masthead">
+        <div className="column">
+          <div className="mark">
               <h1>
                 <img src="./logo.png" alt="Dragon Ball Z" width="660" height="168" />
               </h1>
@@ -1782,12 +1782,12 @@ export default function App() {
                 Va en el encabezado y NO en la barra de filtros, por lo mismo que el botón
                 del panel: en teléfono esa barra son cinco lugares de ancho igual. */}
             {disponibles.length > 1 && (
-              <div className="colecciones" role="group" aria-label="Qué colección estoy mirando">
+              <div className="collections" role="group" aria-label="Qué colección estoy mirando">
                 {disponibles.map((c) => (
                   <button
                     key={c.id}
                     type="button"
-                    className={`coleccion${c.id === coleccionViva ? ' activa' : ''}`}
+                    className={`album-pill${c.id === coleccionViva ? ' active' : ''}`}
                     aria-pressed={c.id === coleccionViva}
                     onClick={() => pickCollection(c.id)}
                   >
@@ -1805,7 +1805,7 @@ export default function App() {
               de abajo, con cinco lugares de ancho igual, y un sexto hermano les saca a los
               cuatro filtros el 20% que tienen cada uno. El encabezado es donde vive lo que
               no es la colección. */}
-          <div className="lado">
+          <div className="side">
             {/* LOS BOTONES DE LA CUENTA, JUNTOS: «Panel» (sólo el admin) y «Mi perfil»
                 (todos). Van en un envoltorio para que en el teléfono ocupen UNA celda de la
                 grilla del encabezado —la del renglón del logo— y no se auto-coloque ninguno
@@ -1825,7 +1825,7 @@ export default function App() {
                  El umbral NO se decide acá: sale de `health.js`, que es el mismo módulo que
                  usa el panel. Si viviera en los dos lados, un día dirían cosas distintas. */
               <button
-                className={`a-panel${enFalta.length ? ' con-aviso' : ''}`}
+                className={`open-panel${enFalta.length ? ' has-alert' : ''}`}
                 onClick={openDashboard}
                 aria-label={enFalta.length
                   ? `Panel · revisá ${staleText(enFalta)}`
@@ -1852,16 +1852,16 @@ export default function App() {
                 </svg>
               </button>
             </div>
-            <div className="progreso">
-              <div className="avance">
-                <span className="grande">{resumen.tengo}</span>
-                <span className="de">de {resumen.total} cartas</span>
+            <div className="progress">
+              <div className="tally">
+                <span className="large">{resumen.tengo}</span>
+                <span className="of">de {resumen.total} cartas</span>
                 {/* El porcentaje sale de los mismos dos números que están al lado, así que
                     no puede contradecirlos — y vale igual en los dos álbumes porque los dos
                     cuentan huecos. Ver `albumPercent`. */}
                 <span className="pct">{albumPercent(resumen.tengo, resumen.total)}%</span>
                 {resumen.sobrantes > 0 && (
-                  <span className="sobrantes">
+                  <span className="spares">
                     {resumen.sobrantes} repetida{resumen.sobrantes > 1 ? 's' : ''}
                   </span>
                 )}
@@ -1869,15 +1869,15 @@ export default function App() {
               {/* Con condición, los tres tramos. Sin condición —Leyenda— uno solo y
                   neutro: `cuenta[est ?? 'bien']++` mete TODO en `bien`, así que las tres
                   franjas pintarían «buen estado» sobre un álbum que no tiene estado. */}
-              <div className="barra">
+              <div className="bar">
                 {album?.condicion ? (
                   <>
-                    <span className="s-bien" style={{ width: `${pct(resumen.bien)}%` }} />
-                    <span className="s-perfecta" style={{ width: `${pct(resumen.perfecta)}%` }} />
-                    <span className="s-reemplazar" style={{ width: `${pct(resumen.reemplazar)}%` }} />
+                    <span className="s-good" style={{ width: `${pct(resumen.bien)}%` }} />
+                    <span className="s-perfect" style={{ width: `${pct(resumen.perfecta)}%` }} />
+                    <span className="s-replace" style={{ width: `${pct(resumen.reemplazar)}%` }} />
                   </>
                 ) : (
-                  <span className="s-solo" style={{ width: `${pct(resumen.tengo)}%` }} />
+                  <span className="s-only" style={{ width: `${pct(resumen.tengo)}%` }} />
                 )}
               </div>
             </div>
@@ -1885,25 +1885,25 @@ export default function App() {
         </div>
       </header>
 
-      <div className="herramientas">
-        <div className="columna">
-            <div className="filtros">
+      <div className="toolbar">
+        <div className="column">
+            <div className="filters">
               {FILTROS.map((f) => (
                 <button
                   key={f.id}
-                  className={`filtro f-${f.id}${filtro === f.id ? ' activo' : ''}`}
+                  className={`filter f-${f.css}${filtro === f.id ? ' active' : ''}`}
                   onClick={() => setFiltro(f.id)}
                   aria-pressed={filtro === f.id}
                 >
-                  <svg className="icono" width="21" height="21" viewBox="0 0 24 24" fill="none"
+                  <svg className="icon" width="21" height="21" viewBox="0 0 24 24" fill="none"
                        stroke="currentColor" strokeWidth="2" strokeLinecap="round"
                        strokeLinejoin="round" aria-hidden="true">
                     {ICONOS[f.id]}
                   </svg>
                   {/* Los dos rótulos van siempre en el DOM y el CSS elige. Ver la nota
                       de FILTROS: así no hay un `if` sobre el ancho de la pantalla. */}
-                  <span className="largo">{f.label}</span>
-                  <span className="corto">{f.corto}</span>
+                  <span className="long">{f.label}</span>
+                  <span className="short">{f.corto}</span>
                   <b>{resumen.porFiltro[f.id]}</b>
                 </button>
               ))}
@@ -1915,23 +1915,23 @@ export default function App() {
                 hay rótulo visible: si hubiera los dos, el lector de pantalla leería
                 «Exportar. Exportar», que es el mismo problema que tenían las cartas. */}
             <button
-              className={`compartir${guiñando ? ' guiña' : ''}`}
+              className={`share${guiñando ? ' wink' : ''}`}
               onClick={exportar}
               aria-label="Exportar"
             >
-              <svg className="icono" width="21" height="21" viewBox="0 0 24 24" fill="none"
+              <svg className="icon" width="21" height="21" viewBox="0 0 24 24" fill="none"
                    stroke="currentColor" strokeWidth="2" strokeLinecap="round"
                    strokeLinejoin="round" aria-hidden="true">
                 <path d="M12 3v12" />
                 <path d="M7 8l5-5 5 5" />
                 <path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" />
               </svg>
-              <span className="corto">Exportar</span>
+              <span className="short">Exportar</span>
             </button>
         </div>
       </div>
 
-      <main className="hoja" id="cartas" tabIndex={-1}>
+      <main className="sheet" id="cartas" tabIndex={-1}>
         {/* Fuera de la barra fija: son instrucciones, se leen una vez y pueden irse con
             el scroll. Adentro ocupaban dos renglones fijos en el celular. */}
           {/* «otra» y no «otra igual»: en una expansión con variantes el segundo toque
@@ -1941,12 +1941,12 @@ export default function App() {
               una sola que sea verdad en los dos es mejor que dos que haya que mantener, y
               además en Leyenda sólo 271 de 1097 cartas preguntan, así que ninguna versión
               condicional sería cierta para toda la colección tampoco. */}
-          <p className="ayuda">
+          <p className="help">
             Tocá para marcar · de nuevo si tenés otra · mantené apretado para restar
             {/* Con el teclado no hay «mantener apretado», así que si el atajo no se dice
                 acá no se entera nadie. Se muestra sólo cuando hay teclado de verdad: en
                 un teléfono es ruido. */}
-            <span className="solo-teclado"> · con el teclado, Backspace</span>
+            <span className="keyboard-only"> · con el teclado, Backspace</span>
           </p>
 
         {catalogo.map((exp) => {
@@ -1966,10 +1966,10 @@ export default function App() {
           ).length
           const plegada = plegadas.has(exp.id)
           return (
-            <section className={`expansion${plegada ? ' plegada' : ''}`} key={exp.id}>
-              <div className="banda" style={{ background: exp.color, color: textoSobre(exp.color) }}>
+            <section className={`expansion${plegada ? ' folded' : ''}`} key={exp.id}>
+              <div className="band" style={{ background: exp.color, color: textoSobre(exp.color) }}>
                 <button
-                  className={`plegar${plegada ? ' cerrada' : ''}`}
+                  className={`fold${plegada ? ' closed' : ''}`}
                   onClick={() => plegar(exp.id)}
                   aria-expanded={!plegada}
                   aria-label={`${plegada ? 'Mostrar' : 'Contraer'} ${exp.nombre}`}
@@ -1987,11 +1987,11 @@ export default function App() {
                     360 y 412 px, «Leyenda 1–Leyenda 9» lleva la banda de 35 a 54 px en los
                     tres, y a 320 se corta. El CLAUDE.md ya avisaba que ahí estaba al
                     límite: hacen falta 311 px de texto en 292 de ancho útil. */}
-                <span className="rango">{exp.desde}–{exp.hasta}</span>
+                <span className="range">{exp.desde}–{exp.hasta}</span>
                 {/* Completa es tener todas, estén en el estado que estén: las "para reemplazar"
                     también cuentan, y ya tienen su propio filtro. */}
                 {tengoAca === exp.lista.length ? (
-                  <span className="cuenta completa" title={`${tengoAca} de ${exp.lista.length}`}>
+                  <span className="count complete" title={`${tengoAca} de ${exp.lista.length}`}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                          strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <path d="M5 13l4 4L19 7" />
@@ -1999,7 +1999,7 @@ export default function App() {
                     Completa
                   </span>
                 ) : (
-                  <span className="cuenta">{tengoAca} de {exp.lista.length}</span>
+                  <span className="count">{tengoAca} de {exp.lista.length}</span>
                 )}
               </div>
               {!plegada && (
@@ -2007,7 +2007,7 @@ export default function App() {
                  ser cuadraditos de 54 px y pasan a fichas anchas: adentro entran el
                  personaje y la tirada. Lo decide el DATO, no una lista de expansiones
                  especiales escrita en el código. */
-              <div className={`grilla${exp.detalle ? ' con-detalle' : ''}`}>
+              <div className={`grid${exp.detalle ? ' detailed' : ''}`}>
                 {visibles.flatMap((n) =>
                   slotsOf(exp, n, dibujables[exp.id], cantidades).map(({ clave, variante }) => (
                     <Carta
@@ -2032,7 +2032,7 @@ export default function App() {
         })}
 
         {resumen.porFiltro[filtro] === 0 && (
-          <p className="vacio">No hay ninguna carta en este listado.</p>
+          <p className="empty">No hay ninguna carta en este listado.</p>
         )}
 
         {exportando && (
@@ -2105,9 +2105,9 @@ export default function App() {
               completa. Y dice «Buscando…», que es lo mismo que muestra el panel mientras
               esperan los datos, así que al montar no cambia el texto. */}
           <Suspense fallback={
-            <div className="pagina-panel">
-              <header className="panel-cabecera">
-                <button className="volver" onClick={closeDashboard}>
+            <div className="panel-page">
+              <header className="panel-head">
+                <button className="back" onClick={closeDashboard}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                        strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M15 18l-6-6 6-6" />
@@ -2116,7 +2116,7 @@ export default function App() {
                 </button>
                 <h1>Los números</h1>
               </header>
-              <div className="panel-cuerpo numeros"><p className="nada">Buscando…</p></div>
+              <div className="panel-body stats"><p className="nothing">Buscando…</p></div>
             </div>
           }>
             <Estadisticas onCerrar={closeDashboard} onSesionMuerta={sesionMuerta}
@@ -2137,18 +2137,18 @@ export default function App() {
       {/* Una franja al final, no una línea suelta sobre el papel. Arriba la cuenta y
           Salir, que es la acción de la cuenta; abajo, más callado, lo que se hace con
           la colección, que se usa poco. */}
-      <footer className="pie">
-        <div className="columna">
-          <div className="pie-cuenta">
+      <footer className="footer">
+        <div className="column">
+          <div className="footer-account">
             {/* El role va en un envoltorio que está siempre: si el que apareciera y
                 desapareciera fuera el propio role, el lector de pantalla no anunciaría
                 nada. Así lo que cambia es el texto de adentro, que sí se lee. */}
             {/* "Fijate la conexión" sólo mientras NO hay conexión. Con la red de vuelta
                 el dato seguía siendo cierto —los cambios siguen perdidos— pero como
                 instrucción mandaba a mirar donde ya no estaba el problema. */}
-            <span className="pie-estado" role="status">
+            <span className="footer-status" role="status">
               {fallidas.size ? (
-                <span className="aviso">
+                <span className="notice">
                   {fallidas.size === 1
                     ? 'No se pudo guardar un cambio.'
                     : `No se pudieron guardar ${fallidas.size} cambios.`}
@@ -2156,16 +2156,16 @@ export default function App() {
                   {/* CUÁLES, no sólo cuántos. Con diez falladas entre 1936 cartas, la
                       única forma de encontrarlas era acordarse de cuáles tocaste. Ahora
                       se nombran acá y además quedan marcadas en la grilla. */}
-                  <b className="cuales">{listaFallidas}</b>
+                  <b className="which">{listaFallidas}</b>
                   {!enLinea && ' Fijate la conexión: se reintentan solos cuando vuelva.'}
                 </span>
               ) : (
-                <span className="guardando">Guardando en tu cuenta, <b>{cuenta.usuario}</b>, a cada cambio</span>
+                <span className="saving">Guardando en tu cuenta, <b>{cuenta.usuario}</b>, a cada cambio</span>
               )}
             </span>
-            <span className="pie-acciones">
-              <button onClick={() => setCambiandoClave(true)} className="enlace">Cambiar mi clave</button>
-              <button onClick={cerrar} className="salir" disabled={saliendo}>
+            <span className="footer-actions">
+              <button onClick={() => setCambiandoClave(true)} className="link">Cambiar mi clave</button>
+              <button onClick={cerrar} className="logout" disabled={saliendo}>
                 {saliendo ? 'Saliendo…' : 'Salir'}
               </button>
             </span>
@@ -2179,10 +2179,10 @@ export default function App() {
 
               Y es el atributo y no el rol: la fila NO es un mensaje de estado, sólo puede
               contener uno. */}
-          <div className="pie-copias" aria-live="polite">
-            <span className="pie-rotulo">Tu colección</span>
-            <button onClick={exportar} className="enlace">Exportar</button>
-            <button onClick={() => descargar(datos)} className="enlace">Bajar una copia</button>
+          <div className="footer-backups" aria-live="polite">
+            <span className="footer-label">Tu colección</span>
+            <button onClick={exportar} className="link">Exportar</button>
+            <button onClick={() => descargar(datos)} className="link">Bajar una copia</button>
             <input
               ref={archivoRef}
               type="file"
@@ -2194,23 +2194,23 @@ export default function App() {
               ev.target.value = ''
               }}
             />
-            <button onClick={() => archivoRef.current.click()} className="enlace">Restaurar una copia</button>
-            {avisoArchivo && <span className="aviso-archivo">{avisoArchivo}</span>}
+            <button onClick={() => archivoRef.current.click()} className="link">Restaurar una copia</button>
+            {avisoArchivo && <span className="notice-file">{avisoArchivo}</span>}
             {/* Sólo aparece si de verdad hay huérfanas, que hoy es nunca. No es un botón
                 más de la app: es la única forma de sacar algo que quedó sin carta a la
                 que tocarle. */}
             {huerfanas.length > 0 && (
-              <span className="aviso-archivo">
+              <span className="notice-file">
                 {huerfanas.length === 1
                   ? 'Tenés 1 carta que ya no está en el catálogo.'
                   : `Tenés ${huerfanas.length} cartas que ya no están en el catálogo.`}{' '}
-                <button onClick={() => setSacando(true)} className="enlace">Sacarlas</button>
+                <button onClick={() => setSacando(true)} className="link">Sacarlas</button>
               </span>
             )}
           </div>
-          <div className="pie-marca">
-            <span className="pie-sitio">{SITIO}</span>
-            <span className="pie-apoyo">
+          <div className="footer-mark">
+            <span className="footer-site">{SITIO}</span>
+            <span className="footer-support">
               ¿Te sirve? Podés apoyar al que la hizo · alias{' '}
               <button onClick={copiarAlias} className="alias" title="Tocá para copiarlo">
                 {avisoAlias ?? ALIAS}
@@ -2238,7 +2238,7 @@ export default function App() {
       {/* Los dos usan la misma barra y NO se pisan: `Instalar` se va apenas `comoApp()` es
           verdadero y `Reinstall` no aparece si no lo es. Son excluyentes por construcción,
           no por orden — si alguna vez se toca una de las dos condiciones, mirar la otra,
-          porque las dos escriben `--alto-instalar` en el body. */}
+          porque las dos escriben `--install-height` en el body. */}
       <Instalar />
       <Reinstall />
     </>

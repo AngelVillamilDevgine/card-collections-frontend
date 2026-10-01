@@ -251,7 +251,7 @@ function armar(modo, elegidas, catalogo, cantidades, encabezado, variantes, filt
 }
 
 const Tilde = ({ marcada }) => (
-  <span className={`tilde${marcada ? ' si' : ''}`} aria-hidden="true">
+  <span className={`check${marcada ? ' on' : ''}`} aria-hidden="true">
     {marcada && (
       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
            strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
@@ -381,9 +381,9 @@ export default function Exportar({ catalogo, datos, variantes, condicion, encabe
   }
 
   return (
-    <div className="telon" onClick={onCerrar}>
+    <div className="overlay" onClick={onCerrar}>
       <div
-        className={`dialogo${mostrando ? ' ancho' : ''}`}
+        className={`dialog${mostrando ? ' wide' : ''}`}
         role="dialog"
         aria-modal="true"
         aria-label="Exportar"
@@ -399,24 +399,24 @@ export default function Exportar({ catalogo, datos, variantes, condicion, encabe
             {/* «Me faltan variantes» sólo aparece donde hay variantes. En Cromeros sería un
                 botón que siempre contesta «no hay nada para listar». */}
             {OPCIONES.filter((o) => !o.soloConVariantes || hayVariantes).map((o, i) => (
-              <button key={o.id} className="opcion simple" onClick={() => elegirModo(o.id)} autoFocus={i === 0}>
+              <button key={o.id} className="option simple" onClick={() => elegirModo(o.id)} autoFocus={i === 0}>
                 {o.label}
               </button>
             ))}
-            <button className="cancelar" onClick={onCerrar}>Cancelar</button>
+            <button className="cancel" onClick={onCerrar}>Cancelar</button>
           </>
         )}
 
         {eligiendoCondicion && (
           <>
             <p>¿En qué estado? Tocá para marcar y desmarcar.</p>
-            <div className="opciones">
+            <div className="options">
               {ESTADOS.map((e, i) => {
                 const marcada = condiciones.has(e.id)
                 return (
                   <button
                     key={e.id}
-                    className={`opcion simple elegible${marcada ? ' marcada' : ''}`}
+                    className={`option simple selectable${marcada ? ' checked' : ''}`}
                     onClick={() => alternarCondicion(e.id)}
                     aria-pressed={marcada}
                     autoFocus={i === 0}
@@ -428,14 +428,14 @@ export default function Exportar({ catalogo, datos, variantes, condicion, encabe
                 )
               })}
             </div>
-            <button className="ver" onClick={seguirDesdeCondicion} disabled={!condiciones.size}>
+            <button className="show" onClick={seguirDesdeCondicion} disabled={!condiciones.size}>
               {condiciones.size ? 'Seguir' : 'Marcá al menos uno'}
             </button>
-            <div className="salidas">
-              <button className="cancelar" onClick={() => { setEligiendoCondicion(false); setModo(null) }}>
+            <div className="exits">
+              <button className="cancel" onClick={() => { setEligiendoCondicion(false); setModo(null) }}>
                 Elegir otra lista
               </button>
-              <button className="cancelar" onClick={onCerrar}>Cerrar</button>
+              <button className="cancel" onClick={onCerrar}>Cerrar</button>
             </div>
           </>
         )}
@@ -445,9 +445,9 @@ export default function Exportar({ catalogo, datos, variantes, condicion, encabe
             <p>¿De qué expansiones? Tocá para marcar y desmarcar.</p>
             {expansiones.length ? (
               <>
-                <div className="opciones">
+                <div className="options">
                   <button
-                    className={`opcion simple elegible${todasMarcadas ? ' marcada' : ''}`}
+                    className={`option simple selectable${todasMarcadas ? ' checked' : ''}`}
                     onClick={alternarTodas}
                     aria-pressed={todasMarcadas}
                     autoFocus
@@ -460,7 +460,7 @@ export default function Exportar({ catalogo, datos, variantes, condicion, encabe
                     return (
                       <button
                         key={exp.id}
-                        className={`opcion simple elegible${marcada ? ' marcada' : ''}`}
+                        className={`option simple selectable${marcada ? ' checked' : ''}`}
                         onClick={() => alternar(exp.id)}
                         aria-pressed={marcada}
                       >
@@ -471,21 +471,21 @@ export default function Exportar({ catalogo, datos, variantes, condicion, encabe
                     )
                   })}
                 </div>
-                <button className="ver" onClick={() => setMostrando(true)} disabled={!marcadas.length}>
+                <button className="show" onClick={() => setMostrando(true)} disabled={!marcadas.length}>
                   {marcadas.length ? `Ver la lista · ${enTotal} cartas` : 'Marcá al menos una'}
                 </button>
               </>
             ) : (
-              <p className="nada">No hay ninguna para listar.</p>
+              <p className="nothing">No hay ninguna para listar.</p>
             )}
-            <div className="salidas">
+            <div className="exits">
               <button
-                className="cancelar"
+                className="cancel"
                 onClick={() => (modo === 'tengo' && condicion ? setEligiendoCondicion(true) : setModo(null))}
               >
                 {modo === 'tengo' && condicion ? 'Elegir otro estado' : 'Elegir otra lista'}
               </button>
-              <button className="cancelar" onClick={onCerrar}>Cerrar</button>
+              <button className="cancel" onClick={onCerrar}>Cerrar</button>
             </div>
           </>
         )}
@@ -494,18 +494,18 @@ export default function Exportar({ catalogo, datos, variantes, condicion, encabe
           <>
             <p>Copiala y pegala donde quieras.</p>
             <textarea
-              className="lista"
+              className="list"
               readOnly
               value={texto}
               ref={areaRef}
               onFocus={(e) => e.target.select()}
             />
-            <button className="opcion copiar" onClick={copiar} autoFocus>
+            <button className="option copy" onClick={copiar} autoFocus>
               {aviso ?? 'Copiar'}
             </button>
-            <div className="salidas">
-              <button className="cancelar" onClick={() => setMostrando(false)}>Elegir otras expansiones</button>
-              <button className="cancelar" onClick={onCerrar}>Cerrar</button>
+            <div className="exits">
+              <button className="cancel" onClick={() => setMostrando(false)}>Elegir otras expansiones</button>
+              <button className="cancel" onClick={onCerrar}>Cerrar</button>
             </div>
           </>
         )}

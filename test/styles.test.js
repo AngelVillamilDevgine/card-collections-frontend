@@ -7,9 +7,11 @@
  *   · `.barra` del panel pisó la barrita de progreso de cada expansión;
  *   · `.pie` de la torta de aparatos (2026-09-30) le achicó el pie de página de la app a
  *     una caja de 180×180 — medido: 1265×202 antes de abrir el panel, 180×180 después.
+ *   (Los nombres son los de entonces: desde el 2026-09-30 la hoja va en inglés, y esas dos
+ *   clases de la app son `.bar` y `.footer`.)
  *
- * La regla: cada selector de `dashboard.css` va colgado de algo del panel (`.numeros`,
- * `.pagina-panel`, `.panel-*`, `.periods`, `.devices-*`, `body:has(...)`), o su primera
+ * La regla: cada selector de `dashboard.css` va colgado de algo del panel (`.stats`,
+ * `.panel-page`, `.panel-*`, `.periods`, `.devices-*`, `body:has(...)`), o su primera
  * clase no puede existir en `estilos.css`. */
 import test from 'node:test'
 import assert from 'node:assert/strict'
@@ -35,7 +37,7 @@ function selectors(css) {
   return out
 }
 
-const SCOPED = /^(\.numeros\b|\.pagina-panel\b|\.panel-|\.periods\b|\.devices-|body:has\()/
+const SCOPED = /^(\.stats\b|\.panel-page\b|\.panel-|\.periods\b|\.devices-|body:has\()/
 
 test('ninguna regla suelta de dashboard.css reusa una clase de la app', () => {
   const clashes = selectors(read('dashboard.css'))
@@ -48,6 +50,6 @@ test('ninguna regla suelta de dashboard.css reusa una clase de la app', () => {
 test('y el lector de selectores ve las reglas de verdad (si no, el test de arriba no mira nada)', () => {
   const found = selectors(read('dashboard.css'))
   assert.ok(found.includes('.devices-pie'), 'no encontró .devices-pie')
-  assert.ok(found.some((s) => s.startsWith('.numeros ')), 'no encontró las reglas de .numeros')
-  assert.ok(appClasses.has('pie') && appClasses.has('barra'), 'no leyó las clases de la app')
+  assert.ok(found.some((s) => s.startsWith('.stats ')), 'no encontró las reglas de .stats')
+  assert.ok(appClasses.has('footer') && appClasses.has('bar'), 'no leyó las clases de la app')
 })

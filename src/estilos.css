@@ -1,47 +1,47 @@
 :root {
-  --papel:  #f4f2ee;
-  --blanco: #ffffff;
-  --tinta:  #201d1a;
-  --tinta2: #6f6963;
+  --paper:  #f4f2ee;
+  --white: #ffffff;
+  --ink:  #201d1a;
+  --ink2: #6f6963;
   /* Medidos contra el papel, que es el fondo más exigente de los dos (el otro es
      blanco). Los de antes daban 2.71 y 3.59: AA pide 4.5 para texto normal. */
-  --tinta3: #736d65;
-  --linea:  #e2ded6;
-  --linea2: #d3cec4;
+  --ink3: #736d65;
+  --line:  #e2ded6;
+  --line2: #d3cec4;
   /* Naranja de texto y de relleno-con-texto-blanco. El de antes, #e07b14, daba 2.99
      contra blanco: fallaba como texto y también abajo del blanco del filtro elegido.
-     El naranja vivo sigue estando en --naranja, que no lleva texto encima. */
-  --acento:  #a8590d;
-  --azul:    #1b3a7a;
-  --naranja: #f4a11d;
+     El naranja vivo sigue estando en --orange, que no lleva texto encima. */
+  --accent:  #a8590d;
+  --blue:    #1b3a7a;
+  --orange: #f4a11d;
 
-  /* Cuánto mide la barra pegajosa de arriba (.herramientas), para que los anclajes no
+  /* Cuánto mide la barra pegajosa de arriba (.toolbar), para que los anclajes no
      dejen la banda tapada debajo de ella. MEDIDO, no estimado: 59 px normalmente y 93
      cuando los filtros se parten en dos filas, alrededor de los 480 px. Van 100 para
      tener margen. Estaba en 76, que no alcanzaba justo en el ancho de un teléfono
      apaisado — y en las notas figuraba como 171, que era de un layout anterior. */
-  --barra-pegajosa: 100px;
+  --sticky-bar: 100px;
 
   /* #767068 daba 4.90 sobre blanco, pero el hover del filtro tiñe ese blanco y lo
      bajaba a 4.44. Este llega a 4.92 con el hover puesto. */
-  --falta-fondo: #ffffff;  --falta-linea: #ddd8d0;  --falta-tinta: #6f6963;
-  --bien-fondo:  #e8eef6;  --bien-linea:  #9db8d4;  --bien-tinta:  #2f5a80;
-  --perf-fondo:  #e3efe5;  --perf-linea:  #98c0a1;  --perf-tinta:  #2b6135;
-  --reem-fondo:  #fbe9e1;  --reem-linea:  #dfa184;  --reem-tinta:  #96431c;
+  --missing-bg: #ffffff;  --missing-line: #ddd8d0;  --missing-ink: #6f6963;
+  --good-bg:  #e8eef6;  --good-line:  #9db8d4;  --good-ink:  #2f5a80;
+  --perfect-bg:  #e3efe5;  --perfect-line:  #98c0a1;  --perfect-ink:  #2b6135;
+  --replace-bg:  #fbe9e1;  --replace-line:  #dfa184;  --replace-ink:  #96431c;
   /* La tenés, sin condición: el caso normal de Leyenda y el de una copia vieja sin
      estados. Violeta porque los otros tres ya son azul, verde y durazno, y acá lo único
      que importa es que se distinga de «me falta» de un vistazo. Medido: 39,4 de
      distancia RGB contra el blanco de falta — más que los 30,0 que ya separan a falta
      de buen estado — y el texto da 6,99 sobre su fondo. */
-  --tengo-fondo: #e9e1f2;  --tengo-linea: #bfa9d3;  --tengo-tinta: #57406e;
+  --owned-bg: #e9e1f2;  --owned-line: #bfa9d3;  --owned-ink: #57406e;
 }
 
 * { box-sizing: border-box; }
 
 body {
   margin: 0;
-  background: var(--papel);
-  color: var(--tinta);
+  background: var(--paper);
+  color: var(--ink);
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   font-size: 15px;
   line-height: 1.5;
@@ -51,98 +51,98 @@ body {
 button, input, select { font: inherit; color: inherit; }
 button { cursor: pointer; }
 
-.hoja { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+.sheet { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
 
 /* ------------------------------- encabezado ------------------------------- */
 
 
 
 /* EL TAMAÑO DEL LOGO ESTÁ UNA SOLA VEZ, más abajo, junto al resto del encabezado.
-   Acá había un segundo `.encabezado h1 img` con `width: 330px`, muerto: la regla de abajo
+   Acá había un segundo `.masthead h1 img` con `width: 330px`, muerto: la regla de abajo
    tiene la misma especificidad y gana por venir después. No era sólo ruido — el
    `CLAUDE.md` razona el peso del PNG sobre los **240 px** a los que se muestra («660
    alcanza hasta para pantallas de 3x»), y con 330 esa cuenta deja de cerrar. Un valor
    muerto que contradice a la documentación es el que después se despierta al mover un
    bloque. */
-.encabezado h1 img { display: block; height: auto; }
+.masthead h1 img { display: block; height: auto; }
 
-.encabezado p { margin: 0; color: var(--tinta2); font-size: 14px; }
+.masthead p { margin: 0; color: var(--ink2); font-size: 14px; }
 
 /* Qué álbum estoy mirando. Ocupa el lugar que dejó el subtítulo, debajo del logo.
 
    Es un control segmentado y NO usa el naranja: el naranja ya es el filtro elegido, y dos
    cosas naranjas a diez píxeles una de otra compiten. El elegido va en tinta plena, que
    ademas da 16.77 contra su texto blanco. */
-.colecciones { display: flex; gap: 6px; margin-top: 4px; }
-.coleccion {
+.collections { display: flex; gap: 6px; margin-top: 4px; }
+.album-pill {
   padding: 5px 13px;
-  border: 1px solid var(--linea2);
+  border: 1px solid var(--line2);
   border-radius: 999px;
   background: none;
-  color: var(--tinta2);
+  color: var(--ink2);
   font-size: 13.5px;
   font-weight: 600;
 }
-.coleccion:hover { border-color: var(--acento); color: var(--acento); }
-.coleccion.activa {
-  background: var(--tinta);
-  border-color: var(--tinta);
-  color: var(--blanco);
+.album-pill:hover { border-color: var(--accent); color: var(--accent); }
+.album-pill.active {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--white);
 }
 
 /* Avance general: una sola línea, no seis tarjetas de estadísticas. */
-.avance { display: flex; align-items: baseline; gap: 10px; margin-top: 26px; }
-.avance .grande {
+.tally { display: flex; align-items: baseline; gap: 10px; margin-top: 26px; }
+.tally .large {
   font-family: "Arial Black", "Arial Bold", Impact, sans-serif;
   font-style: italic;
   font-size: 32px;
-  color: var(--acento);
+  color: var(--accent);
   font-variant-numeric: tabular-nums;
 }
-.avance .de { color: var(--tinta2); font-size: 14px; }
+.tally .of { color: var(--ink2); font-size: 14px; }
 /* El porcentaje: el mismo naranja de texto que el número grande, pero chico y en su propia
    píldora para que se lea como un dato aparte y no como parte de «de 1097 cartas».
-   `--acento` sobre `--papel` da 4.76, que pasa AA — el naranja vivo no llegaría, y ésa es
-   justamente la distinción que este archivo ya hace entre `--acento` y `--naranja`. */
-.avance .pct {
+   `--accent` sobre `--paper` da 4.76, que pasa AA — el naranja vivo no llegaría, y ésa es
+   justamente la distinción que este archivo ya hace entre `--accent` y `--orange`. */
+.tally .pct {
   font-size: 13px;
   font-weight: 700;
-  color: var(--acento);
+  color: var(--accent);
   font-variant-numeric: tabular-nums;
   background: rgb(168 89 13 / 0.09);
   border-radius: 999px;
   padding: 2px 8px;
 }
 
-.barra {
+.bar {
   height: 6px;
-  background: var(--linea);
+  background: var(--line);
   border-radius: 3px;
   overflow: hidden;
   display: flex;
   margin-top: 12px;
 }
-.barra span { display: block; height: 100%; }
-/* Contra el riel (--linea #e2ded6) los tres colores de antes daban 2.07, 2.16 y 1.57, y
+.bar span { display: block; height: 100%; }
+/* Contra el riel (--line #e2ded6) los tres colores de antes daban 2.07, 2.16 y 1.57, y
    el mínimo para un elemento no textual que informa algo es 3:1 (WCAG 1.4.11). Los de
    ahora dan 3.13, 3.22 y 3.82, medidos.
 
    El naranja vivo no llega de ninguna manera: es demasiado claro, y oscurecerlo hasta
-   pasar lo vuelve marrón. Así que el tramo usa `--acento`, que es el naranja oscuro que
+   pasar lo vuelve marrón. Así que el tramo usa `--accent`, que es el naranja oscuro que
    ya existe en la paleta para el texto — queda coherente en vez de ser un color nuevo
-   inventado para este lugar. `--naranja` sigue definido: lo usa el botón activo.
+   inventado para este lugar. `--orange` sigue definido: lo usa el botón activo.
 
    El `inset` separa un tramo del siguiente sin mover el layout: entre ellos el contraste
    es bajo (se parecen en luminosidad aunque cambien de tono) y sin la línea a 320px los
    tres se leen como una sola mancha. */
-.barra .s-bien       { background: #3f7fc0; }
-.barra .s-perfecta   { background: #478754; }
-.barra .s-reemplazar { background: var(--acento); }
+.bar .s-good       { background: #3f7fc0; }
+.bar .s-perfect   { background: #478754; }
+.bar .s-replace { background: var(--accent); }
 /* Un solo tramo, para las colecciones que no usan la condición. Neutro a propósito: no
    dice «buen estado» de algo que no tiene estado. Medido contra el riel: 4.04, y la barra
    de progreso pide 3:1 por ser un elemento no textual que informa (WCAG 1.4.11). */
-.barra .s-solo { background: var(--tinta2); }
-.barra span + span   { box-shadow: inset 1px 0 0 var(--linea); }
+.bar .s-only { background: var(--ink2); }
+.bar span + span   { box-shadow: inset 1px 0 0 var(--line); }
 
 /* -------------------------------- barra fija ------------------------------ */
 
@@ -152,7 +152,7 @@ button { cursor: pointer; }
 
 /* --------------------------------- filtros -------------------------------- */
 
-.filtros { display: flex; gap: 6px; flex-wrap: wrap; }
+.filters { display: flex; gap: 6px; flex-wrap: wrap; }
 
 /* En un teléfono angosto los cuatro filtros no entran en una línea y se apilaban en
    cuatro: la barra medía 171 px, y como es pegajosa te seguía los 28.710 px de scroll.
@@ -166,14 +166,14 @@ button { cursor: pointer; }
    hasta el 2026-09-25; desde entonces el `@media (max-width: 560px)` del final la convierte
    en la barra de abajo con cinco lugares fijos, y 560 es más ancho que 460, así que a
    cualquier ancho donde el bloque viejo aplicara el nuevo aplicaba también — y ganaba, por
-   venir después y por ser más específico (`.herramientas .filtros`).
+   venir después y por ser más específico (`.toolbar .filters`).
 
    Lo peligroso no era que sobrara: era que el día que alguien moviera el bloque de 560 más
    arriba en el archivo —que es exactamente la trampa que este proyecto ya se comió dos
-   veces con `.filtro b`— el muerto revivía y rompía la barra de abajo en los teléfonos más
+   veces con `.filter b`— el muerto revivía y rompía la barra de abajo en los teléfonos más
    angostos. */
 
-.filtro {
+.filter {
   display: flex;
   align-items: center;
   gap: 7px;
@@ -182,42 +182,42 @@ button { cursor: pointer; }
   border-radius: 999px;
   padding: 5px 12px;
   font-size: 14px;
-  color: var(--tinta2);
+  color: var(--ink2);
 }
-.filtro:hover { background: rgba(32, 29, 26, 0.05); }
+.filter:hover { background: rgba(32, 29, 26, 0.05); }
 
 /* En escritorio la barra sigue siendo la fila de chips de siempre: ni íconos ni rótulo
    corto. Los dos están en el DOM y los enciende la media query del teléfono. */
-.filtro .icono,
-.filtro .corto,
-.compartir .corto { display: none; }
+.filter .icon,
+.filter .short,
+.share .short { display: none; }
 
 /* El contador hereda el color del filtro, que ya se elige por contraste. Antes tenía
    color propio acá y opacity más abajo, y las dos cosas se anulaban entre sí sólo por
    el orden del archivo: mover un bloque deshacía el arreglo sin que nada avisara. */
-.filtro b {
+.filter b {
   font-size: 12px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: currentColor;
 }
 
-.filtro.activo {
-  background: var(--acento);
-  border-color: var(--acento);
+.filter.active {
+  background: var(--accent);
+  border-color: var(--accent);
   color: #fff;
   font-weight: 600;
 }
 
-.vacio { color: var(--tinta2); padding: 40px 0; text-align: center; }
+.empty { color: var(--ink2); padding: 40px 0; text-align: center; }
 
 /* -------------------------------- expansión ------------------------------- */
 
 /* scroll-margin-top tiene que ser al menos lo que mide la barra pegajosa, o el anclaje
-   deja la banda tapada abajo de ella. Ver la nota de --barra-pegajosa más arriba. */
-.expansion { margin-bottom: 40px; scroll-margin-top: var(--barra-pegajosa); }
+   deja la banda tapada abajo de ella. Ver la nota de --sticky-bar más arriba. */
+.expansion { margin-bottom: 40px; scroll-margin-top: var(--sticky-bar); }
 
-.banda {
+.band {
   display: flex;
   align-items: baseline;
   gap: 12px;
@@ -226,7 +226,7 @@ button { cursor: pointer; }
   margin-bottom: 12px;
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.12);
 }
-.banda h2 {
+.band h2 {
   font-family: "Arial Black", "Arial Bold", Impact, sans-serif;
   font-style: italic;
   text-transform: uppercase;
@@ -242,51 +242,51 @@ button { cursor: pointer; }
    El nombre SÍ puede cortarse (hay expansiones de nombre largo y ahí el corte es
    razonable), pero nunca por la mitad de una palabra. El rango y la cuenta no se cortan
    nunca: son una unidad, y partir un número en dos renglones no se lee. */
-.banda h2 { overflow-wrap: break-word; text-wrap: balance; }
-.banda .rango,
-.banda .cuenta { white-space: nowrap; }
+.band h2 { overflow-wrap: break-word; text-wrap: balance; }
+.band .range,
+.band .count { white-space: nowrap; }
 
 /* A 320 px los tres no entran juntos ni prohibiendo los cortes: hacen falta unos 311 px
    de texto en un ancho útil de 292. En vez de dejar que se parta el nombre, se achica
    todo un punto — la banda es un rótulo, no el contenido, y a 13 px se sigue leyendo
    igual. Medido: con esto «Expansión 1» vuelve a un solo renglón. */
 @media (max-width: 360px) {
-  .banda { gap: 8px; padding: 7px 10px; }
-  .banda h2 { font-size: 13px; }
-  .banda .rango,
-  .banda .cuenta { font-size: 11px; }
+  .band { gap: 8px; padding: 7px 10px; }
+  .band h2 { font-size: 13px; }
+  .band .range,
+  .band .count { font-size: 11px; }
 }
 /* Sin opacity: el color de la banda se elige midiendo contraste (textoSobre), y bajarle
    la opacidad encima deshacía ese cálculo — el rango fallaba en 10 de las 16 bandas y la
    cuenta en 3. La jerarquía la hace el tamaño, que ya es menor. */
-.banda .rango { font-size: 13px; font-variant-numeric: tabular-nums; }
-.banda .cuenta {
+.band .range { font-size: 13px; font-variant-numeric: tabular-nums; }
+.band .count {
   margin-left: auto;
   font-size: 13px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
-.grilla {
+.grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(54px, 1fr));
   gap: 6px;
 }
 
-.carta {
+.card {
   aspect-ratio: 1;
-  border: 1px solid var(--falta-linea);
-  background: var(--falta-fondo);
-  color: var(--falta-tinta);
+  border: 1px solid var(--missing-line);
+  background: var(--missing-bg);
+  color: var(--missing-ink);
   border-radius: 4px;
   font-size: 13px;
   font-variant-numeric: tabular-nums;
   padding: 0;
   transition: transform 0.08s ease;
 }
-.carta:hover { transform: scale(1.08); border-color: var(--tinta3); }
-.carta:active { transform: scale(0.96); }
-.carta:focus-visible { outline: 2px solid var(--acento); outline-offset: 1px; }
+.card:hover { transform: scale(1.08); border-color: var(--ink3); }
+.card:active { transform: scale(0.96); }
+.card:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 /* UNA GRILLA DE FICHAS, cuando el catálogo sabe algo más que el número.
    Hoy son las nueve «Cartas únicas» de Leyenda: no llevan número impreso, así que
@@ -296,11 +296,11 @@ button { cursor: pointer; }
 
    Lo enciende el DATO (`exp.detalle`), no una lista de expansiones escrita en el código:
    el día que otra quiera nombres, se los pone en el json. */
-.grilla.con-detalle {
+.grid.detailed {
   grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
   gap: 8px;
 }
-.grilla.con-detalle .carta {
+.grid.detailed .card {
   aspect-ratio: auto;
   min-height: 74px;
   padding: 9px 10px 8px;
@@ -313,16 +313,16 @@ button { cursor: pointer; }
      ficha entera con tres renglones adentro. */
   transition: none;
 }
-.grilla.con-detalle .carta:hover { transform: none; border-color: var(--tinta3); }
-.grilla.con-detalle .carta:active { transform: none; }
-.rotulo-detalle {
+.grid.detailed .card:hover { transform: none; border-color: var(--ink3); }
+.grid.detailed .card:active { transform: none; }
+.detail-label {
   font-size: 10.5px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   opacity: 1;
 }
-.nombre-detalle {
+.detail-name {
   font-size: 14px;
   font-weight: 600;
   line-height: 1.25;
@@ -332,35 +332,35 @@ button { cursor: pointer; }
 /* La tirada es el dato de después, igual que el rótulo de la variante: se lee cuando la
    buscás, no cuando barrés la grilla con el ojo. Va en tamaño chico y NO con `opacity`,
    que es la regla de contraste de este proyecto. */
-.copias-detalle {
+.backup-detail {
   font-size: 11.5px;
   font-variant-numeric: tabular-nums;
 }
 /* El contador de repetidas y la marca de variante siguen en sus esquinas, así que hay que
    dejarles el lugar para que no se monten sobre el texto. */
-.grilla.con-detalle .carta .marca-variante { bottom: 6px; right: 8px; left: auto; }
-.grilla.con-detalle .carta > span { padding-right: 20px; }
+.grid.detailed .card .variant-mark { bottom: 6px; right: 8px; left: auto; }
+.grid.detailed .card > span { padding-right: 20px; }
 
-.carta.bien       { background: var(--bien-fondo); border-color: var(--bien-linea); color: var(--bien-tinta); }
-.carta.perfecta   { background: var(--perf-fondo); border-color: var(--perf-linea); color: var(--perf-tinta); font-weight: 600; }
-.carta.reemplazar { background: var(--reem-fondo); border-color: var(--reem-linea); color: var(--reem-tinta); }
-.carta.tengo      { background: var(--tengo-fondo); border-color: var(--tengo-linea); color: var(--tengo-tinta); }
+.card.good       { background: var(--good-bg); border-color: var(--good-line); color: var(--good-ink); }
+.card.perfect   { background: var(--perfect-bg); border-color: var(--perfect-line); color: var(--perfect-ink); font-weight: 600; }
+.card.replace { background: var(--replace-bg); border-color: var(--replace-line); color: var(--replace-ink); }
+.card.owned      { background: var(--owned-bg); border-color: var(--owned-line); color: var(--owned-ink); }
 
 /* ---------------------------------- pie ----------------------------------- */
 
 
-.cargando { padding: 80px 0; color: var(--tinta2); }
+.loading { padding: 80px 0; color: var(--ink2); }
 
 /* ------------------------------- repetidas -------------------------------- */
 
-.avance .sobrantes {
+.tally .spares {
   margin-left: 14px;
   font-size: 13px;
-  color: var(--acento);
+  color: var(--accent);
   font-weight: 600;
 }
 
-.carta { position: relative; }
+.card { position: relative; }
 
 /* El rótulo corto de la variante, abajo a la izquierda — la esquina contraria al contador
    de repetidas, que va arriba a la derecha, así que nunca se pisan.
@@ -369,7 +369,7 @@ button { cursor: pointer; }
    cuando tenés el álbum adelante: la variante es el dato de después. Y es texto, no un
    color: dos fondos parecidos a 40 píxeles no se distinguen, y además el color ya está
    usado para decir si la tenés. */
-.carta .marca-variante {
+.card .variant-mark {
   position: absolute;
   bottom: 2px;
   left: 3px;
@@ -383,9 +383,9 @@ button { cursor: pointer; }
 
 /* Un contorno punteado, para que se lea como «la misma carta, otra versión» y no como una
    carta distinta. No cambia el color de fondo: ése dice si la tenés, y eso no cambia. */
-.carta.variante { border-style: dashed; }
+.card.variant { border-style: dashed; }
 
-.carta .repes {
+.card .dupes {
   position: absolute;
   top: 3px;
   right: 3px;
@@ -393,7 +393,7 @@ button { cursor: pointer; }
   height: 15px;
   padding: 0 3px;
   border-radius: 8px;
-  background: var(--acento);
+  background: var(--accent);
   color: #fff;
   font-size: 10px;
   font-weight: 700;
@@ -404,7 +404,7 @@ button { cursor: pointer; }
 
 /* --------------------------------- diálogo -------------------------------- */
 
-.telon {
+.overlay {
   position: fixed;
   inset: 0;
   z-index: 20;
@@ -415,8 +415,8 @@ button { cursor: pointer; }
   padding: 20px;
 }
 
-.dialogo {
-  background: var(--blanco);
+.dialog {
+  background: var(--white);
   border-radius: 10px;
   padding: 22px;
   width: 300px;
@@ -430,23 +430,23 @@ button { cursor: pointer; }
   overflow-y: auto;
 }
 
-.dialogo h3 {
+.dialog h3 {
   font-family: "Arial Black", "Arial Bold", Impact, sans-serif;
   font-style: italic;
   text-transform: uppercase;
   font-size: 17px;
   margin: 0;
-  color: var(--acento);
+  color: var(--accent);
 }
 
-.dialogo p { margin: 2px 0 16px; color: var(--tinta2); font-size: 14px; }
+.dialog p { margin: 2px 0 16px; color: var(--ink2); font-size: 14px; }
 
 /* La advertencia del reemplazo: el mismo color que las cartas "para reemplazar", que en
    esta app ya significa "ojo con esto". */
-.dialogo .ojo {
-  background: var(--reem-fondo);
-  border: 1px solid var(--reem-linea);
-  color: var(--reem-tinta);
+.dialog .eye {
+  background: var(--replace-bg);
+  border: 1px solid var(--replace-line);
+  color: var(--replace-ink);
   border-radius: 6px;
   padding: 9px 11px;
   margin: 0 0 14px;
@@ -454,7 +454,7 @@ button { cursor: pointer; }
   line-height: 1.45;
 }
 
-.dialogo .opcion {
+.dialog .option {
   display: block;
   width: 100%;
   text-align: left;
@@ -464,27 +464,27 @@ button { cursor: pointer; }
   border: 1px solid;
   font-weight: 600;
 }
-.dialogo .opcion.bien       { background: var(--bien-fondo); border-color: var(--bien-linea); color: var(--bien-tinta); }
-.dialogo .opcion.perfecta   { background: var(--perf-fondo); border-color: var(--perf-linea); color: var(--perf-tinta); }
-.dialogo .opcion.reemplazar { background: var(--reem-fondo); border-color: var(--reem-linea); color: var(--reem-tinta); }
-.dialogo .opcion:hover { filter: brightness(0.96); }
+.dialog .option.good       { background: var(--good-bg); border-color: var(--good-line); color: var(--good-ink); }
+.dialog .option.perfect   { background: var(--perfect-bg); border-color: var(--perfect-line); color: var(--perfect-ink); }
+.dialog .option.replace { background: var(--replace-bg); border-color: var(--replace-line); color: var(--replace-ink); }
+.dialog .option:hover { filter: brightness(0.96); }
 
 /* Dos salidas en una fila: volver un paso, y cerrar. En los pasos 2 y 3 sólo estaba la
    de volver, así que salir era tocar el telón o Escape: en un teléfono, adivinar. */
-.dialogo .salidas { display: flex; gap: 14px; justify-content: center; }
-.dialogo .salidas .cancelar { margin-top: 12px; }
+.dialog .exits { display: flex; gap: 14px; justify-content: center; }
+.dialog .exits .cancel { margin-top: 12px; }
 
-.dialogo .cancelar {
+.dialog .cancel {
   display: block;
   width: 100%;
   margin-top: 6px;
   padding: 8px;
   background: none;
   border: none;
-  color: var(--tinta2);
+  color: var(--ink2);
   font-size: 13px;
 }
-.dialogo .cancelar:hover { color: var(--acento); }
+.dialog .cancel:hover { color: var(--accent); }
 
 /* Al mantener apretado, la carta se hunde: avisa que algo está pasando. */
 /* Los tres hacen falta y hacen cosas distintas, porque el gesto de la app es mantener
@@ -502,13 +502,13 @@ button { cursor: pointer; }
    que documenta Apple para esto y no tiene efecto en ningún otro navegador, así que el
    riesgo de ponerla es cero; pero hasta que alguien lo pruebe en un teléfono, sigue
    siendo una corazonada bien fundada y no un hecho. */
-.carta {
+.card {
   touch-action: manipulation;
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
 }
-.carta:active { transform: scale(0.9); }
+.card:active { transform: scale(0.9); }
 
 /* EL MANTENIDO YA SE DISPARÓ, aunque todavía no se cobró.
  *
@@ -518,7 +518,7 @@ button { cursor: pointer; }
  * así que lo que faltaba era avisar. A los 420 ms la carta muestra cómo va a quedar: el
  * número baja y, si iba de 1 a 0, cambia de color entera.
  *
- * VA ACÁ Y NO ARRIBA, y no es casual: `.carta.restando` y `.carta:active` tienen la MISMA
+ * VA ACÁ Y NO ARRIBA, y no es casual: `.card.subtracting` y `.card:active` tienen la MISMA
  * especificidad (0,2,0), así que entre las dos gana la última del archivo — y `:active`
  * está en el renglón de arriba. Puesta antes, esta regla no haría nada y parecería hecha.
  * Es la tercera vez que este archivo muerde con lo mismo.
@@ -526,17 +526,17 @@ button { cursor: pointer; }
  * Y el cambio es SALIR del apretado, no apretar más: el dedo ya tiene la carta en
  * `scale(0.9)`, así que achicarla otro poco no se distingue de lo que ya está pasando.
  * Saltar hacia afuera sí, y de paso se lee como «listo, soltá». */
-.carta.restando {
+.card.subtracting {
   transform: scale(1.06);
   /* Un aro, no un `outline`: el outline ya es el foco del teclado y no se pueden confundir
      dos cosas distintas con la misma pinta. `box-shadow` además no reflota el layout. */
-  box-shadow: 0 0 0 3px var(--acento);
+  box-shadow: 0 0 0 3px var(--accent);
   z-index: 1;
 }
 /* Para quien pidió menos movimiento, el aro y el número alcanzan: son lo que informa. La
    escala es el adorno y es lo único que se saca. */
 @media (prefers-reduced-motion: reduce) {
-  .carta.restando { transform: none; }
+  .card.subtracting { transform: none; }
 }
 
 /* --------------------------------- entrada -------------------------------- */
@@ -544,7 +544,7 @@ button { cursor: pointer; }
 /* Una sola cosa en la pantalla, y va en el medio. min-height en vez de height
    para que en un celular apaisado —o con el teclado abierto— pueda crecer y
    hacer scroll en vez de recortarse. */
-.entrada {
+.login {
   min-height: 100vh;
   min-height: 100dvh;  /* descuenta la barra del navegador en el celular */
   display: flex;
@@ -553,13 +553,13 @@ button { cursor: pointer; }
   padding: 32px 20px;
 }
 
-.entrada-caja {
+.login-box {
   width: 100%;
   max-width: 360px;
   text-align: center;
 }
 
-.entrada-logo {
+.login-logo {
   display: block;
   width: 100%;
   max-width: 260px;
@@ -567,47 +567,47 @@ button { cursor: pointer; }
   margin: 0 auto 12px;
 }
 
-.entrada-bajada {
+.login-tagline {
   margin: 0 0 28px;
-  color: var(--tinta2);
+  color: var(--ink2);
   font-size: 14px;
 }
 
-.entrar {
+.login-form {
   display: flex;
   flex-direction: column;
   gap: 14px;
   text-align: left;   /* la caja está centrada, pero las etiquetas no */
 }
 
-.entrar label {
+.login-form label {
   display: flex;
   flex-direction: column;
   gap: 6px;
   font-size: 13px;
-  color: var(--tinta2);
+  color: var(--ink2);
 }
 
-.entrar input {
+.login-form input {
   width: 100%;
   /* 16px y no menos: por debajo de eso, Safari en iPhone hace zoom al tocar el
      campo y deja la pantalla corrida. */
   font-size: 16px;
-  color: var(--tinta);
-  background: var(--blanco);
-  border: 1px solid var(--linea2);
+  color: var(--ink);
+  background: var(--white);
+  border: 1px solid var(--line2);
   border-radius: 6px;
   padding: 11px 12px;
 }
-.entrar input:focus {
+.login-form input:focus {
   outline: none;
-  border-color: var(--acento);
-  box-shadow: 0 0 0 3px rgb(168 89 13 / 0.15); /* el mismo naranja que --acento */
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgb(168 89 13 / 0.15); /* el mismo naranja que --accent */
 }
 
-/* SIN `.entrar` ADELANTE, y no es una limpieza: había dos botones sin ningún estilo.
+/* SIN `.login-form` ADELANTE, y no es una limpieza: había dos botones sin ningún estilo.
    Estas dos clases nacieron en la pantalla de entrada y se quedaron colgadas de ella, pero
-   después se usaron en otros dos lados que NO están adentro de un `.entrar`:
+   después se usaron en otros dos lados que NO están adentro de un `.login-form`:
 
      - el «Listo» del final de «Cambiar mi clave», que está fuera del `<form className=
        "entrar">` — o sea que el único botón de la pantalla que te confirma que la clave
@@ -617,70 +617,70 @@ button { cursor: pointer; }
 
    Ninguna otra cosa de la app usa estas clases, así que bajarles la especificidad no le
    pisa nada a nadie. */
-.principal {
+.primary {
   /* 46px de alto: un dedo no acierta cómodo en menos. */
   min-height: 46px;
   margin-top: 4px;
-  background: var(--acento);
-  border: 1px solid var(--acento);
+  background: var(--accent);
+  border: 1px solid var(--accent);
   color: #fff;
   font-weight: 600;
   border-radius: 6px;
   padding: 11px 14px;
   font-size: 16px;
 }
-.principal:hover { filter: brightness(1.06); }
-.principal:disabled {
-  background: var(--papel);
-  border-color: var(--linea2);
-  color: var(--tinta3);
+.primary:hover { filter: brightness(1.06); }
+.primary:disabled {
+  background: var(--paper);
+  border-color: var(--line2);
+  color: var(--ink3);
   filter: none;
   cursor: default;
 }
 
-.secundario {
+.secondary {
   min-height: 44px;
   background: none;
   border: none;
-  color: var(--tinta2);
+  color: var(--ink2);
   font-size: 14px;
   padding: 4px;
 }
-.secundario:hover { color: var(--acento); }
+.secondary:hover { color: var(--accent); }
 
 /* Un enlace y no un botón: lleva a otro lado (WhatsApp), no hace algo acá. Discreto a
    propósito — es el camino de excepción, no una de las dos acciones de la pantalla. */
-.entrar .olvide {
+.login-form .forgot {
   display: block;
   min-height: 44px;
   padding: 12px 8px 0;
   text-align: center;
   font-size: 13px;
-  color: var(--tinta3);
+  color: var(--ink3);
   text-decoration: underline;
-  text-decoration-color: var(--linea2);
+  text-decoration-color: var(--line2);
   text-underline-offset: 3px;
 }
-.entrar .olvide:hover { color: var(--acento); text-decoration-color: currentColor; }
+.login-form .forgot:hover { color: var(--accent); text-decoration-color: currentColor; }
 
 /* Por qué estás en la pantalla de entrada. No es un error de lo que acabás de hacer,
    así que no usa el rojo del .error: es el celeste informativo. */
-.entrar .aviso-sesion {
+.login-form .notice-session {
   margin: 0;
   padding: 9px 12px;
   border-radius: 6px;
-  background: var(--bien-fondo);
-  border: 1px solid var(--bien-linea);
-  color: var(--bien-tinta);
+  background: var(--good-bg);
+  border: 1px solid var(--good-line);
+  color: var(--good-ink);
   font-size: 13.5px;
 }
 
-.entrar .error {
+.login-form .error {
   margin: 0;
   font-size: 13px;
-  color: var(--reem-tinta);
-  background: var(--reem-fondo);
-  border: 1px solid var(--reem-linea);
+  color: var(--replace-ink);
+  background: var(--replace-bg);
+  border: 1px solid var(--replace-line);
   border-radius: 6px;
   padding: 9px 11px;
 }
@@ -689,44 +689,44 @@ button { cursor: pointer; }
    logo se come el alto que necesitan los campos. Se achica todo y se alinea arriba,
    que es lo que hace que se pueda hacer scroll en vez de recortarse. */
 @media (max-height: 560px) {
-  .entrada { align-items: flex-start; padding: 18px 20px; }
-  .entrada-logo { max-width: 150px; margin-bottom: 8px; }
-  .entrada-bajada { margin-bottom: 16px; font-size: 13px; }
-  .entrar { gap: 10px; }
+  .login { align-items: flex-start; padding: 18px 20px; }
+  .login-logo { max-width: 150px; margin-bottom: 8px; }
+  .login-tagline { margin-bottom: 16px; font-size: 13px; }
+  .login-form { gap: 10px; }
 }
 
 /* Los filtros que no están elegidos muestran el color de lo que listan, así el código
    de colores de las cartas queda siempre a la vista. Todos del mismo tipo: contorno y
    sin relleno, como "Todas". Con relleno quedaban dos distintos de los otros dos. */
-/* EL COLOR PROPIO ES SÓLO CUANDO NO ESTÁ ELEGIDO, y el `:not(.activo)` no es un adorno.
-   Sin él, estas tres reglas le ganaban a `.filtro.activo { color: #fff }` —misma
+/* EL COLOR PROPIO ES SÓLO CUANDO NO ESTÁ ELEGIDO, y el `:not(.active)` no es un adorno.
+   Sin él, estas tres reglas le ganaban a `.filter.active { color: #fff }` —misma
    especificidad y 400 líneas más abajo— mientras el fondo activo seguía siendo
-   `--acento`. Medido: «Repetidas» elegido daba texto y fondo del MISMO color, 1.00:1;
+   `--accent`. Medido: «Repetidas» elegido daba texto y fondo del MISMO color, 1.00:1;
    «Me faltan» 1.06 y «Para reemplazar» 1.32. Tres de los cuatro filtros ilegibles justo
    cuando están puestos.
 
    Es la TERCERA vez que en este archivo una regla anula a otra sólo por el orden —ya pasó
-   con `.filtro b` y con `.dialogo.numeros`—. Por eso va acá y no como un parche al final:
+   con `.filter b` y con `.dialog.stats`—. Por eso va acá y no como un parche al final:
    un parche se vuelve a perder cuando alguien mueva un bloque. */
-.filtro.f-todas                  { border-color: var(--linea2); }
-.filtro.f-falta                  { border-color: var(--falta-tinta); }
-.filtro.f-repetidas              { border-color: var(--acento); }   /* el del globito */
-.filtro.f-reemplazar             { border-color: var(--reem-linea); }
-.filtro:not(.activo).f-falta      { color: var(--falta-tinta); }
-.filtro:not(.activo).f-repetidas  { color: var(--acento); }
-.filtro:not(.activo).f-reemplazar { color: var(--reem-tinta); }
+.filter.f-all                  { border-color: var(--line2); }
+.filter.f-missing                  { border-color: var(--missing-ink); }
+.filter.f-dupes              { border-color: var(--accent); }   /* el del globito */
+.filter.f-replace             { border-color: var(--replace-line); }
+.filter:not(.active).f-missing      { color: var(--missing-ink); }
+.filter:not(.active).f-dupes  { color: var(--accent); }
+.filter:not(.active).f-replace { color: var(--replace-ink); }
 /* Elegido gana el relleno naranja: el contorno de color es para los otros. */
-.filtro.activo { background: var(--acento); border-color: var(--acento); }
+.filter.active { background: var(--accent); border-color: var(--accent); }
 
 /* --------------------------------- exportar -------------------------------- */
 
 /* La lista necesita más ancho que la pregunta de la condición. */
-.dialogo.ancho { width: min(560px, 100%); }
+.dialog.wide { width: min(560px, 100%); }
 
-.dialogo .opcion.simple { background: var(--papel); border-color: var(--linea2); color: var(--tinta); }
-.dialogo .opcion.copiar { background: var(--acento); border-color: var(--acento); color: #fff; text-align: center; }
+.dialog .option.simple { background: var(--paper); border-color: var(--line2); color: var(--ink); }
+.dialog .option.copy { background: var(--accent); border-color: var(--accent); color: #fff; text-align: center; }
 
-.dialogo .lista {
+.dialog .list {
   display: block;
   width: 100%;
   height: 260px;
@@ -740,9 +740,9 @@ button { cursor: pointer; }
   line-height: 1.55;
   white-space: pre-wrap;
   overflow: auto;
-  color: var(--tinta);
-  background: var(--papel);
-  border: 1px solid var(--linea2);
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--line2);
   border-radius: 6px;
   padding: 10px;
   margin-bottom: 10px;
@@ -750,24 +750,24 @@ button { cursor: pointer; }
 
 /* El paso de elegir expansión puede tener 17 botones: que scrollee la lista y no el
    diálogo entero, para que "Elegir otra lista" quede siempre a la vista. */
-.dialogo .opciones {
+.dialog .options {
   max-height: 46vh;
   overflow-y: auto;
   margin-bottom: 4px;
 }
-.dialogo .opcion b { float: right; font-variant-numeric: tabular-nums; color: var(--tinta2); }
+.dialog .option b { float: right; font-variant-numeric: tabular-nums; color: var(--ink2); }
 /* Color propio y no `opacity: .65`: era la última opacity sobre texto que quedaba viva,
    y es exactamente el mecanismo que se sacó de los otros tres lugares — deshace por
    encima el cálculo de contraste del color de abajo.
 
-   Va `--tinta2` y no `--tinta3`, que era lo primero que se probó: medido sobre el fondo
+   Va `--ink2` y no `--ink3`, que era lo primero que se probó: medido sobre el fondo
    pintado de verdad, tinta3 da 4.58 y la opacity daba 4.99. Pasaba igual, pero arreglar
    el mecanismo no puede dejar el resultado peor que antes. tinta2 da 4.84 y sigue siendo
    más callado que el nombre de la expansión, que es lo que el número tiene que ser. */
-.dialogo .nada { color: var(--tinta3); font-size: 13px; margin-bottom: 10px; }
+.dialog .nothing { color: var(--ink3); font-size: 13px; margin-bottom: 10px; }
 
 /* Del mismo tipo que los filtros, para que la barra se lea como una sola cosa. */
-.compartir {
+.share {
   display: grid;
   transition: color 0.45s ease, border-color 0.45s ease;
   place-items: center;
@@ -776,69 +776,69 @@ button { cursor: pointer; }
   height: 38px;
   padding: 0;
   border-radius: 999px;
-  border: 1px solid var(--linea2);
+  border: 1px solid var(--line2);
   background: none;
-  color: var(--tinta2);
+  color: var(--ink2);
 }
-.compartir:hover { color: var(--acento); border-color: var(--acento); }
+.share:hover { color: var(--accent); border-color: var(--accent); }
 
 /* El guiño: un zoom corto de ida y vuelta para que se note que el botón está ahí.
    Sólo transform y color — no ocupa más lugar, así que no corre nada de alrededor.
    Quién lo dispara y cuántas veces está en App.jsx; acá va la regla de accesibilidad,
    repetida a propósito: si el sistema pide menos movimiento, no se mueve ni aunque
    alguien se olvide de preguntarlo en el código. */
-@keyframes guiño {
+@keyframes wink {
   0%, 60%, 100% { transform: scale(1); }
   12%           { transform: scale(1.16); }
   26%           { transform: scale(0.97); }
   40%           { transform: scale(1.1); }
 }
 
-.compartir.guiña {
-  animation: guiño 1.5s ease-in-out;
-  border-color: var(--acento);
-  color: var(--acento);
+.share.wink {
+  animation: wink 1.5s ease-in-out;
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .compartir.guiña { animation: none; }
+  .share.wink { animation: none; }
 }
 
 
 /* Las expansiones del paso 2 se marcan y desmarcan: casilla a la izquierda, cuántas a
    la derecha. Como es una fila y no un bloque, la cuenta va con margin y no con float. */
-.dialogo .opcion.elegible {
+.dialog .option.selectable {
   display: flex;
   align-items: center;
   gap: 9px;
   font-weight: 500;
 }
-.dialogo .opcion.elegible.marcada { border-color: var(--acento); font-weight: 600; }
-.dialogo .opcion.elegible b { float: none; margin-left: auto; }
+.dialog .option.selectable.checked { border-color: var(--accent); font-weight: 600; }
+.dialog .option.selectable b { float: none; margin-left: auto; }
 
-.tilde {
+.check {
   flex: none;
   display: grid;
   place-items: center;
   width: 17px;
   height: 17px;
   border-radius: 4px;
-  border: 1px solid var(--linea2);
-  background: var(--blanco);
+  border: 1px solid var(--line2);
+  background: var(--white);
   color: #fff;
 }
-.tilde.si { background: var(--acento); border-color: var(--acento); }
+.check.on { background: var(--accent); border-color: var(--accent); }
 
 /* El que cierra el paso: mismo peso que "Copiar", para que se vea qué sigue. */
-.dialogo .ver {
+.dialog .show {
   display: block;
   width: 100%;
   min-height: 46px;
   margin-top: 6px;
   padding: 11px 14px;
   border-radius: 6px;
-  border: 1px solid var(--acento);
-  background: var(--acento);
+  border: 1px solid var(--accent);
+  background: var(--accent);
   color: #fff;
   font-weight: 600;
   font-size: 15px;
@@ -846,10 +846,10 @@ button { cursor: pointer; }
 /* Inactivo NO se hace con opacity: sobre el naranja con texto blanco, la frase que te
    dice qué hacer para destrabarlo ("Marcá al menos una") quedaba en 1.37:1, ilegible.
    Se apaga cambiando los colores, que se siguen leyendo. */
-.dialogo .ver:disabled {
-  background: var(--papel);
-  border-color: var(--linea2);
-  color: var(--tinta3);
+.dialog .show:disabled {
+  background: var(--paper);
+  border-color: var(--line2);
+  color: var(--ink3);
   cursor: default;
 }
 
@@ -858,7 +858,7 @@ button { cursor: pointer; }
 /* La flechita de cada banda. Toma el color del texto de la banda, que ya se eligió
    midiendo contraste, así se ve igual sobre el amarillo que sobre el azul. Los márgenes
    negativos hacen que no agrande la banda. */
-.banda .plegar {
+.band .fold {
   align-self: center;
   flex: none;
   display: grid;
@@ -872,53 +872,53 @@ button { cursor: pointer; }
   background: none;
   color: inherit;
 }
-.banda .plegar:hover { background: rgba(0, 0, 0, 0.09); }
-.banda .plegar svg { transition: transform 0.15s ease; }
-.banda .plegar.cerrada svg { transform: rotate(-90deg); }
+.band .fold:hover { background: rgba(0, 0, 0, 0.09); }
+.band .fold svg { transition: transform 0.15s ease; }
+.band .fold.closed svg { transform: rotate(-90deg); }
 
 /* Los 40px de margen están para separar grillas enteras. Con la expansión cerrada sólo
    queda la banda, y ese hueco se come justo el lugar que se quería ahorrar al cerrarla:
    las cerradas se apilan juntas. */
-.expansion.plegada { margin-bottom: 10px; }
-.expansion.plegada .banda { margin-bottom: 0; }
+.expansion.folded { margin-bottom: 10px; }
+.expansion.folded .band { margin-bottom: 0; }
 
 /* Una expansión completa cambia "129 de 129" por un tilde. Se lee de un vistazo, que es
    cuando se miran las bandas: cerradas y scrolleando rápido. Toma el color del texto de
    la banda, así que se ve en todas. El número exacto queda en el title. */
-.banda .cuenta.completa {
+.band .count.complete {
   display: inline-flex;
   align-items: center;
   gap: 5px;
   opacity: 1;
 }
-.banda .cuenta.completa svg { flex: none; }
+.band .count.complete svg { flex: none; }
 
 /* --------------------------- header y barra fija --------------------------- */
 
 /* La columna del contenido, compartida por header, barra y footer: el fondo de cada
    franja va de lado a lado, lo de adentro queda alineado con las cartas. */
-.columna { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+.column { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
 
 /* Un header es una franja con borde, no contenido suelto sobre el papel. Marca a la
    izquierda, avance a la derecha; en el celular uno abajo del otro. */
-.encabezado {
-  background: var(--blanco);
-  border-bottom: 1px solid var(--linea);
+.masthead {
+  background: var(--white);
+  border-bottom: 1px solid var(--line);
   padding: 22px 0 20px;
 }
-.encabezado .columna {
+.masthead .column {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 16px 48px;
 }
-.encabezado h1 { margin: 0 0 6px; }
-.encabezado h1 img { width: 240px; max-width: 70vw; }
+.masthead h1 { margin: 0 0 6px; }
+.masthead h1 img { width: 240px; max-width: 70vw; }
 /* La columna derecha del encabezado: el botón del panel arriba, el avance abajo.
-   El `flex: 0 1 400px` que antes tenía `.progreso` es ahora de `.lado`, que es el que
+   El `flex: 0 1 400px` que antes tenía `.progress` es ahora de `.side`, que es el que
    pasó a ser hijo del flex. */
-.encabezado .lado {
+.masthead .side {
   flex: 0 1 400px;
   min-width: 0;
   display: flex;
@@ -926,8 +926,8 @@ button { cursor: pointer; }
   align-items: flex-end;
   gap: 10px;
 }
-.encabezado .lado .progreso { width: 100%; min-width: 0; }
-.progreso .avance { margin-top: 0; }
+.masthead .side .progress { width: 100%; min-width: 0; }
+.progress .tally { margin-top: 0; }
 
 /* La entrada al panel del administrador. Del mismo tipo redondo que los filtros y que
    Salir, porque es un botón terciario y no tiene que competir con la colección: lo ve
@@ -935,20 +935,20 @@ button { cursor: pointer; }
 
    Dice «Panel» y no «Los números»: «los números» describe lo que hay adentro, «Panel»
    describe el lugar al que vas, que es lo que un botón tiene que decir. */
-.a-panel {
+.open-panel {
   display: inline-flex;
   align-items: center;
   gap: 7px;
   min-height: 34px;
   padding: 6px 15px;
-  border: 1px solid var(--linea2);
+  border: 1px solid var(--line2);
   border-radius: 999px;
   background: none;
-  color: var(--tinta2);
+  color: var(--ink2);
   font-size: 13.5px;
   font-weight: 600;
 }
-.a-panel:hover { border-color: var(--acento); color: var(--acento); }
+.open-panel:hover { border-color: var(--accent); color: var(--accent); }
 
 /* Los botones de la cuenta, juntos en un renglón: «Panel» (sólo el admin) y «Mi perfil»
    (todos). En el teléfono este envoltorio es UNA celda de la grilla del encabezado — ver
@@ -965,20 +965,20 @@ button { cursor: pointer; }
   width: 34px;
   height: 34px;
   padding: 0;
-  border: 1px solid var(--linea2);
+  border: 1px solid var(--line2);
   border-radius: 50%;
   background: none;
-  color: var(--tinta2);
+  color: var(--ink2);
   cursor: pointer;
 }
-.profile-button:hover { border-color: var(--acento); color: var(--acento); }
+.profile-button:hover { border-color: var(--accent); color: var(--accent); }
 .profile-button::after { content: ''; position: absolute; inset: -5px; }
 
 /* La cuenta, arriba del formulario de «Mi perfil». Un mail largo se parte donde haga
    falta en vez de empujar el diálogo de costado. */
-.profile-account { margin: -2px 0 14px; font-size: 13.5px; color: var(--tinta2); overflow-wrap: anywhere; }
-.profile-account b { color: var(--tinta); }
-.a-panel svg { flex: none; }
+.profile-account { margin: -2px 0 14px; font-size: 13.5px; color: var(--ink2); overflow-wrap: anywhere; }
+.profile-account b { color: var(--ink); }
+.open-panel svg { flex: none; }
 
 /* CUANDO LA COPIA DE LA BASE ESTÁ VIEJA. Lo único que Angel pidió que le avise, y hasta hoy
    el aviso era el bloque Salud del panel poniéndose rojo — que hay que ABRIR el panel para
@@ -988,44 +988,44 @@ button { cursor: pointer; }
  * leerlo, y éste tiene que seguir estando el día quince. Un punto en un botón que ya existe
  * no molesta nunca y no se pasa por alto dos días seguidos.
  *
- * EL COLOR ES `--reem-tinta`, QUE ES EL MISMO QUE YA USA EL BLOQUE SALUD DEL PANEL para un
- * renglón en falta (`.numeros .salud .mal`, en dashboard.css). No se inventa un rojo nuevo:
+ * EL COLOR ES `--replace-ink`, QUE ES EL MISMO QUE YA USA EL BLOQUE SALUD DEL PANEL para un
+ * renglón en falta (`.stats .health .bad`, en dashboard.css). No se inventa un rojo nuevo:
  * ése ya está medido —es el de «para reemplazar», uno de los cuatro estados de carta— y así
  * el punto de acá y el renglón rojo de allá son la misma cosa dicha dos veces.
  *
- * El borde NO cambia de color, y es a propósito: el borde en `--acento` ya significa hover
+ * El borde NO cambia de color, y es a propósito: el borde en `--accent` ya significa hover
  * en este mismo botón, y dos estados con la misma pinta no se distinguen. El punto solo
  * alcanza.
  *
  * Y va en un `::before` dentro del flex, no en un `::after` absoluto: el botón ya tiene un
  * `::after` estirado para el blanco de toque de 44 px (más abajo en este archivo), y
  * pisárselo le sacaría eso justo a la única persona que ve este botón. */
-.a-panel.con-aviso { color: var(--reem-tinta); }
-.a-panel.con-aviso::before {
+.open-panel.has-alert { color: var(--replace-ink); }
+.open-panel.has-alert::before {
   content: '';
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--reem-tinta);
+  background: var(--replace-ink);
   flex: none;
 }
 
 /* Blanca y opaca: la versión transparente dejaba ver las cartas pasando por detrás.
    La sombra la despega del contenido cuando queda pegada arriba. */
-.herramientas {
+.toolbar {
   position: sticky;
   top: 0;
   z-index: 5;
-  background: var(--blanco);
-  border-bottom: 1px solid var(--linea);
+  background: var(--white);
+  border-bottom: 1px solid var(--line);
   box-shadow: 0 8px 16px -14px rgba(32, 29, 26, 0.5);
   padding: 10px 0;
 }
-.herramientas .columna { display: flex; align-items: flex-start; gap: 12px; }
-.herramientas .filtros { flex: 1 1 auto; min-width: 0; }
-.herramientas .compartir { margin-left: auto; }
+.toolbar .column { display: flex; align-items: flex-start; gap: 12px; }
+.toolbar .filters { flex: 1 1 auto; min-width: 0; }
+.toolbar .share { margin-left: auto; }
 
-.ayuda { margin: 16px 0 22px; font-size: 13px; color: var(--tinta3); }
+.help { margin: 16px 0 22px; font-size: 13px; color: var(--ink3); }
 
 @media (max-width: 640px) {
   /* Angosto, el encabezado pasa a grilla de dos filas.
@@ -1036,10 +1036,10 @@ button { cursor: pointer; }
      el primer renglón con la marca, alineado con el subtítulo, que es espacio que ya
      estaba vacío, y el avance se queda con el segundo de lado a lado.
 
-     `.lado` se hace `display: contents` para que sus dos hijos se coloquen solos en la
-     grilla del abuelo: así no hay que sacar el botón del `.lado` que el escritorio
+     `.side` se hace `display: contents` para que sus dos hijos se coloquen solos en la
+     grilla del abuelo: así no hay que sacar el botón del `.side` que el escritorio
      necesita. */
-  .encabezado .columna {
+  .masthead .column {
     display: grid;
     grid-template-columns: 1fr auto;
     align-items: end;
@@ -1048,141 +1048,141 @@ button { cursor: pointer; }
   /* Los dos envoltorios se hacen `display: contents` para que el logo, el subtítulo, el
      botón y el avance se coloquen ellos mismos en esta grilla. Así el escritorio conserva
      su estructura de dos columnas sin tener que mover nada de sitio en el JSX. */
-  .encabezado .marca,
-  .encabezado .lado { display: contents; }
+  .masthead .mark,
+  .masthead .side { display: contents; }
 
   /* El botón va en el renglón del LOGO, no en el del subtítulo. Puesto al lado del
      subtítulo lo partía en dos y dejaba un «2008» solo abajo: el logo mide 240 px fijos
      y a su derecha hay lugar de sobra, el subtítulo no. */
-  .encabezado h1 { grid-area: 1 / 1; align-self: center; }
+  .masthead h1 { grid-area: 1 / 1; align-self: center; }
   /* Desde que existe «Mi perfil», la celda es del ENVOLTORIO de los botones y no de
      «Panel»: así los dos comparten el renglón del logo, también para quien no es admin y
      sólo tiene el de perfil. */
-  .encabezado .header-actions { grid-area: 1 / 2; align-self: center; }
+  .masthead .header-actions { grid-area: 1 / 2; align-self: center; }
   /* El selector ocupa el renglón que dejó el subtítulo, así que el encabezado NO gana una
      fila. Sin `grid-area` se auto-colocaría en una fila implícita, que es exactamente lo
      que llevó este encabezado de 162 a 266 px la primera vez. */
-  .encabezado .colecciones { grid-area: 2 / 1 / 3 / -1; }
-  .encabezado .progreso { grid-area: 3 / 1 / 4 / -1; }
+  .masthead .collections { grid-area: 2 / 1 / 3 / -1; }
+  .masthead .progress { grid-area: 3 / 1 / 4 / -1; }
 
   /* Abajo de ~400 px el logo de 240 y el botón no entran juntos. El logo cede, que para
      eso ya tenía un `max-width`; encogerlo un poco se nota mucho menos que pisarlo. */
-  .encabezado h1 img { max-width: 100%; }
+  .masthead h1 img { max-width: 100%; }
 }
 
 /* --------------------------------- footer --------------------------------- */
 
 /* Una franja blanca de lado a lado, como el header. Antes era una línea finita con
    cuatro botones iguales y papel vacío abajo: Salir pesaba lo mismo que bajar una copia. */
-.pie {
+.footer {
   margin-top: 48px;
-  background: var(--blanco);
-  border-top: 1px solid var(--linea);
+  background: var(--white);
+  border-top: 1px solid var(--line);
   padding: 20px 0 30px;
   font-size: 13px;
 }
-.pie .columna { display: flex; flex-direction: column; gap: 14px; }
-.pie-cuenta, .pie-copias { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 20px; }
-.pie-estado { min-width: 0; }
-.pie-cuenta { justify-content: space-between; }
+.footer .column { display: flex; flex-direction: column; gap: 14px; }
+.footer-account, .footer-backups { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 20px; }
+.footer-status { min-width: 0; }
+.footer-account { justify-content: space-between; }
 
-.pie .aviso { color: #9a5518; }
-.pie .aviso b, .pie .guardando b { font-weight: 700; }
-.pie .guardando { color: var(--perf-tinta); }
-.pie .guardando::before { content: '● '; color: #4f9a63; }
+.footer .notice { color: #9a5518; }
+.footer .notice b, .footer .saving b { font-weight: 700; }
+.footer .saving { color: var(--perfect-ink); }
+.footer .saving::before { content: '● '; color: #4f9a63; }
 
 /* Del mismo tipo redondo que los filtros y el icono de la barra. */
-.pie .salir {
+.footer .logout {
   background: none;
-  border: 1px solid var(--linea2);
+  border: 1px solid var(--line2);
   border-radius: 999px;
   padding: 6px 18px;
-  color: var(--tinta2);
+  color: var(--ink2);
 }
 /* Los dos botones de la pantalla de error, uno al lado del otro. */
-.acciones-error { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-.reintentar {
+.error-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.retry {
   min-height: 40px;
   padding: 9px 16px;
   border-radius: 6px;
-  border: 1px solid var(--acento);
-  background: var(--acento);
+  border: 1px solid var(--accent);
+  background: var(--accent);
   color: #fff;
   font-weight: 600;
   font-size: 15px;
 }
-.reintentar:hover { filter: brightness(1.06); }
+.retry:hover { filter: brightness(1.06); }
 
-.pie .aviso-archivo { color: var(--reem-tinta); font-size: 13px; }
+.footer .notice-file { color: var(--replace-ink); font-size: 13px; }
 
-.pie .salir:hover:not(:disabled) { border-color: var(--reem-linea); color: var(--reem-tinta); }
+.footer .logout:hover:not(:disabled) { border-color: var(--replace-line); color: var(--replace-ink); }
 /* Inactivo con colores, no con opacity (ver la nota de contraste del CLAUDE.md). */
-.pie .salir:disabled { border-color: var(--linea); color: var(--tinta3); cursor: default; }
+.footer .logout:disabled { border-color: var(--line); color: var(--ink3); cursor: default; }
 
-.pie-copias { padding-top: 14px; border-top: 1px solid var(--linea); }
-.pie-rotulo {
-  color: var(--tinta3);
+.footer-backups { padding-top: 14px; border-top: 1px solid var(--line); }
+.footer-label {
+  color: var(--ink3);
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
-.pie .enlace {
+.footer .link {
   min-height: 32px;
   background: none;
   border: none;
   padding: 0;
-  color: var(--tinta2);
+  color: var(--ink2);
   text-decoration: underline;
-  text-decoration-color: var(--linea2);
+  text-decoration-color: var(--line2);
   text-underline-offset: 3px;
 }
-.pie .enlace:hover { color: var(--acento); text-decoration-color: currentColor; }
+.footer .link:hover { color: var(--accent); text-decoration-color: currentColor; }
 
 /* Tercera fila del pie: de dónde es la app, y apoyar al que la hizo. Más callada que
    las otras dos: es lo último que uno necesita. */
-.pie-marca {
+.footer-mark {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 8px 20px;
   justify-content: space-between;
   padding-top: 14px;
-  border-top: 1px solid var(--linea);
-  color: var(--tinta3);
+  border-top: 1px solid var(--line);
+  color: var(--ink3);
 }
-.pie-sitio { font-weight: 600; color: var(--tinta2); }
+.footer-site { font-weight: 600; color: var(--ink2); }
 
-.pie .alias {
-  border: 1px dashed var(--linea2);
+.footer .alias {
+  border: 1px dashed var(--line2);
   border-radius: 6px;
-  background: var(--papel);
+  background: var(--paper);
   padding: 3px 9px;
-  color: var(--tinta);
+  color: var(--ink);
   font-variant-numeric: tabular-nums;
 }
-.pie .alias:hover { border-color: var(--acento); color: var(--acento); }
+.footer .alias:hover { border-color: var(--accent); color: var(--accent); }
 
 
 /* Salto al contenido. Fuera de la pantalla hasta que lo enfocan con el tabulador: es
    para quien navega con teclado o lector, y no tiene por qué verlo nadie más.
    `left` y no `display:none` ni `visibility:hidden`, que lo sacarían del orden de
    tabulación y lo volverían inalcanzable, que es justo lo contrario de lo que hace. */
-.saltar {
+.skip {
   position: fixed;
   top: 0;
   left: -9999px;
   z-index: 60;
   padding: 11px 18px;
   border-radius: 0 0 8px 0;
-  background: var(--acento);
+  background: var(--accent);
   color: #fff;
   font-weight: 600;
   text-decoration: none;
 }
-.saltar:focus { left: 0; }
+.skip:focus { left: 0; }
 /* El destino tiene que quedar DEBAJO de la barra pegajosa, o el salto lo deja tapado. */
-.hoja[id] { scroll-margin-top: var(--barra-pegajosa); }
+.sheet[id] { scroll-margin-top: var(--sticky-bar); }
 
 /* ------------------------ la barra del teléfono ---------------------------- */
 /* En un teléfono la barra de filtros pasa de arriba a abajo, y de fila de chips que se
@@ -1200,7 +1200,7 @@ button { cursor: pointer; }
    Todo por `@media` y no detectando el aparato: no parpadea al cargar, se acomoda solo
    al rotar, y no toca el user agent, que en este proyecto se mira en un solo lugar. */
 @media (max-width: 560px) {
-  .herramientas {
+  .toolbar {
     position: fixed;
     top: auto;
     bottom: 0;
@@ -1208,21 +1208,21 @@ button { cursor: pointer; }
     right: 0;
     z-index: 20;
     padding: 0;
-    border-top: 1px solid var(--linea);
+    border-top: 1px solid var(--line);
     border-bottom: none;
     /* La sombra va para arriba, que es de donde viene el contenido. */
     box-shadow: 0 -8px 16px -14px rgba(32, 29, 26, 0.5);
     /* El pico del iPhone: sin esto, el último renglón queda abajo de la barra de gestos. */
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
-  .herramientas .columna {
+  .toolbar .column {
     display: flex;
     align-items: stretch;
     gap: 0;
     padding: 0;
     max-width: none;
   }
-  .herramientas .filtros {
+  .toolbar .filters {
     display: flex;
     /* 4 contra 1: los cuatro filtros van adentro de este contenedor y exportar es
        hermano, así que sin esto los filtros quedaban de 75 px y exportar de 112. */
@@ -1234,20 +1234,20 @@ button { cursor: pointer; }
     background: none;
     border: none;
   }
-  .herramientas .compartir { margin: 0; }
+  .toolbar .share { margin: 0; }
 
   /* Los cinco lugares miden lo mismo, pasa lo que pase con el texto. */
   /* El botón de exportar en escritorio es un círculo de 38x38 con borde. Acá tiene que
      ser un lugar más de la barra, así que se le sacan el ancho, el alto, el borde y el
      redondeo: si no, queda de otro tamaño que los demás y se nota. */
-  .herramientas .compartir {
+  .toolbar .share {
     width: auto;
     height: auto;
     border: none;
     border-radius: 0;
   }
-  .filtro,
-  .herramientas .compartir {
+  .filter,
+  .toolbar .share {
     flex: 1 1 0;
     min-width: 0;
     display: flex;
@@ -1261,24 +1261,24 @@ button { cursor: pointer; }
     border: none;
     border-radius: 0;
     background: none;
-    color: var(--tinta2);
+    color: var(--ink2);
     font-size: 10.5px;
     font-weight: 600;
     line-height: 1.1;
   }
   /* EL GUIÑO TIENE QUE SEGUIR CAMBIANDO DE COLOR ACÁ. La regla de arriba pinta el botón de
-     gris con la misma especificidad que `.compartir.guiña` y gana por venir después, así
+     gris con la misma especificidad que `.share.wink` y gana por venir después, así
      que en el teléfono el guiño quedaba en un zoom sin color — y el teléfono es justo
      donde el botón es un ícono entre cinco y más falta hace que se note. El borde no se
      repone: acá el botón no tiene ninguno, y dárselo sólo al guiñar lo movería de tamaño
      y correría a los cuatro filtros de al lado. */
-  .herramientas .compartir.guiña { color: var(--acento); }
+  .toolbar .share.wink { color: var(--accent); }
 
-  .filtro .icono,
-  .compartir .icono { display: block; flex: none; }
-  .filtro .largo { display: none; }
-  .filtro .corto,
-  .compartir .corto {
+  .filter .icon,
+  .share .icon { display: block; flex: none; }
+  .filter .long { display: none; }
+  .filter .short,
+  .share .short {
     display: block;
     max-width: 100%;
     overflow: hidden;
@@ -1290,8 +1290,8 @@ button { cursor: pointer; }
      no entra: «1936» mide más que el ícono de 21 px y lo tapa entero. Apilado se lee, y
      además no se rompe cuando el número crece. No se esconde: es la mitad de para qué
      sirve el filtro. */
-  .filtro { position: relative; }
-  .filtro b {
+  .filter { position: relative; }
+  .filter b {
     font-size: 10px;
     font-weight: 700;
     line-height: 1.1;
@@ -1302,20 +1302,20 @@ button { cursor: pointer; }
      deliberado— y el elegido se marca con la línea de arriba y el fondo tenue, no
      pintándolo todo de naranja. Si el elegido tomara el acento, «Me faltan» dejaría de
      ser gris al elegirlo y se perdería el código de color. */
-  .filtro.activo {
+  .filter.active {
     background: rgba(32, 29, 26, 0.045);
     font-weight: 700;
   }
   /* Y hay que devolverle el color: en escritorio el elegido es una píldora naranja
-     RELLENA con texto blanco, así que `.filtro.activo { color: #fff }` gana por
+     RELLENA con texto blanco, así que `.filter.active { color: #fff }` gana por
      especificidad y acá dejaba el rótulo en blanco sobre gris claro — ilegible.
      Se repiten los cuatro a propósito: es explícito y se lee de un vistazo cuál es
      cuál, que es más barato que un `inherit` que hay que ir a buscar. */
-  .filtro.activo.f-todas      { color: var(--tinta2); }
-  .filtro.activo.f-falta      { color: var(--falta-tinta); }
-  .filtro.activo.f-repetidas  { color: var(--acento); }
-  .filtro.activo.f-reemplazar { color: var(--reem-tinta); }
-  .filtro.activo::before {
+  .filter.active.f-all      { color: var(--ink2); }
+  .filter.active.f-missing      { color: var(--missing-ink); }
+  .filter.active.f-dupes  { color: var(--accent); }
+  .filter.active.f-replace { color: var(--replace-ink); }
+  .filter.active::before {
     content: '';
     position: absolute;
     top: 0;
@@ -1325,14 +1325,14 @@ button { cursor: pointer; }
     border-radius: 0 0 3px 3px;
     background: currentColor;
   }
-  .filtro:hover { background: none; }
-  .filtro.activo:hover { background: rgba(32, 29, 26, 0.045); }
+  .filter:hover { background: none; }
+  .filter.active:hover { background: rgba(32, 29, 26, 0.045); }
 
   /* El pie tiene que seguir siendo alcanzable con la barra encima. */
   body { padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)); }
 
   /* Ya no hay barra pegajosa arriba, así que el anclaje no tiene nada que esquivar. */
-  :root { --barra-pegajosa: 8px; }
+  :root { --sticky-bar: 8px; }
 }
 
 /* ------------------------- blancos de toque -------------------------------- */
@@ -1348,19 +1348,19 @@ button { cursor: pointer; }
    Sólo se estira a lo alto donde el ancho ya alcanza, para no pisarle el blanco al
    botón de al lado. La flecha, que es angosta, se estira también a los costados: lo
    que queda debajo es el título de la expansión, que no es clickeable. */
-.banda .plegar,
-.pie .enlace,
-.pie .alias,
-.a-panel,
-.coleccion,
-.filtro { position: relative; }
+.band .fold,
+.footer .link,
+.footer .alias,
+.open-panel,
+.album-pill,
+.filter { position: relative; }
 
-.banda .plegar::after,
-.pie .enlace::after,
-.pie .alias::after,
-.a-panel::after,
-.coleccion::after,
-.filtro::after {
+.band .fold::after,
+.footer .link::after,
+.footer .alias::after,
+.open-panel::after,
+.album-pill::after,
+.filter::after {
   content: '';
   position: absolute;
   left: 0;
@@ -1371,18 +1371,18 @@ button { cursor: pointer; }
   min-height: 44px;
 }
 /* 44 - 32 = 12, seis de cada lado. */
-.banda .plegar::after { left: -6px; right: -6px; min-width: 44px; }
+.band .fold::after { left: -6px; right: -6px; min-width: 44px; }
 
-/* EL «SALIR» DE LA PANTALLA DE ERROR, que se encogió el 2026-09-27. Cuando `.secundario`
-   estaba colgado de `.entrar` —un flex en columna— el botón salía del ancho de la caja.
-   Suelto en `.acciones-error`, que es un flex en fila, se encoge al texto: medido, 34 px
+/* EL «SALIR» DE LA PANTALLA DE ERROR, que se encogió el 2026-09-27. Cuando `.secondary`
+   estaba colgado de `.login-form` —un flex en columna— el botón salía del ancho de la caja.
+   Suelto en `.error-actions`, que es un flex en fila, se encoge al texto: medido, 34 px
    de ancho, o sea por debajo de los 44 que necesita un dedo. Y es el botón de la única
    pantalla que aparece cuando algo ya salió mal.
 
    Se agranda con el mismo `::after` que el resto y no con padding: así no le mueve el
    renglón al «Reintentar» de al lado. Los 5 px de cada lado son 44 - 34 = 10 repartidos. */
-.acciones-error .secundario { position: relative; }
-.acciones-error .secundario::after {
+.error-actions .secondary { position: relative; }
+.error-actions .secondary::after {
   content: '';
   position: absolute;
   left: -5px;
@@ -1397,36 +1397,36 @@ button { cursor: pointer; }
 /* La carta cuyo último cambio no se pudo guardar. Un contorno y nada más: el color de
    la carta ya dice el estado y no se lo puede pisar. Antes el pie decía «no se pudieron
    guardar 3 cambios» y encontrarlos entre 1936 cartas era problema del usuario. */
-.carta.sin-guardar {
-  outline: 2px solid var(--acento);
+.card.unsaved {
+  outline: 2px solid var(--accent);
   outline-offset: -2px;
 }
 
 /* Los números de las cartas que quedaron sin guardar, en el pie. */
-.pie-estado .cuales { font-weight: 600; font-variant-numeric: tabular-nums; }
+.footer-status .which { font-weight: 600; font-variant-numeric: tabular-nums; }
 
 /* El atajo de teclado se dice sólo donde hay teclado. En un teléfono es ruido: no hay
    Backspace, y el gesto que sirve ahí ya está explicado en la misma frase. */
-.solo-teclado { display: none; }
+.keyboard-only { display: none; }
 @media (hover: hover) and (pointer: fine) {
-  .solo-teclado { display: inline; }
+  .keyboard-only { display: inline; }
 }
 
 /* La nota de arriba de un diálogo: explica qué va a pasar antes de que pase. */
-.nota-dialogo {
+.dialog-note {
   margin: 0 0 4px;
-  color: var(--tinta2);
+  color: var(--ink2);
   font-size: 13.5px;
   line-height: 1.45;
 }
 
-.pie-acciones { display: flex; align-items: center; gap: 16px; }
+.footer-actions { display: flex; align-items: center; gap: 16px; }
 
 /* ------------------------- instalala en el teléfono ------------------------ */
 /* Una barra abajo, no un cartel que tape la colección. Se puede cerrar siempre, y el
    botón de cerrar es tan grande como el de instalar: si molesta, que sea fácil sacarla. */
 
-.instalar {
+.install {
   position: fixed;
   left: 10px;
   right: 10px;
@@ -1437,67 +1437,67 @@ button { cursor: pointer; }
   gap: 11px;
   padding: 11px 12px;
   border-radius: 12px;
-  border: 1px solid var(--linea2);
-  background: var(--blanco);
+  border: 1px solid var(--line2);
+  background: var(--white);
   box-shadow: 0 10px 30px rgba(32, 29, 26, 0.22);
-  animation: asomar 0.3s ease-out;
+  animation: peek 0.3s ease-out;
 }
 
-@keyframes asomar {
+@keyframes peek {
   from { transform: translateY(14px); opacity: 0; }
   to   { transform: translateY(0);    opacity: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .instalar { animation: none; }
+  .install { animation: none; }
 }
 
 /* El ícono es papel sobre papel: sin el borde se funde con el blanco de la barra y
    parece un dibujo suelto en vez de un ícono de app. */
 /* El relleno que deja el pie alcanzable cuando la barra está puesta. El alto lo mide
    Instalar.jsx sobre la barra de verdad; el valor de aquí es sólo el respaldo. */
-body.con-instalar { padding-bottom: var(--alto-instalar, 150px); }
+body.with-install-bar { padding-bottom: var(--install-height, 150px); }
 
 /* Las dos barras fijas del teléfono no pueden pisarse: la de instalar se apoya arriba de
    la de filtros, y el relleno del body suma las dos.
  
    Este bloque va ACÁ y no con el resto de la barra de abajo, aunque quede lejos: las
-   reglas de `.instalar` se definen unas líneas más arriba y, con la misma especificidad,
+   reglas de `.install` se definen unas líneas más arriba y, con la misma especificidad,
    gana la última del archivo. Puesto antes, el `bottom: 10px` de acá arriba lo pisaba y
    las dos barras quedaban montadas — medido: se superponían 56 px. Es la misma trampa que
-   ya había pasado con `.filtro b`. */
+   ya había pasado con `.filter b`. */
 @media (max-width: 560px) {
-  .instalar { bottom: calc(66px + env(safe-area-inset-bottom, 0px)); }
-  body.con-instalar { padding-bottom: calc(var(--alto-instalar, 150px) + 64px); }
+  .install { bottom: calc(66px + env(safe-area-inset-bottom, 0px)); }
+  body.with-install-bar { padding-bottom: calc(var(--install-height, 150px) + 64px); }
 }
 
-.instalar img {
+.install img {
   flex: none;
   width: 38px;
   height: 38px;
   border-radius: 9px;
-  border: 1px solid var(--linea2);
-  background: var(--papel);
+  border: 1px solid var(--line2);
+  background: var(--paper);
 }
 
-.instalar-texto { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
-.instalar-texto b { font-size: 13.5px; }
-.instalar-texto span { font-size: 12.5px; color: var(--tinta2); line-height: 1.35; }
+.install-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.install-text b { font-size: 13.5px; }
+.install-text span { font-size: 12.5px; color: var(--ink2); line-height: 1.35; }
 /* El ícono de Compartir va metido en la frase, a la altura del texto. */
-.instalar .glifo { vertical-align: -3px; margin: 0 1px; }
+.install .glyph { vertical-align: -3px; margin: 0 1px; }
 
-.instalar-si {
+.install-yes {
   flex: none;
   padding: 9px 14px;
   border-radius: 999px;
-  border: 1px solid var(--acento);
-  background: var(--acento);
+  border: 1px solid var(--accent);
+  background: var(--accent);
   color: #fff;
   font-weight: 700;
   font-size: 13px;
 }
 
-.instalar-no {
+.install-no {
   flex: none;
   display: grid;
   place-items: center;
@@ -1505,8 +1505,8 @@ body.con-instalar { padding-bottom: var(--alto-instalar, 150px); }
   height: 32px;
   padding: 0;
   border-radius: 999px;
-  border: 1px solid var(--linea);
+  border: 1px solid var(--line);
   background: none;
-  color: var(--tinta3);
+  color: var(--ink3);
 }
-.instalar-no:hover { color: var(--tinta); border-color: var(--linea2); }
+.install-no:hover { color: var(--ink); border-color: var(--line2); }

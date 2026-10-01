@@ -48,10 +48,10 @@ export class ErrorBoundary extends Component {
   render() {
     if (!this.state.fallo) return this.props.children
     return (
-      <div className="hoja">
-        <p className="cargando">{this.props.aviso ?? 'Algo se rompió en la pantalla.'}</p>
-        <p className="acciones-error">
-          <button className="reintentar" onClick={this.reintentar}>
+      <div className="sheet">
+        <p className="loading">{this.props.aviso ?? 'Algo se rompió en la pantalla.'}</p>
+        <p className="error-actions">
+          <button className="retry" onClick={this.reintentar}>
             {this.props.onReset ? 'Reintentar' : 'Recargar'}
           </button>
         </p>

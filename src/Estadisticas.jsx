@@ -75,9 +75,9 @@ function Salud({ salud }) {
   ]
 
   return (
-    <div className={`salud${cosas.some((c) => c.mal) ? ' atencion' : ''}`}>
+    <div className={`health${cosas.some((c) => c.mal) ? ' alert' : ''}`}>
       {cosas.map((c) => (
-        <span key={c.que} className={c.mal ? 'mal' : undefined}>
+        <span key={c.que} className={c.mal ? 'bad' : undefined}>
           <b>{c.que}:</b> {c.dice}
         </span>
       ))}
@@ -96,20 +96,20 @@ function Salud({ salud }) {
 function Cuadro({ valor, rotulo, de, pie, chico }) {
   const parteDe = de ? Math.min(100, (valor / de) * 100) : null
   return (
-    <div className={`cuadro${chico ? ' chico' : ''}`}>
+    <div className={`tile${chico ? ' small' : ''}`}>
       <b>{valor.toLocaleString('es-AR')}</b>
-      <span className="cuadro-rotulo">{rotulo}</span>
+      <span className="tile-label">{rotulo}</span>
       {parteDe != null && (
         <>
           {/* `min-width` para que «1 de 40» se vea: sin eso, una raya de 2.5% no se dibuja
-              y el cuadro parece vacío. El relleno va en `--acento` y no en `--naranja`
+              y el cuadro parece vacío. El relleno va en `--accent` y no en `--orange`
               porque contra el riel tiene que llegar a 3:1, que es lo que pide un elemento
               no textual que informa. */}
-          <span className="medidor"><span style={{ width: `${parteDe}%` }} /></span>
-          <span className="cuadro-pie">de {de.toLocaleString('es-AR')}</span>
+          <span className="meter"><span style={{ width: `${parteDe}%` }} /></span>
+          <span className="tile-foot">de {de.toLocaleString('es-AR')}</span>
         </>
       )}
-      {pie && parteDe == null && <span className="cuadro-pie">{pie}</span>}
+      {pie && parteDe == null && <span className="tile-foot">{pie}</span>}
     </div>
   )
 }
@@ -469,13 +469,13 @@ function PeriodFunnel({ p, periodLabel }) {
 
 function Barra({ rotulo, valor, techo, nota, flaca }) {
   return (
-    <div className={`renglon${flaca ? ' flaca' : ''}`}>
-      <span className="renglon-rotulo">{rotulo}</span>
-      <span className="riel">
-        <span className="relleno" style={{ width: `${techo ? (valor / techo) * 100 : 0}%` }} />
+    <div className={`row${flaca ? ' thin' : ''}`}>
+      <span className="row-label">{rotulo}</span>
+      <span className="rail">
+        <span className="fill" style={{ width: `${techo ? (valor / techo) * 100 : 0}%` }} />
       </span>
       <b>{valor}</b>
-      <span className="renglon-nota">{nota ?? ''}</span>
+      <span className="row-note">{nota ?? ''}</span>
     </div>
   )
 }
@@ -554,9 +554,9 @@ export default function Estadisticas({ onCerrar, onSesionMuerta, colecciones }) 
      en pie — Atás tiene que cerrarlo, y eso ya anda. Lo que cambia es que ocupa la
      pantalla entera y scrollea como una página, sin techo y sin ancho de diálogo. */
   return (
-    <div className="pagina-panel">
-      <header className="panel-cabecera">
-        <button className="volver" onClick={onCerrar}>
+    <div className="panel-page">
+      <header className="panel-head">
+        <button className="back" onClick={onCerrar}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M15 18l-6-6 6-6" />
@@ -566,7 +566,7 @@ export default function Estadisticas({ onCerrar, onSesionMuerta, colecciones }) 
         {/* `tabIndex={-1}` para poder enfocarlo al entrar sin meterlo en el orden del Tab. */}
         <h1 tabIndex={-1} ref={titulo}>Los números</h1>
       </header>
-      <div className="panel-cuerpo numeros">
+      <div className="panel-body stats">
         {/* EL FILTRO DE PERÍODO, PRIMERO EN EL CUERPO y NO en la cabecera — lo marcó
             Angel: un filtro no comparte estructura con un título y un botón de volver.
             Sólo aparece si el back ya manda los períodos. */}
@@ -574,15 +574,15 @@ export default function Estadisticas({ onCerrar, onSesionMuerta, colecciones }) 
           <div className="periods" role="group" aria-label="Período">
             {PERIODS.map(([id, rotulo]) => (
               <button key={id} type="button" aria-pressed={period === id}
-                      className={period === id ? 'activo' : undefined}
+                      className={period === id ? 'active' : undefined}
                       onClick={() => pick(id)}>
                 {rotulo}
               </button>
             ))}
           </div>
         )}
-        {error && <p className="nada">{error}</p>}
-        {!datos && !error && <p className="nada">Buscando…</p>}
+        {error && <p className="nothing">{error}</p>}
+        {!datos && !error && <p className="nothing">Buscando…</p>}
         {datos && <Cuerpo d={datos} colecciones={colecciones ?? []} period={period} onSesionMuerta={onSesionMuerta} />}
       </div>
     </div>
@@ -686,7 +686,7 @@ function Cuerpo({ d, colecciones, period, onSesionMuerta }) {
       {p && (
         <>
           <h4>Totales históricos</h4>
-          <div className="cuadros chicos cuatro">
+          <div className="tiles small four">
             <Cuadro valor={u.total} rotulo="Cuentas" pie={u.altas7 ? `+${u.altas7} esta semana` : undefined} />
             <Cuadro valor={u.conCartas} rotulo="Con cartas" de={u.total} />
             <Cuadro valor={u.volvieron} rotulo="Volvieron alguna vez" de={u.total} />
@@ -712,7 +712,7 @@ function Cuerpo({ d, colecciones, period, onSesionMuerta }) {
         /* `colecciones` además de `grupo`: la dualidad dorado/azul del CSS es SÓLO de
            este bloque — puesta sobre `.grupo` a secas, teñía de azul renglón por medio
            a los devices, donde el azul no significa nada. */
-        <div className="grupo colecciones">
+        <div className="group collections">
           {porCol.map((c) => (
             /* SIN porcentaje, a propósito: acá `cartas` son las filas de TODA la gente
                sumadas, y dividirlas por los huecos de un álbum no significa nada — con
@@ -733,7 +733,7 @@ function Cuerpo({ d, colecciones, period, onSesionMuerta }) {
           Lo que sí se quiere saber está en los dos lugares donde el número significa algo:
           qué colección se usa, acá arriba; y cuánto tiene cada persona, en la tabla de
           abajo, que además ahora se ordena por esa columna. */}
-      <p className="nada">
+      <p className="nothing">
         {cartas.total.toLocaleString('es-AR')} cartas marcadas
         {' · '}{cartas.repetidas.toLocaleString('es-AR')} repetidas
         {sueltas.length > 0 && (
@@ -756,20 +756,20 @@ function Cuerpo({ d, colecciones, period, onSesionMuerta }) {
           la tabla: la tabla puede venir cortada y entonces contarla mentiría. Es la
           misma lección del #97 al revés — una tabla que muestra una parte no puede ser
           la fuente de un total. */}
-      <p className="resumen-tabla">
+      <p className="summary-table">
         {u.total} cuentas · {u.conCartas} con cartas ·{' '}
         <b>{u.conApp} entran desde la app</b>, marcadas abajo
         {u.total > gente.length && (
           <> · <i>se listan las {gente.length} con más cartas</i></>
         )}
       </p>
-      <div className="tablon">
-        <table className="gente grande">
+      <div className="board">
+        <table className="people large">
           <thead>
             <tr>
               {columnas.map((c) => (
                 <th key={c.id} title={c.ayuda} aria-sort={orden.col === c.id ? (orden.desc ? 'descending' : 'ascending') : undefined}>
-                  <button type="button" className="ordenar" onClick={() => ordenarPor(c.id)}>
+                  <button type="button" className="sort" onClick={() => ordenarPor(c.id)}>
                     {c.rotulo}
                     {/* La flecha sólo en la columna por la que se está ordenando: una en
                         cada encabezado es ruido y no dice cuál manda. */}
@@ -782,14 +782,14 @@ function Cuerpo({ d, colecciones, period, onSesionMuerta }) {
           <tbody>
             {ordenada.map((g) => (
               <tr key={g.usuario}
-                  className={[g.cartas ? '' : 'apagada', g.app ? 'con-app' : ''].filter(Boolean).join(' ') || undefined}>
+                  className={[g.cartas ? '' : 'dim', g.app ? 'with-app' : ''].filter(Boolean).join(' ') || undefined}>
                 {/* El chip ANTES del nombre: después, un mail largo lo recortaba con el
                     elipsis y quedaba una cajita vacía. Adelante queda entero siempre y los
                     de la app se encuentran bajando por la columna. */}
                 {/* LA CUENTA ES EL BOTÓN DE SU FICHA (perfil y clave provisoria). Se ve
                     como texto con subrayado punteado: un botón de verdad por renglón sería
                     doscientos botones compitiendo con los datos. */}
-                <td className="quien">
+                <td className="person">
                   <button type="button" className="who" title={g.usuario} onClick={() => setSelectedUser(g)}>
                     {g.app && <span className="chip" title="Entra desde la app instalada">app</span>}
                     {g.usuario}

@@ -105,16 +105,16 @@
          loading="lazy". La página entera, medida contra el build: ~640 KB. -->
     <style>
       :root {
-        --noche: #101d33; /* el azul del marco de las cartas, bien oscuro */
-        --noche-2: #16273f;
-        --crema: #f3ead7; /* texto sobre la noche: papel a la luz de una lámpara */
-        --dorado: #e6b13c; /* el holo dorado de las únicas */
-        --papel-viejo: #efe4cc; /* 2007: amarillento, de caja guardada */
-        --tinta-vieja: #453a2a;
-        --tinta-vieja-2: #695b44;
-        --claro: #eef2f5; /* 2025: frío, de producto recién abierto */
-        --tinta-nueva: #182635;
-        --tinta-nueva-2: #46586b;
+        --night: #101d33; /* el azul del marco de las cartas, bien oscuro */
+        --night-2: #16273f;
+        --cream: #f3ead7; /* texto sobre la noche: papel a la luz de una lámpara */
+        --gold: #e6b13c; /* el holo dorado de las únicas */
+        --old-paper: #efe4cc; /* 2007: amarillento, de caja guardada */
+        --old-ink: #453a2a;
+        --old-ink-2: #695b44;
+        --light: #eef2f5; /* 2025: frío, de producto recién abierto */
+        --new-ink: #182635;
+        --new-ink-2: #46586b;
         /* Acá vivió un --cta naranja y SE FUE: el botón es dorado por decisión de Angel
            (ver el comentario de .cta). Un token llamado «cta» que no era el color del CTA
            invitaba a reponer el botón naranja que se rechazó. */
@@ -129,8 +129,8 @@
       }
       body {
         margin: 0;
-        background: var(--noche);
-        color: var(--crema);
+        background: var(--night);
+        color: var(--cream);
         font-family:
           system-ui,
           -apple-system,
@@ -174,7 +174,7 @@
            desde las cartas. Es pintura estática: no anima nada. */
         background:
           radial-gradient(ellipse 120% 70% at 50% 100%, rgba(230, 177, 60, 0.15), transparent 62%),
-          repeating-conic-gradient(from 0.35turn at 50% 118%, var(--noche) 0deg 9deg, var(--noche-2) 9deg 18deg);
+          repeating-conic-gradient(from 0.35turn at 50% 118%, var(--night) 0deg 9deg, var(--night-2) 9deg 18deg);
       }
       .hero .logo {
         width: 216px;
@@ -184,10 +184,10 @@
       }
       .hero h1 {
         font-size: clamp(42px, 8.5vw, 84px);
-        color: var(--crema);
+        color: var(--cream);
       }
       .hero h1 b {
-        color: var(--dorado);
+        color: var(--gold);
         font-weight: inherit;
       }
       .hero .subtitle {
@@ -264,7 +264,7 @@
         display: inline-block;
         min-height: 56px;
         padding: 16px 44px;
-        background: var(--dorado);
+        background: var(--gold);
         border: none;
         border-radius: 10px;
         color: #1c1508;
@@ -283,7 +283,7 @@
       }
       /* El foco del teclado sobre un botón dorado no puede ser dorado. */
       .cta:focus-visible {
-        outline: 2px solid var(--crema);
+        outline: 2px solid var(--cream);
         outline-offset: 3px;
       }
       .login-link {
@@ -303,7 +303,7 @@
         color: #b9ae95;
       }
       a:focus-visible {
-        outline: 2px solid var(--dorado);
+        outline: 2px solid var(--gold);
         outline-offset: 3px;
       }
 
@@ -330,8 +330,8 @@
 
       /* ---------- acto 2: 2007, papel de caja guardada ---------- */
       .a2007 {
-        background: var(--papel-viejo);
-        color: var(--tinta-vieja);
+        background: var(--old-paper);
+        color: var(--old-ink);
       }
       /* Medido: #96690b daba 3.85 sobre el papel y a 12,5px negrita no califica como
          texto grande. Éste da 5.37. El de 2025 (#35648f) ya pasaba con 5.53. */
@@ -339,7 +339,7 @@
         color: #7a540a;
       }
       .a2007 .text {
-        color: var(--tinta-vieja-2);
+        color: var(--old-ink-2);
       }
       .spheres {
         display: flex;
@@ -405,7 +405,7 @@
       }
       /* ---------- acto 3: la última carta ---------- */
       .moment {
-        background: var(--noche);
+        background: var(--night);
         text-align: center;
         padding: 80px 0;
       }
@@ -504,10 +504,10 @@
         }
       }
       .moment h2 {
-        color: var(--crema);
+        color: var(--cream);
       }
       .moment h2 b {
-        color: var(--dorado);
+        color: var(--gold);
         font-weight: inherit;
       }
       .moment .text {
@@ -517,8 +517,8 @@
 
       /* ---------- acto 4: 2025, producto recién abierto ---------- */
       .a2025 {
-        background: var(--claro);
-        color: var(--tinta-nueva);
+        background: var(--light);
+        color: var(--new-ink);
         position: relative;
       }
       /* El brillo de holográfica: una cinta finita arriba del acto, y es TODO el arcoíris
@@ -534,7 +534,7 @@
         color: #35648f;
       }
       .a2025 .text {
-        color: var(--tinta-nueva-2);
+        color: var(--new-ink-2);
       }
       .showcase {
         display: flex;
@@ -556,16 +556,16 @@
       }
       /* ---------- acto 5: la app ---------- */
       .closing {
-        background: var(--noche);
+        background: var(--night);
         text-align: center;
         padding: 84px 0 0;
       }
       .closing h2 {
-        color: var(--crema);
+        color: var(--cream);
         font-size: clamp(34px, 6.4vw, 62px);
       }
       .closing h2 b {
-        color: var(--dorado);
+        color: var(--gold);
         font-weight: inherit;
       }
       .features {
@@ -581,7 +581,7 @@
         flex: 1 1 240px;
         max-width: 300px;
         text-align: left;
-        background: var(--noche-2);
+        background: var(--night-2);
         border: 1px solid #24374f;
         border-radius: 10px;
         padding: 18px 20px;
@@ -590,7 +590,7 @@
       }
       .features b {
         display: block;
-        color: var(--crema);
+        color: var(--cream);
         font-size: 15.5px;
         margin-bottom: 4px;
       }
@@ -626,24 +626,24 @@
         line-height: 1.5;
       }
       .album-2007 {
-        background: var(--papel-viejo);
-        color: var(--tinta-vieja-2);
+        background: var(--old-paper);
+        color: var(--old-ink-2);
       }
       .album-2007 .overline {
         color: #7a540a;
       }
       .album-2007 h3 {
-        color: var(--tinta-vieja);
+        color: var(--old-ink);
       }
       .album-2025 {
-        background: var(--claro);
-        color: var(--tinta-nueva-2);
+        background: var(--light);
+        color: var(--new-ink-2);
       }
       .album-2025 .overline {
         color: #35648f;
       }
       .album-2025 h3 {
-        color: var(--tinta-nueva);
+        color: var(--new-ink);
       }
       .closing .actions {
         padding-bottom: 64px;
@@ -656,7 +656,7 @@
         color: #8d8a7c;
       }
       footer .brand {
-        color: var(--crema);
+        color: var(--cream);
         font-weight: 600;
       }
       footer .legal {

@@ -44,7 +44,7 @@ const Cruz = () => (
 
 /* El ícono de Compartir de iOS, que es la única forma de explicar el paso. */
 const Compartir = () => (
-  <svg className="glifo" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+  <svg className="glyph" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M12 15V3" />
     <path d="M8 7l4-4 4 4" />
@@ -92,11 +92,11 @@ export default function Instalar() {
   useEffect(() => {
     if (!visible || !caja.current) return
     const alto = caja.current.offsetHeight + 20
-    document.body.style.setProperty('--alto-instalar', alto + 'px')
-    document.body.classList.add('con-instalar')
+    document.body.style.setProperty('--install-height', alto + 'px')
+    document.body.classList.add('with-install-bar')
     return () => {
-      document.body.classList.remove('con-instalar')
-      document.body.style.removeProperty('--alto-instalar')
+      document.body.classList.remove('with-install-bar')
+      document.body.style.removeProperty('--install-height')
     }
   }, [visible, instalador])
 
@@ -125,9 +125,9 @@ export default function Instalar() {
   if (!visible || (!ios && !enOtra && !instalador)) return null
 
   return (
-    <aside className="instalar" role="note" ref={caja}>
+    <aside className="install" role="note" ref={caja}>
       <img src="./icono-192.png" alt="" width="38" height="38" />
-      <div className="instalar-texto">
+      <div className="install-text">
         {enOtra ? (
           <>
             <b>Tenela como app</b>
@@ -146,9 +146,9 @@ export default function Instalar() {
         )}
       </div>
       {!enOtra && !ios && instalador && (
-        <button className="instalar-si" onClick={instalar}>Instalar</button>
+        <button className="install-yes" onClick={instalar}>Instalar</button>
       )}
-      <button className="instalar-no" onClick={cerrar} aria-label="Ahora no"><Cruz /></button>
+      <button className="install-no" onClick={cerrar} aria-label="Ahora no"><Cruz /></button>
     </aside>
   )
 }
