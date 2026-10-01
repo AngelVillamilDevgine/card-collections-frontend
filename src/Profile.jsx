@@ -356,15 +356,18 @@ function ProvinceField({ value, onChange, disabled, invalid, describedBy, inputR
 /* Lo pidió Angel el 2026-09-30: con sólo un mail no hay forma de saber quién es quién ni de
    contactar a nadie. NADA ES OBLIGATORIO — un campo vacío es «no lo cargué» —, y la nota
    dice quién ve estos datos, porque pedir un WhatsApp sin decir para qué es la forma más
-   rápida de que nadie lo complete. El PUT manda los cinco campos y el servidor contesta con
-   cómo quedaron: lo que se muestra después de guardar es lo guardado, no lo tipeado. */
+   rápida de que nadie lo complete. El PUT manda los cinco campos.
+
+   GUARDAR BIEN CIERRA EL DIÁLOGO (Angel, 2026-09-30: «si toco guardar debería cerrar»), y
+   que se cierre es la confirmación. Lo que no sale bien —un dato que no va, el servidor que
+   no contesta, una provincia que el servidor todavía no conoce— lo deja abierto diciendo
+   qué pasó, con lo tipeado intacto para corregirlo. */
 export default function ProfileDialog({ onClose, onSesionMuerta }) {
   const [form, setForm] = useState(null) // null mientras llega
   const [phone, setPhone] = useState(() => fromStored(''))
   const [account, setAccount] = useState('')
   const [error, setError] = useState(null)
   const [fieldError, setFieldError] = useState(null) // 'whatsapp' | 'province': el error va al lado de ése
-  const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
   const box = useRef(null)
   const phoneInput = useRef(null)
@@ -407,21 +410,18 @@ export default function ProfileDialog({ onClose, onSesionMuerta }) {
       if (!('province' in fields)) {
         setForm({ ...fields, province })
         setPhone(fromStored(fields.whatsapp))
-        return setError('Se guardó todo menos la provincia: la app se está actualizando. Probá de nuevo en unos minutos.')
+        setError('Se guardó todo menos la provincia: la app se está actualizando. Probá de nuevo en unos minutos.')
+      } else {
+        return onClose()
       }
-      setForm(fields)
-      setPhone(fromStored(fields.whatsapp))
-      setSaved(true)
     } catch (e) {
       if (e?.sesion) return onSesionMuerta()
       setError(e.message)
-    } finally {
-      setSaving(false)
     }
+    setSaving(false)
   }
 
   function edited(field) {
-    setSaved(false)
     if (fieldError === field) { setFieldError(null); setError(null) }
   }
   const change = (key) => (ev) => {
@@ -450,13 +450,11 @@ export default function ProfileDialog({ onClose, onSesionMuerta }) {
            ref={box} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
         <h3>Mi perfil</h3>
         {/* Región viva SIEMPRE en el DOM, con el texto cambiando adentro — la regla de
-            este proyecto para que el «Guardado» se anuncie. */}
+            este proyecto para que el cambio de «Cargando…» se anuncie. */}
         <p className="dialog-note" role="status">
           {form === null && !error
             ? 'Cargando…'
-            : saved
-              ? 'Guardado.'
-              : 'Nada es obligatorio. Lo que completes lo ve sólo el administrador de la app, para poder contactarte.'}
+            : 'Nada es obligatorio. Lo que completes lo ve sólo el administrador de la app, para poder contactarte.'}
         </p>
         {account && <p className="profile-account">Tu cuenta: <b>{account}</b></p>}
         <form className="login-form" onSubmit={submit} noValidate>
