@@ -7,12 +7,12 @@
     "Es la reedicion de la coleccion de Cromeros de 2007, pero la hace OTRA empresa: Flash Gondor. Va como coleccion aparte y no se compara con la vieja.",
     "DE DONDE SALE ESTO: del tracker de Ismael Lopez (dbz-tracker-app.vercel.app, 'TodoFigus 2.0'), que publica sus datos abiertos en /data/leyenda/. Leido el 2026-09-26. Antes estaba transcripto de fotos de planillas y el vocabulario por carta salia mal: las listas de QUE cartas tienen acabado eran casi exactas, pero se les aplicaba el encabezado de columna entero sin leer las casillas en negro.",
     "LAS VARIANTES VAN POR GRUPO DE CARTAS. Cada 'grupo' es un conjunto distinto de acabados con las cartas que salieron asi. Una carta que no esta en ningun grupo NO TIENE VARIANTES, y es el caso normal: de las 1078 numeradas, solo 271 tienen alguna.",
-    "LOS IDS SON NUESTROS Y NO SE TOCAN, porque entran en la clave de cada carta guardada: dor, pla, nar y cya ya tienen filas en produccion. El 'nombre' es lo que ve el usuario y usa palabras cortas; el tracker a veces les dice distinto y la equivalencia queda escrita aca: Plata=Plateado, Rosa=Rose, Holografica=Holo Glitter, Azul viento=Azul Efecto, Matrix verde=Matrix Verde, Rosado=Rosado.",
+    "LOS IDS SON NUESTROS Y NO SE TOCAN, porque entran en la clave de cada carta guardada: dor, pla, nar y cya ya tienen filas en produccion. El 'nombre' es lo que ve el usuario y usa palabras cortas; el tracker a veces les dice distinto y la equivalencia queda escrita aca: Rosa=Rose, Holografica=Holo Glitter, Azul viento=Azul Efecto, Matrix verde=Matrix Verde, Rosado=Rosado.",
     "'HOLOGRAFICA' ES UNA SOLA COSA. Hubo un momento en que estaban separadas 'Holografica' (hol) y 'Holo glitter' (hgl), y tambien un 'Diamante' en la Expansion 6. El tracker no tiene ninguna 'holografica' suelta: tiene Holo Glitter, y usa la palabra holografica para decir que la carta ES holografica, no que fondo tiene. Las tres se unificaron en 'hol'. Si aparece una fila con 'hgl' o con 'dia' de la Expansion 6, es vieja: se sigue dibujando igual (drawableVariants) pero el catalogo ya no la ofrece.",
     "'COMUN' (com) ES UN ACABADO MAS, y solo esta donde el dato dice que esta. En las Expansiones 2 y 3, 5 y 6 NINGUNA carta con acabado tiene version comun, y la guia del tracker lo dice con todas las letras: 'Las cartas metalizadas NO poseen su variante comun'. En el Mazo inicial si: las 40 cartas con acabado existen tambien en comun y en glitter. Una carta que no esta en ningun grupo no abre dialogo y se marca en el casillero base, que es la comun.",
     "1078 cartas numeradas, corrida exacta del 1 al 1078. Los rangos salen del DORSO DE LOS SOBRES, y el tracker los confirma: cada caja suya declara las dos numeraciones, por ejemplo '402 - 543' con secundario '385 - 550', '544 - 679' con '551 - 726' y '680 - 815' con '727 - 902'. La otra numeracion, la de 7 series del checklist de la caja, es la agrupacion vieja de Cromeros: los numeros son los mismos, cambia donde se corta.",
     "Las cartas F son EXACTAMENTE F504 a F513, diez, y se llaman 'Eslabon Perdido'. Lo dicen tres fuentes: el dato del tracker, su guia y el dorso del sobre rojo. La planilla de GLITTERS que parecia llegar hasta F515 estaba mal leida. En el dato del tracker las F figuran como normal+glitter pero sin acabados enumerados, asi que aca no llevan grupos.",
-    "Las 9 cartas unicas llevan Plata y Dorado segun la GUIA del tracker (dice variants: Plateada, Dorada en las nueve). Su dato por carta no enumera acabados, asi que esto es la unica parte del archivo que sale de prosa y no de dato: si aparece que no es asi, se saca una linea.",
+    "Las 9 cartas unicas llevan Plateado y Dorado segun la GUIA del tracker (dice variants: Plateada, Dorada en las nueve). Su dato por carta no enumera acabados, asi que esto es la unica parte del archivo que sale de prosa y no de dato: si aparece que no es asi, se saca una linea.",
     "'condicion': false apaga la pregunta de buen estado / perfecta / para reemplazar. En esta coleccion lo que se pregunta es la variante.",
     "El 'id' va CORTO, de una a tres letras, porque entra en la clave de cada carta y la columna es VARCHAR(40). La clave mas larga que este archivo puede generar es ley-personajes-xxx:1078, 23 caracteres.",
     "Podes editar este archivo para corregir rangos o agregar sets sin recompilar la app."
@@ -124,7 +124,7 @@
             {
               "id": "pla",
               "corto": "PL",
-              "nombre": "Plata"
+              "nombre": "Plateado"
             },
             {
               "id": "roj",
@@ -193,7 +193,7 @@
             {
               "id": "pla",
               "corto": "PL",
-              "nombre": "Plata"
+              "nombre": "Plateado"
             },
             {
               "id": "roj",
@@ -257,7 +257,7 @@
             {
               "id": "pla",
               "corto": "PL",
-              "nombre": "Plata"
+              "nombre": "Plateado"
             },
             {
               "id": "roj",
@@ -330,7 +330,7 @@
             {
               "id": "pla",
               "corto": "PL",
-              "nombre": "Plata"
+              "nombre": "Plateado"
             },
             {
               "id": "roj",
@@ -397,7 +397,7 @@
             {
               "id": "pla",
               "corto": "PL",
-              "nombre": "Plata"
+              "nombre": "Plateado"
             },
             {
               "id": "tur",
@@ -439,7 +439,7 @@
             {
               "id": "pla",
               "corto": "PL",
-              "nombre": "Plata"
+              "nombre": "Plateado"
             }
           ],
           "cartas": [
@@ -591,7 +591,7 @@
             {
               "id": "pla",
               "corto": "PL",
-              "nombre": "Plata"
+              "nombre": "Plateado"
             }
           ],
           "cartas": [
@@ -633,7 +633,7 @@
             {
               "id": "pla",
               "corto": "PL",
-              "nombre": "Plata"
+              "nombre": "Plateado"
             }
           ],
           "cartas": [
@@ -666,7 +666,7 @@
             {
               "id": "pla",
               "corto": "PL",
-              "nombre": "Plata"
+              "nombre": "Plateado"
             },
             {
               "id": "roj",
@@ -736,7 +736,7 @@
             {
               "id": "pla",
               "corto": "PL",
-              "nombre": "Plata"
+              "nombre": "Plateado"
             }
           ],
           "cartas": [
@@ -763,7 +763,7 @@
             {
               "id": "pla",
               "corto": "PL",
-              "nombre": "Plata"
+              "nombre": "Plateado"
             }
           ],
           "cartas": [
@@ -795,7 +795,7 @@
             {
               "id": "pla",
               "corto": "PL",
-              "nombre": "Plata"
+              "nombre": "Plateado"
             },
             {
               "id": "roj",
@@ -842,7 +842,7 @@
             {
               "id": "pla",
               "corto": "PL",
-              "nombre": "Plata"
+              "nombre": "Plateado"
             }
           ],
           "cartas": [
@@ -886,7 +886,7 @@
             {
               "id": "pla",
               "corto": "PL",
-              "nombre": "Plata"
+              "nombre": "Plateado"
             },
             {
               "id": "ver",
@@ -925,7 +925,7 @@
             {
               "id": "pla",
               "corto": "PL",
-              "nombre": "Plata"
+              "nombre": "Plateado"
             }
           ],
           "cartas": [
@@ -974,7 +974,7 @@
             {
               "id": "pla",
               "corto": "PL",
-              "nombre": "Plata"
+              "nombre": "Plateado"
             },
             {
               "id": "roj",
@@ -1061,7 +1061,7 @@
             {
               "id": "pla",
               "corto": "PL",
-              "nombre": "Plata"
+              "nombre": "Plateado"
             },
             {
               "id": "roj",
@@ -1130,7 +1130,7 @@
             {
               "id": "pla",
               "corto": "PL",
-              "nombre": "Plata"
+              "nombre": "Plateado"
             }
           ],
           "cartas": [
@@ -1179,7 +1179,7 @@
             {
               "id": "pla",
               "corto": "PL",
-              "nombre": "Plata"
+              "nombre": "Plateado"
             },
             {
               "id": "ver",
@@ -1245,7 +1245,7 @@
             {
               "id": "pla",
               "corto": "PL",
-              "nombre": "Plata"
+              "nombre": "Plateado"
             },
             {
               "id": "rsd",
@@ -1304,7 +1304,7 @@
             {
               "id": "pla",
               "corto": "PL",
-              "nombre": "Plata"
+              "nombre": "Plateado"
             },
             {
               "id": "ver",
@@ -1383,7 +1383,7 @@
             {
               "id": "pla",
               "corto": "PL",
-              "nombre": "Plata"
+              "nombre": "Plateado"
             },
             {
               "id": "dor",

@@ -20,7 +20,7 @@ import {
 /* Una expansión como sale de un json, para no depender de los catálogos de verdad: lo que
    se prueba acá es el código, y tiene que seguir andando el día que los datos cambien. */
 const DORADO = { id: 'dor', nombre: 'Dorado', corto: 'Dor' }
-const PLATA = { id: 'pla', nombre: 'Plata', corto: 'Pla' }
+const PLATA = { id: 'pla', nombre: 'Plateado', corto: 'Pla' }
 const GLITTER = { id: 'gli', nombre: 'Glitter', corto: 'Gli' }
 
 const armar = (e, raw = {}) => withVariants(e, raw)

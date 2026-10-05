@@ -185,10 +185,10 @@ test('cada carta ofrece lo que dice el dato, no el vocabulario del tramo entero'
   /* La 957 es la que reporto Angel: «en la 957 la app tiene muchas mas variantes de las
      que corresponde». Son siete, y no las trece que llego a ofrecer. */
   assert.deepEqual(deLaCarta(porId('ley-personajes'), 957).sort(),
-    ['Azul', 'Azul viento', 'Cyan', 'Dorado', 'Holográfica', 'Naranja', 'Plata'])
+    ['Azul', 'Azul viento', 'Cyan', 'Dorado', 'Holográfica', 'Naranja', 'Plateado'])
   /* Y la 953, que es de la MISMA expansion, ofrece otras seis. Ese es todo el punto. */
   assert.deepEqual(deLaCarta(porId('ley-personajes'), 953).sort(),
-    ['Dorado', 'Fucsia', 'Holográfica', 'Naranja', 'Plata', 'Verde'])
+    ['Dorado', 'Fucsia', 'Holográfica', 'Naranja', 'Plateado', 'Verde'])
 })
 
 test('ningún grupo ofrece una sola respuesta posible', () => {
@@ -245,7 +245,7 @@ test('las variantes que Angel ya cargo siguen estando ofrecidas', () => {
   const marcadas = [
     ['ley-6', 824, 'Dorado'], ['ley-6', 858, 'Dorado'], ['ley-6', 882, 'Dorado'],
     ['ley-6', 892, 'Dorado'], ['ley-6', 827, 'Naranja'], ['ley-6', 850, 'Naranja'],
-    ['ley-6', 821, 'Plata'], ['ley-6', 845, 'Plata'], ['ley-6', 851, 'Plata'],
+    ['ley-6', 821, 'Plateado'], ['ley-6', 845, 'Plateado'], ['ley-6', 851, 'Plateado'],
     ['ley-personajes', 957, 'Cyan'],
   ]
   for (const [id, n, nombre] of marcadas) {
@@ -318,7 +318,7 @@ test('las ocho que Angel corrigio con sus propias cartas', () => {
 test('las Expansiones 2 y 3 tienen dos acabados y ninguna carta con version comun', () => {
   /* La guia del tracker: «Las cartas metalizadas NO poseen su variante comun». Es lo que
      confirma que el dialogo no lleve una fila «Comun» puesta de oficio. */
-  assert.deepEqual(variantesDe(porId('ley-2-3')).map((v) => v.nombre), ['Dorado', 'Plata'])
+  assert.deepEqual(variantesDe(porId('ley-2-3')).map((v) => v.nombre), ['Dorado', 'Plateado'])
   for (const id of ['ley-2-3', 'ley-5', 'ley-6']) {
     const tiene = variantesDe(porId(id)).some((v) => v.id === 'com')
     assert.ok(!tiene, `${id} no deberia tener ninguna carta con version comun`)
