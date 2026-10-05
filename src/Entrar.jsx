@@ -6,6 +6,7 @@
 import { useEffect, useState } from 'react'
 import { entrar, registrarse, pulse } from './almacenamiento'
 import { albumNames } from './collections'
+import { whatsappTo, forgotPasswordText } from './contact'
 
 /* LA LLEGADA AL FORMULARIO, para la pasarela del panel: con qué botón de la landing se
    llegó (`?f=`), o directo. Lista cerrada — lo que no está acá cuenta como directo, así
@@ -22,11 +23,8 @@ let arrivalSent = false
 /* Quien se olvida la clave no tiene ningún camino solo: no hay mail de recupero ni
    cambio de clave (la app no manda correo, y el servidor tampoco puede: rebota antes de
    llegar a Gmail). Así que el camino es hablar con Angel, y que sea de un toque.
-   El texto ya viene escrito y dice de qué sitio se trata: él atiende varios. */
-const WSP = '5493516710050'
-const pedido = (quien) =>
-  'Hola Angel, me olvide la clave de cromeros.com.ar (la app de las cartas de Dragon Ball) ' +
-  'y no puedo entrar.' + (quien ? ` Mi usuario es: ${quien}` : '')
+   El texto ya viene escrito y dice de qué sitio se trata: él atiende varios. El número y
+   los textos viven en contact.js, que usa también el pie de la app. */
 
 export default function Entrar({ onEntro, aviso }) {
   const [usuario, setUsuario] = useState('')
@@ -122,7 +120,7 @@ export default function Entrar({ onEntro, aviso }) {
           {!nuevo && (
             <a
               className="forgot"
-              href={`https://wa.me/${WSP}?text=${encodeURIComponent(pedido(usuario.trim()))}`}
+              href={whatsappTo(forgotPasswordText(usuario.trim()))}
               target="_blank"
               rel="noopener noreferrer"
             >

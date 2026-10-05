@@ -16,6 +16,7 @@ import Reinstall from './Reinstall'
 import { pathFor, syncPath } from './routes'
 import { whatIsStale, staleText } from './health'
 import { ErrorBoundary } from './boundary'
+import { whatsappTo, suggestionText } from './contact'
 import { COLLECTIONS, DEFAULT_COLLECTION, readCollection, rememberCollection, loadCatalogs, slotKey, slotsOf, variantsFor, drawableVariants, pointsToASlot, cardLabel, cardDetail, albumPercent, slotOf, slotName, orphanName } from './collections'
 import {
   ErrorApi,
@@ -2155,6 +2156,13 @@ export default function App() {
           </div>
           <div className="footer-mark">
             <span className="footer-site">{SITIO}</span>
+            {/* Lo único que dice dónde está Angel: hasta el 2026-10-05 no había forma de
+                escribirle desde adentro. Por WhatsApp y con la cuenta en el mensaje. */}
+            <span className="footer-contact">
+              ¿Algo no anda o tenés una sugerencia?{' '}
+              <a className="link" href={whatsappTo(suggestionText(cuenta?.usuario))}
+                 target="_blank" rel="noopener noreferrer">Escribime</a>
+            </span>
             <span className="footer-support">
               ¿Te sirve? Podés apoyar al que la hizo · alias{' '}
               <button onClick={copiarAlias} className="alias" title="Tocá para copiarlo">

@@ -659,6 +659,21 @@
         color: var(--cream);
         font-weight: 600;
       }
+      /* Hasta el 2026-10-05 la landing no decía cómo escribirle a nadie. Su propio renglón,
+         entre la marca y lo legal, y el enlace en crema, que es lo que se toca. */
+      footer .contact {
+        display: block;
+        margin-top: 10px;
+      }
+      footer .contact a {
+        color: var(--cream);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+        /* 44 px de alto para el dedo sin mover el renglón: padding y el mismo margen negativo. */
+        display: inline-block;
+        padding: 12px 4px;
+        margin: -12px -4px;
+      }
       footer .legal {
         display: block;
         margin-top: 8px;
@@ -856,6 +871,8 @@
 
     <footer>
       <span class="brand">www.cromeros.com.ar</span> · hecho por un coleccionista
+      <!-- El número es el de src/contact.js: test/pages.test.js compara los dos. -->
+      <span class="contact">¿Dudas o sugerencias? <a href="https://wa.me/5493516710050?text=Hola%20Angel%2C%20te%20escribo%20desde%20cromeros.com.ar%20(la%20app%20de%20las%20cartas%20de%20Dragon%20Ball)%3A%20" target="_blank" rel="noopener noreferrer">Escribime por WhatsApp</a></span>
       <span class="legal">Dragon Ball Z © Bird Studio / Shueisha · Toei Animation. Sitio de fans: no es un sitio oficial de Cromeros S.A. ni de Flash Gondor.</span>
     </footer>
   </body>

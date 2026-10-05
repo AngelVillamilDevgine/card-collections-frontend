@@ -18,6 +18,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync, existsSync } from 'node:fs'
 import { LOGIN, COLLECTION, pathFor } from '../src/routes.js'
+import { WHATSAPP } from '../src/contact.js'
 
 const rootUrl = new URL('../', import.meta.url)
 const read = (p) => readFileSync(new URL(p, rootUrl), 'utf8')
@@ -225,4 +226,13 @@ test('pathFor no toca la dirección mientras no se sabe si hay sesión', () => {
   assert.equal(pathFor(undefined), null)
   assert.equal(pathFor(null), LOGIN)
   assert.equal(pathFor({ usuario: 'angel' }), COLLECTION)
+})
+
+/* El WhatsApp del pie de la landing es un literal en el HTML, porque la landing no carga el
+   bundle. Si el número cambia en contact.js y no acá, la landing manda a la gente a otro
+   lado y nada lo avisa. */
+test('el WhatsApp del pie de la landing es el mismo que el de la app', () => {
+  const links = [...landing.matchAll(/https:\/\/wa\.me\/(\d+)/g)].map((m) => m[1])
+  assert.ok(links.length > 0, 'la landing no tiene ningún enlace a WhatsApp')
+  for (const n of links) assert.equal(n, WHATSAPP)
 })
