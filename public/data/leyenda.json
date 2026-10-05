@@ -4,6 +4,7 @@
   "anios": "2025-2026",
   "condicion": false,
   "notas": [
+    "LAS ESPECIALES DE CAJA DEL MAZO INICIAL (11, 12, 14, 18, 20, 23, 25 y 27) tambien salen en ROJO: cada caja trae las mismas especiales, todas de un color. Lo agrego Angel el 2026-10-05 con fotos de dragonball.center donde se lee el numero (11, 12, 14, 18, 20, 25, 27) y el video de Aleea videos (youtube.com/watch?v=3dLiLQI2nO0), que lo dice carta por carta. La 23 no tiene foto propia: entra porque en esa caja vinieron todas en rojo. El tracker de Ismael no tiene ninguno de estos rojos.",
     "Es la reedicion de la coleccion de Cromeros de 2007, pero la hace OTRA empresa: Flash Gondor. Va como coleccion aparte y no se compara con la vieja.",
     "DE DONDE SALE ESTO: del tracker de Ismael Lopez (dbz-tracker-app.vercel.app, 'TodoFigus 2.0'), que publica sus datos abiertos en /data/leyenda/. Leido el 2026-09-26. Antes estaba transcripto de fotos de planillas y el vocabulario por carta salia mal: las listas de QUE cartas tienen acabado eran casi exactas, pero se les aplicaba el encabezado de columna entero sin leer las casillas en negro.",
     "LAS VARIANTES VAN POR GRUPO DE CARTAS. Cada 'grupo' es un conjunto distinto de acabados con las cartas que salieron asi. Una carta que no esta en ningun grupo NO TIENE VARIANTES, y es el caso normal: de las 1078 numeradas, solo 271 tienen alguna.",
@@ -31,7 +32,8 @@
           "_de": "las cartas de Angel, 2026-09-28",
           "variantes": [
             { "id": "com", "corto": "CO", "nombre": "Común" },
-            { "id": "nar", "corto": "NA", "nombre": "Naranja" }
+            { "id": "nar", "corto": "NA", "nombre": "Naranja" },
+            { "id": "roj", "corto": "RO", "nombre": "Rojo" }
           ],
           "cartas": [11]
         },
@@ -41,7 +43,8 @@
             { "id": "com", "corto": "CO", "nombre": "Común" },
             { "id": "nar", "corto": "NA", "nombre": "Naranja" },
             { "id": "vio", "corto": "VI", "nombre": "Violeta" },
-            { "id": "vcl", "corto": "VM", "nombre": "Verde manzana" }
+            { "id": "vcl", "corto": "VM", "nombre": "Verde manzana" },
+            { "id": "roj", "corto": "RO", "nombre": "Rojo" }
           ],
           "cartas": [12, 14]
         },
@@ -50,7 +53,8 @@
           "variantes": [
             { "id": "nar", "corto": "NA", "nombre": "Naranja" },
             { "id": "vio", "corto": "VI", "nombre": "Violeta" },
-            { "id": "vcl", "corto": "VM", "nombre": "Verde manzana" }
+            { "id": "vcl", "corto": "VM", "nombre": "Verde manzana" },
+            { "id": "roj", "corto": "RO", "nombre": "Rojo" }
           ],
           "cartas": [18]
         },
@@ -58,7 +62,8 @@
           "_de": "las cartas de Angel, 2026-09-28",
           "variantes": [
             { "id": "com", "corto": "CO", "nombre": "Común" },
-            { "id": "vio", "corto": "VI", "nombre": "Violeta" }
+            { "id": "vio", "corto": "VI", "nombre": "Violeta" },
+            { "id": "roj", "corto": "RO", "nombre": "Rojo" }
           ],
           "cartas": [20]
         },
@@ -67,7 +72,8 @@
           "variantes": [
             { "id": "com", "corto": "CO", "nombre": "Común" },
             { "id": "nar", "corto": "NA", "nombre": "Naranja" },
-            { "id": "vio", "corto": "VI", "nombre": "Violeta" }
+            { "id": "vio", "corto": "VI", "nombre": "Violeta" },
+            { "id": "roj", "corto": "RO", "nombre": "Rojo" }
           ],
           "cartas": [23]
         },
@@ -75,7 +81,8 @@
           "_de": "las cartas de Angel, 2026-09-28",
           "variantes": [
             { "id": "nar", "corto": "NA", "nombre": "Naranja" },
-            { "id": "vio", "corto": "VI", "nombre": "Violeta" }
+            { "id": "vio", "corto": "VI", "nombre": "Violeta" },
+            { "id": "roj", "corto": "RO", "nombre": "Rojo" }
           ],
           "cartas": [25]
         },
@@ -85,7 +92,8 @@
             { "id": "dor", "corto": "DO", "nombre": "Dorado" },
             { "id": "nar", "corto": "NA", "nombre": "Naranja" },
             { "id": "vio", "corto": "VI", "nombre": "Violeta" },
-            { "id": "vcl", "corto": "VM", "nombre": "Verde manzana" }
+            { "id": "vcl", "corto": "VM", "nombre": "Verde manzana" },
+            { "id": "roj", "corto": "RO", "nombre": "Rojo" }
           ],
           "cartas": [27]
         },

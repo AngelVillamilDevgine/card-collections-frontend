@@ -309,14 +309,16 @@ test('lo que sumó el APK 7.3 del tracker, carta por carta', () => {
    importa es QUE variantes ofrece cada una, que es lo que el tracker tenia mal. */
 test('las ocho que Angel corrigio con sus propias cartas', () => {
   const esperado = {
-    11: ['Común', 'Naranja'],
-    12: ['Común', 'Naranja', 'Violeta', 'Verde manzana'],
-    14: ['Común', 'Naranja', 'Violeta', 'Verde manzana'],
-    18: ['Naranja', 'Violeta', 'Verde manzana'],
-    20: ['Común', 'Violeta'],
-    23: ['Común', 'Naranja', 'Violeta'],
-    25: ['Naranja', 'Violeta'],
-    27: ['Dorado', 'Naranja', 'Violeta', 'Verde manzana'],
+    /* El Rojo, en las ocho, lo sumó Angel el 2026-10-05: fotos con el número y un video que
+       lo dice carta por carta (ver la nota del catálogo). */
+    11: ['Común', 'Naranja', 'Rojo'],
+    12: ['Común', 'Naranja', 'Violeta', 'Verde manzana', 'Rojo'],
+    14: ['Común', 'Naranja', 'Violeta', 'Verde manzana', 'Rojo'],
+    18: ['Naranja', 'Violeta', 'Verde manzana', 'Rojo'],
+    20: ['Común', 'Violeta', 'Rojo'],
+    23: ['Común', 'Naranja', 'Violeta', 'Rojo'],
+    25: ['Naranja', 'Violeta', 'Rojo'],
+    27: ['Dorado', 'Naranja', 'Violeta', 'Verde manzana', 'Rojo'],
   }
   for (const [n, quiero] of Object.entries(esperado))
     assert.deepEqual(deLaCarta(porId('ley-inicial'), Number(n)).sort(), [...quiero].sort(),
