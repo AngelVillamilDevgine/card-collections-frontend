@@ -284,14 +284,25 @@ test('cuantas cartas tienen variantes en cada tramo', () => {
   const cuantas = (id) => (porId(id).grupos ?? []).reduce((a, g) => a + g.cartas.length, 0)
   assert.equal(cuantas('ley-inicial'), 48, '40 del tracker + las 8 que Angel corrigio con sus cartas')
   assert.equal(cuantas('ley-2-3'), 52)
-  assert.equal(cuantas('ley-4'), 47)
+  assert.equal(cuantas('ley-4'), 57, '47 + las diez que el APK 7.3 del tracker sumó el 2026-10-05')
   assert.equal(cuantas('ley-5'), 44)
   assert.equal(cuantas('ley-6'), 44)
   assert.equal(cuantas('ley-personajes'), 44)
-  /* De las 1078 numeradas, 279: lo normal sigue siendo que una carta NO tenga variantes. */
+  /* De las 1078 numeradas, 289: lo normal sigue siendo que una carta NO tenga variantes. */
   const total = ['ley-inicial', 'ley-2-3', 'ley-4', 'ley-5', 'ley-6', 'ley-personajes']
     .reduce((a, id) => a + cuantas(id), 0)
-  assert.equal(total, 279)
+  assert.equal(total, 289)
+  assert.equal(cuantas('ley-f'), 10, 'las diez F, desde el APK 7.3')
+})
+
+/* LO QUE SUMÓ EL TRACKER EL 2026-10-05 (su APK 7.3, cuando el sitio quedó pausado), carta
+   por carta: que el total cierre no dice qué ofrece cada una. */
+test('lo que sumó el APK 7.3 del tracker, carta por carta', () => {
+  const ofrece = (exp, n) => variantsFor(normal(exp), n).map((v) => v.id).sort()
+  for (const n of [385, 386, 388, 394, 395, 397, 398, 399, 400, 401])
+    assert.deepEqual(ofrece('ley-4', n), ['com', 'gci', 'gli'], `${n}`)
+  for (let n = 504; n <= 513; n++) assert.deepEqual(ofrece('ley-f', n), ['com', 'gci', 'gli'], `F${n}`)
+  for (let n = 544; n <= 550; n++) assert.deepEqual(ofrece('ley-4', n), ['azu', 'dor', 'gci', 'gli', 'nar', 'pla'], `${n}`)
 })
 
 /* LAS OCHO QUE ANGEL CORRIGIO, una por una. No alcanza con que el total cierre: lo que
