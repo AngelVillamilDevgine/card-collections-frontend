@@ -305,6 +305,15 @@ test('lo que sumó el APK 7.3 del tracker, carta por carta', () => {
   for (let n = 544; n <= 550; n++) assert.deepEqual(ofrece('ley-4', n), ['azu', 'dor', 'gci', 'gli', 'nar', 'pla'], `${n}`)
 })
 
+/* LO QUE EL TRACKER SACÓ Y ACÁ SE QUEDA. La 7.3 le sacó la Azul a 21 cartas de Personajes, y
+   en producción hay una cuenta con Azul en 947, 975 y 981. Angel, 2026-10-05: «si alguien la
+   marcó es porque existe». Sincronizar con el tracker sin mirar esto la borraría del diálogo. */
+test('la Azul de Personajes se queda aunque el tracker la haya sacado', () => {
+  for (const n of [947, 957, 958, 975, 976, 977, 981, 993, 994, 1013, 1014, 1019, 1025, 1029, 1030,
+    1051, 1053, 1055, 1056, 1064, 1065])
+    assert.ok(variantsFor(normal('ley-personajes'), n).some((v) => v.id === 'azu'), `la ${n} perdió la Azul`)
+})
+
 /* LAS OCHO QUE ANGEL CORRIGIO, una por una. No alcanza con que el total cierre: lo que
    importa es QUE variantes ofrece cada una, que es lo que el tracker tenia mal. */
 test('las ocho que Angel corrigio con sus propias cartas', () => {

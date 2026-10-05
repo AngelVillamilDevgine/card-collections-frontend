@@ -4,6 +4,7 @@
   "anios": "2025-2026",
   "condicion": false,
   "notas": [
+    "LA AZUL DE PERSONAJES SE QUEDA aunque el tracker de Ismael se la saco a 21 cartas en su APK 7.3 (947, 957, 958, 975, 976, 977, 981, 993, 994, 1013, 1014, 1019, 1025, 1029, 1030, 1051, 1053, 1055, 1056, 1064, 1065). Lo decidio Angel el 2026-10-05: si alguien la marco es porque existe, y en produccion hay una cuenta con Azul en 947, 975 y 981. Un dato que marco un usuario pesa mas que el tracker. Hay un test que la sostiene.",
     "LAS ESPECIALES DE CAJA DEL MAZO INICIAL (11, 12, 14, 18, 20, 23, 25 y 27) tambien salen en ROJO: cada caja trae las mismas especiales, todas de un color. Lo agrego Angel el 2026-10-05 con fotos de dragonball.center donde se lee el numero (11, 12, 14, 18, 20, 25, 27) y el video de Aleea videos (youtube.com/watch?v=3dLiLQI2nO0), que lo dice carta por carta. La 23 no tiene foto propia: entra porque en esa caja vinieron todas en rojo. El tracker de Ismael no tiene ninguno de estos rojos.",
     "Es la reedicion de la coleccion de Cromeros de 2007, pero la hace OTRA empresa: Flash Gondor. Va como coleccion aparte y no se compara con la vieja.",
     "DE DONDE SALE ESTO: del tracker de Ismael Lopez (dbz-tracker-app.vercel.app, 'TodoFigus 2.0'), que publica sus datos abiertos en /data/leyenda/. Leido el 2026-09-26. Antes estaba transcripto de fotos de planillas y el vocabulario por carta salia mal: las listas de QUE cartas tienen acabado eran casi exactas, pero se les aplicaba el encabezado de columna entero sin leer las casillas en negro.",
