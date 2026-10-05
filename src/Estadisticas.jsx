@@ -183,9 +183,11 @@ function Pie({ rows, total }) {
    botón al cerrar, y Escape cierra. El Escape del PANEL mira si hay un modal abierto y
    se hace a un lado — si no, un Escape cerraba los dos. Tocar el telón también cierra.
 
-   La torta reparte los visitantes ÚNICOS del período (todos, no sólo los nuevos de la
-   estación), y el subtítulo dice cuántos y que son de la landing: los logueados entran
-   directo a sus cartas y no tienen aparato — fue la confusión de la vez anterior. */
+   La torta reparte los visitantes ÚNICOS del período —todos, no sólo los nuevos—, y por
+   eso cuelga de la estación que cuenta a esos mismos: colgada de la de los nuevos decía
+   «1» arriba y «2» en el modal. El subtítulo dice cuántos y que son de la landing: los
+   logueados entran directo a sus cartas y no tienen aparato — fue la confusión de la
+   vez anterior. */
 /* EL ARMAZÓN DE LOS MODALES DEL PANEL — hoy los aparatos y la ficha de un usuario. Todo
    lo que hace de un modal un diálogo de verdad vive acá una sola vez: Atrás lo cierra sin
    cerrar el panel (`usarAtras`), el foco queda adentro y vuelve al botón, Escape y el
@@ -423,23 +425,37 @@ function PeriodFunnel({ p, periodLabel }) {
   const [showDevices, setShowDevices] = useState(false)
   const pct = (a, b) => (b > 0 ? Math.round((a / b) * 100) : null)
   const devices = p.devices ?? []
-  /* Rótulos de DATO, no de relato — Angel: «quiero datos puros, es un dashboard». La
-     estación de arriba cuenta VISITANTES NUEVOS (primera vez de ese navegador), que es
-     el que entra al embudo — también pedido suyo: «4 / 4 nuevos» era el mismo número
-     dicho dos veces.
+  /* Rótulos de DATO, no de relato — Angel: «quiero datos puros, es un dashboard».
 
-     Su subtítulo era «N cargas» y Angel lo bajó («al pedo»): ahora es el botón que abre
-     el reparto por aparato. Sin visitantes en el período no hay torta que mostrar, así
-     que el botón no aparece — un modal vacío es peor que no ofrecerlo. */
+     ARRIBA VAN DOS: los visitantes únicos de la landing en el período y, de ésos, los NUEVOS
+     (primera vez de ese navegador), que son los que entran al embudo. Hasta el
+     2026-10-05 estaba sólo la de los nuevos —«4 / 4 nuevos» era el mismo número dicho
+     dos veces, y Angel lo bajó—, pero desde que hay gente que VUELVE ya no son el mismo
+     número, y el «Ver dispositivos» colgaba de los nuevos mientras la torta reparte a
+     todos: «1» en la estación y «2» en el modal. Angel: «capaz falta visitantes totales
+     además de visitantes únicos». Los nuevos no pueden pasar a los totales: el que llega
+     por primera vez queda anotado en su día (medido en producción: cero sin anotar).
+
+     SE LLAMA «DE LA LANDING» Y NO «TOTALES», aunque Angel lo pidió con esa palabra: sólo
+     cuenta a quien pasa por `/` (el beacon de resume.js), y quien entra directo a sus
+     cartas no aparece. Con «totales», hoy decía «2 Visitantes únicos totales» y cuatro
+     renglones más abajo «4 Usaron la página», que sí cuenta a esos. Y en este panel
+     «totales» ya quiere decir «de todas las épocas» («Totales históricos»). Es además
+     lo mismo que dice el subtítulo de la torta.
+
+     El subtítulo de arriba era «N cargas» y Angel lo bajó («al pedo»): ahora es el botón
+     que abre el reparto por aparato. Sin visitantes en el período no hay torta que
+     mostrar, así que el botón no aparece — un modal vacío es peor que no ofrecerlo. */
   const nodes = [
     {
-      n: p.visitorsNew, label: 'Visitantes únicos nuevos',
+      n: p.visitors, label: 'Visitantes únicos de la landing',
       note: devices.length > 0 && (
         <button type="button" className="journey-link" onClick={() => setShowDevices(true)}>
           Ver dispositivos
         </button>
       ),
     },
+    { n: p.visitorsNew, label: 'Visitantes únicos nuevos', conv: pct(p.visitorsNew, p.visitors) },
     { n: p.toSignup, label: 'Clicks a anotarse', conv: pct(p.toSignup, p.visitorsNew) },
     { n: p.signups, label: 'Registros', conv: pct(p.signups, p.toSignup) },
     /* El uso, partido por dónde entraron — lo pidió Angel: «usuarios que usaron la
@@ -463,8 +479,9 @@ function PeriodFunnel({ p, periodLabel }) {
     <>
       <Spine nodes={nodes} />
       {/* El total de la torta es la SUMA DE SUS TRAMOS y no `p.visitors`: hoy son
-          iguales (cada navegador tiene un solo aparato), pero si alguna vez divergieran,
-          la dona mostraría un hueco sin explicación y los porcentajes no cerrarían. */}
+          iguales (cada navegador tiene un solo aparato, y el número es el de la
+          estación de arriba), pero si alguna vez divergieran, la dona mostraría un hueco
+          sin explicación y los porcentajes no cerrarían. */}
       {showDevices && (
         <DevicesModal rows={devices} total={devices.reduce((a, r) => a + r.n, 0)}
                       periodLabel={periodLabel} onClose={() => setShowDevices(false)} />
