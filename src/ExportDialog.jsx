@@ -10,7 +10,6 @@ import { CONDITIONS } from './conditions'
 const LIST_OPTIONS = [
   { id: 'missing',         label: 'Las que me faltan' },
   { id: 'duplicates',      label: 'Las repetidas' },
-  { id: 'both',            label: 'Las dos cosas' },
   { id: 'owned',           label: 'Las que ya tengo' },
   { id: 'missingVariants', label: 'Me faltan variantes', onlyWithVariants: true },
 ]
@@ -193,8 +192,6 @@ const FOOTER_URL = 'https://www.cromeros.com.ar'
 const SECTIONS = {
   missing:         [{ title: 'ME FALTAN', list: listMissing }],
   duplicates:      [{ title: 'REPETIDAS', list: listDuplicates }],
-  both:            [{ title: 'ME FALTAN', list: listMissing },
-                    { title: 'REPETIDAS', list: listDuplicates }],
   owned:           [{ title: ownedTitle, list: listOwned }],
   /* Un renglón por carta: «821 · azul, dorado, ...» pegado con comas al lado del
      siguiente no se lee. Es la única lista que lo necesita. */
