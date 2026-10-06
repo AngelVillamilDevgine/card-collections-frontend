@@ -1248,6 +1248,9 @@ button { cursor: pointer; }
 .footer-site { font-weight: 600; color: var(--ink2); }
 
 .footer .alias {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   border: 1px dashed var(--line2);
   border-radius: 6px;
   background: var(--paper);
@@ -1255,6 +1258,8 @@ button { cursor: pointer; }
   color: var(--ink);
   font-variant-numeric: tabular-nums;
 }
+/* Toma el color del texto, así que el hover lo pinta junto con el alias. */
+.footer .alias .copy-icon { flex: none; }
 .footer .alias:hover { border-color: var(--accent); color: var(--accent); }
 
 
