@@ -456,8 +456,16 @@ function PeriodFunnel({ p, periodLabel }) {
       ),
     },
     { n: p.visitorsNew, label: 'Visitantes únicos nuevos', conv: pct(p.visitorsNew, p.visitors) },
-    { n: p.toSignup, label: 'Clicks a anotarse', conv: pct(p.toSignup, p.visitorsNew) },
-    { n: p.signups, label: 'Registros', conv: pct(p.signups, p.toSignup) },
+    /* Personas y no cargas (recargar no suma dos) desde que el servidor las anota; el
+       porcentaje es sobre los visitantes de la landing, que también son personas. Para un
+       período que empezó antes, quedan las cargas de siempre y la nota dice desde cuándo. */
+    p.toSignupPeople != null
+      ? { n: p.toSignupPeople, label: 'Clicks a anotarse', conv: pct(p.toSignupPeople, p.visitors) }
+      : {
+          n: p.toSignup, label: 'Clicks a anotarse', conv: pct(p.toSignup, p.visitorsNew),
+          note: p.clicksSince ? `cuenta cargas · por persona desde el ${formatDayMonth(p.clicksSince)}` : undefined,
+        },
+    { n: p.signups, label: 'Registros', conv: pct(p.signups, p.toSignupPeople ?? p.toSignup) },
     /* De los que se registraron en el período, los que de verdad la usan: más de 20 cartas
        marcadas hoy. Lo pidió Angel —«si carga 1 o ninguna no me interesa»— después de ver
        que 5 de los 9 registros de una semana no habían marcado ni una. Un back viejo no

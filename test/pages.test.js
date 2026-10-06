@@ -155,6 +155,14 @@ test('resume.js redirige a las MISMAS rutas que declara routes.js', () => {
     assert.ok(resume.includes(`'${route}'`), `resume.js no menciona ${route}`)
 })
 
+test('resume.js guarda el visitante con la MISMA clave que api.js lee para el pulso', () => {
+  /* Si se separan, el pulso de la página de entrada sale sin visitante y los clicks
+     vuelven a contarse por carga, en silencio. */
+  const key = apiSrc.match(/VISITOR_STORAGE_KEY = '([^']+)'/)?.[1]
+  assert.ok(key, 'no se encontró VISITOR_STORAGE_KEY en api.js')
+  assert.ok(resume.includes(`'${key}'`), `resume.js no usa ${key}`)
+})
+
 test('resume.js usa la MISMA key de token que api.js', () => {
   const key = apiSrc.match(/TOKEN_STORAGE_KEY = '([^']+)'/)?.[1]
   assert.ok(key, 'no se encontró TOKEN_STORAGE_KEY en api.js')

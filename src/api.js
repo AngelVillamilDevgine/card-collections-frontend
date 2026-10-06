@@ -35,8 +35,18 @@ export function token() {
    identificadores. El cuerpo va en texto plano para que el POST sea un pedido simple
    (sin OPTIONS previo, el mismo viaje de más del maxAge del CORS), y por `sendBeacon`
    porque no hay que esperar nada: si el navegador no lo tiene o falla, no pasó nada. */
+/* El visitante anónimo de la landing: lo crea y lo guarda resume.js, y acá se lee. La clave
+   es la MISMA en los dos archivos (lo ata pages.test.js). */
+export const VISITOR_STORAGE_KEY = 'dbz-cromeros-vid'
+
+/* El pulso va con el visitante, si lo hay: así el servidor cuenta PERSONAS y no cargas, y
+   recargar la página no suma dos (lo pidió Angel). Sin visitante —modo privado, o quien
+   nunca pasó por la landing— va la clave sola, como siempre. */
 export function pulse(key) {
-  try { navigator.sendBeacon?.(`${API_BASE}/pulse`, key) } catch { /* es una estadística */ }
+  let vid = ''
+  try { vid = localStorage.getItem(VISITOR_STORAGE_KEY) ?? '' } catch { /* modo privado */ }
+  const body = /^[a-f0-9]{16}$/.test(vid) ? `${key}|${vid}` : key
+  try { navigator.sendBeacon?.(`${API_BASE}/pulse`, body) } catch { /* es una estadística */ }
 }
 
 function storeToken(t) {
