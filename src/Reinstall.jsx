@@ -22,11 +22,11 @@
 // sacar nada — es lo mismo que hace el aviso de los guardados fallidos, donde el aviso es
 // la ausencia.
 import { useEffect, useRef, useState } from 'react'
-import { comoApp, esIOS } from './donde-corre.js'
+import { isStandalone, isIOS } from './platform.js'
 
 const MARK = 'dbz-cromeros-from-root'
 const KEY = 'dbz-cromeros-reinstall'
-/* Se pide una vez por semana y a lo sumo tres times. En Android lo más probable es que
+/* Se pide una vez por semana y a lo sumo tres veces. En Android lo más probable es que
    para la segunda ya se haya arreglado solo y el cartel no vuelva a aparecer. */
 const SNOOZE = 7 * 24 * 60 * 60 * 1000
 const MAX_TIMES = 3
@@ -38,14 +38,14 @@ function save(data) {
   try { localStorage.setItem(KEY, JSON.stringify(data)) } catch { /* modo privado */ }
 }
 
-const Cross = () => (
+const CloseIcon = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
        strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
     <path d="M6 6l12 12M18 6L6 18" />
   </svg>
 )
 
-const Share = () => (
+const ShareIcon = () => (
   <svg className="glyph" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M12 15V3" />
@@ -61,7 +61,7 @@ export default function Reinstall() {
   useEffect(() => {
     /* Las dos condiciones, y las dos hacen falta: la marca sola no alcanza porque
        `sessionStorage` es del origen y podría quedar de una pestaña normal. */
-    if (!comoApp()) return
+    if (!isStandalone()) return
     let cameFromRoot = false
     try { cameFromRoot = sessionStorage.getItem(MARK) === '1' } catch { /* modo privado */ }
     if (!cameFromRoot) return
@@ -74,8 +74,8 @@ export default function Reinstall() {
     return () => clearTimeout(timer)
   }, [])
 
-  /* La barra es fija abajo y taparía el final del pie. Mismo mecanismo que `Instalar`:
-     se mide a sí misma y le pasa el height al body como relleno. */
+  /* La barra es fija abajo y taparía el final del pie. Mismo mecanismo que `InstallPrompt`:
+     se mide a sí misma y le pasa el alto al body como relleno. */
   useEffect(() => {
     if (!visible || !box.current) return
     const height = box.current.offsetHeight + 20
@@ -94,7 +94,7 @@ export default function Reinstall() {
   }
 
   if (!visible) return null
-  const ios = esIOS()
+  const ios = isIOS()
 
   return (
     <aside className="install" role="note" ref={box}>
@@ -103,7 +103,7 @@ export default function Reinstall() {
         <b>Tu acceso directo da una vuelta de más</b>
         {ios ? (
           <span>
-            Borralo de la pantalla de inicio y volvé a agregarlo con <Share /> «Añadir a
+            Borralo de la pantalla de inicio y volvé a agregarlo con <ShareIcon /> «Añadir a
             pantalla de inicio»: va a abrir directo en tus cartas.
           </span>
         ) : (
@@ -113,7 +113,7 @@ export default function Reinstall() {
           </span>
         )}
       </div>
-      <button className="install-no" onClick={dismiss} aria-label="Entendido"><Cross /></button>
+      <button className="install-no" onClick={dismiss} aria-label="Entendido"><CloseIcon /></button>
     </aside>
   )
 }

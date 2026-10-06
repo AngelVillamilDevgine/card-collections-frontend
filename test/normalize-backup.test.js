@@ -1,7 +1,7 @@
 // La función que decide si un archivo te borra la colección.
 //
 // «Restaurar una copia» es el único camino de toda la app que borra en masa, y era el
-// que menos validaba: `normalizar` no fallaba NUNCA. Un `null`, una lista, un `{}` o el
+// que menos validaba: `normalizeBackup` no fallaba NUNCA. Un `null`, una lista, un `{}` o el
 // json de cualquier otra cosa se convertían en una colección vacía perfectamente válida,
 // el servidor la aceptaba, borraba todo y contestaba 200. Sin preguntar y sin avisar.
 //
@@ -13,13 +13,13 @@
 // verificando con clicks reales por CDP, que es como se prueba todo lo demás acá.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { normalizar } from '../src/almacenamiento.js'
+import { normalizeBackup } from '../src/api.js'
 
-/* LOS QUE BORRABAN TODO. Cada uno de estos llegaba a `reemplazar` como una colección de
+/* LOS QUE BORRABAN TODO. Cada uno de estos llegaba a `replaceCollection` como una colección de
    cero cartas. Hoy los seis tienen que devolver `null`, que es lo que hace que el
    diálogo diga «esto no parece una copia» en vez de vaciarte la cuenta. */
 test('lo que no es una copia se rechaza, y no se convierte en una colección vacía', () => {
-  const basura = [
+  const notBackups = [
     ['null', null],
     ['undefined', undefined],
     ['una lista', []],
@@ -33,12 +33,12 @@ test('lo que no es una copia se rechaza, y no se convierte en una colección vac
     ['estados como lista', { estados: ['bien'] }],
     ['un mapa con una clave que no es carta', { 'exp-1:1': 'bien', hola: 'chau' }],
   ]
-  for (const [nombre, valor] of basura)
-    assert.equal(normalizar(valor), null, `${nombre} tendría que rechazarse`)
+  for (const [label, input] of notBackups)
+    assert.equal(normalizeBackup(input), null, `${label} tendría que rechazarse`)
 })
 
 test('la forma de hoy entra tal cual', () => {
-  const d = normalizar({
+  const d = normalizeBackup({
     estados: { 'exp-1:1': 'bien', 'exp-1:2': 'perfecta' },
     cantidades: { 'exp-1:1': 3, 'exp-1:2': 1 },
   })
@@ -47,7 +47,7 @@ test('la forma de hoy entra tal cual', () => {
 })
 
 test('una copia con cantidades pero sin estados es válida: son cartas sin condición', () => {
-  const d = normalizar({ cantidades: { 'exp-1:1': 2 } })
+  const d = normalizeBackup({ cantidades: { 'exp-1:1': 2 } })
   assert.deepEqual(d.cantidades, { 'exp-1:1': 2 })
   assert.deepEqual(d.estados, {})
 })
@@ -55,7 +55,7 @@ test('una copia con cantidades pero sin estados es válida: son cartas sin condi
 /* Un respaldo puede ser de hace meses, así que las formas viejas del archivo tienen que
    seguir entrando. Si esto se rompe, alguien pierde una copia que sí era buena. */
 test('la forma anterior, con repetidas, se traduce a cantidades', () => {
-  const d = normalizar({
+  const d = normalizeBackup({
     estados: { 'exp-1:1': 'bien', 'exp-1:2': 'reemplazar' },
     repetidas: { 'exp-1:1': 2 },
   })
@@ -65,7 +65,7 @@ test('la forma anterior, con repetidas, se traduce a cantidades', () => {
 })
 
 test('la forma más vieja, un mapa de estados suelto, también', () => {
-  const d = normalizar({ 'exp-1:1': 'bien', 'especial-gt:1500': 'perfecta' })
+  const d = normalizeBackup({ 'exp-1:1': 'bien', 'especial-gt:1500': 'perfecta' })
   assert.deepEqual(d.cantidades, { 'exp-1:1': 1, 'especial-gt:1500': 1 })
   assert.deepEqual(d.estados, { 'exp-1:1': 'bien', 'especial-gt:1500': 'perfecta' })
 })
@@ -73,23 +73,23 @@ test('la forma más vieja, un mapa de estados suelto, también', () => {
 /* El mapa suelto se reconoce porque TODAS sus claves tienen forma de carta. Es la regla
    que separa «un respaldo viejo» de «un json cualquiera», así que el borde importa. */
 test('el mapa suelto se reconoce por sus claves, y una sola clave rara lo descarta', () => {
-  assert.ok(normalizar({ 'exp-1:1': 'bien' }), 'una clave con forma de carta alcanza')
-  assert.equal(normalizar({ 'exp-1:1': 'bien', 'configuracion': 1 }), null,
+  assert.ok(normalizeBackup({ 'exp-1:1': 'bien' }), 'una clave con forma de carta alcanza')
+  assert.equal(normalizeBackup({ 'exp-1:1': 'bien', 'configuracion': 1 }), null,
     'con una clave que no es carta, es otro archivo y no se toca nada')
-  assert.equal(normalizar({ 'EXP-1:1': 'bien' }), null, 'las mayúsculas no son forma de carta')
-  assert.equal(normalizar({ 'exp-1:999999': 'bien' }), null, 'un número de seis cifras tampoco')
+  assert.equal(normalizeBackup({ 'EXP-1:1': 'bien' }), null, 'las mayúsculas no son forma de carta')
+  assert.equal(normalizeBackup({ 'exp-1:999999': 'bien' }), null, 'un número de seis cifras tampoco')
 })
 
 /* No alcanza con que devuelva algo: tiene que devolver algo que el servidor acepte. El
    servidor rechaza los reemplazos de cero cartas, así que una copia que normalice a cero
    sería un viaje al pedo y un cartel confuso. */
 test('lo que devuelve, cuando devuelve algo, nunca es una colección vacía', () => {
-  for (const bueno of [
+  for (const validBackup of [
     { estados: {}, cantidades: { 'exp-1:1': 1 } },
     { estados: { 'exp-1:1': 'bien' }, repetidas: {} },
     { 'exp-1:1': 'bien' },
   ]) {
-    const d = normalizar(bueno)
+    const d = normalizeBackup(validBackup)
     assert.ok(d, 'tendría que aceptarlo')
     assert.ok(Object.keys(d.cantidades).length > 0, 'y no puede quedar en cero cartas')
   }
@@ -97,7 +97,7 @@ test('lo que devuelve, cuando devuelve algo, nunca es una colección vacía', ()
 
 test('no toca el objeto que le pasan', () => {
   const original = { estados: { 'exp-1:1': 'bien' }, repetidas: { 'exp-1:1': 1 } }
-  const copia = JSON.parse(JSON.stringify(original))
-  normalizar(original)
-  assert.deepEqual(original, copia, 'el archivo leído no se modifica')
+  const snapshot = JSON.parse(JSON.stringify(original))
+  normalizeBackup(original)
+  assert.deepEqual(original, snapshot, 'el archivo leído no se modifica')
 })

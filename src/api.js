@@ -6,7 +6,7 @@
 // y no había usuarios. Con cuentas de verdad nada de eso hace falta.
 /* Se exporta para que `App.jsx` pueda escuchar el evento `storage` y darse cuenta de
    que en OTRA pestaña entraron con otra cuenta. Ver el efecto que la usa. */
-export const CLAVE_TOKEN = 'dbz-cromeros-token'
+export const TOKEN_STORAGE_KEY = 'dbz-cromeros-token'
 
 // En desarrollo se usa el proxy de Vite, así el navegador ve un solo origen y no hay
 // CORS que arreglar. En producción se le pega directo a la API, que vive en el mismo
@@ -14,21 +14,21 @@ export const CLAVE_TOKEN = 'dbz-cromeros-token'
 /* `?? {}` para que el módulo se pueda CARGAR fuera de Vite. Sin eso, `import.meta.env`
    es undefined en Node y leerle `.DEV` revienta al importar — o sea que la función que
    decide si un archivo te borra la colección no se podía ni probar. */
-const ENTORNO = import.meta.env ?? {}
-const API = ENTORNO.DEV ? '' : 'https://api.cromeros.com.ar'
-const RAIZ = (ENTORNO.VITE_API_URL ?? API).replace(/\/$/, '') + '/api'
+const ENV = import.meta.env ?? {}
+const API = ENV.DEV ? '' : 'https://api.cromeros.com.ar'
+const API_BASE = (ENV.VITE_API_URL ?? API).replace(/\/$/, '') + '/api'
 
-import { comoApp } from './donde-corre.js'
+import { isStandalone } from './platform.js'
 
-export class ErrorApi extends Error {}
+export class ApiError extends Error {}
 
 /* Si está corriendo como app instalada, se lo cuenta al servidor. Va como parámetro y
    no como cabecera para que no haga falta un pedido de permiso previo (preflight), que
    en un teléfono con datos es un viaje de ida y vuelta al pedo. */
-const marcaApp = () => (comoApp() ? '?app=1' : '')
+const appQuery = () => (isStandalone() ? '?app=1' : '')
 
 export function token() {
-  try { return localStorage.getItem(CLAVE_TOKEN) } catch { return null }
+  try { return localStorage.getItem(TOKEN_STORAGE_KEY) } catch { return null }
 }
 
 /* El pulso de la pasarela: un contador anónimo del panel — sin IPs, sin cookies, sin
@@ -36,11 +36,11 @@ export function token() {
    (sin OPTIONS previo, el mismo viaje de más del maxAge del CORS), y por `sendBeacon`
    porque no hay que esperar nada: si el navegador no lo tiene o falla, no pasó nada. */
 export function pulse(key) {
-  try { navigator.sendBeacon?.(`${RAIZ}/pulse`, key) } catch { /* es una estadística */ }
+  try { navigator.sendBeacon?.(`${API_BASE}/pulse`, key) } catch { /* es una estadística */ }
 }
 
-function recordarToken(t) {
-  try { t ? localStorage.setItem(CLAVE_TOKEN, t) : localStorage.removeItem(CLAVE_TOKEN) }
+function storeToken(t) {
+  try { t ? localStorage.setItem(TOKEN_STORAGE_KEY, t) : localStorage.removeItem(TOKEN_STORAGE_KEY) }
   catch { /* modo privado: la sesión dura lo que dure la pestaña */ }
 }
 
@@ -48,28 +48,28 @@ function recordarToken(t) {
    esto, una conexión que se queda esperando deja el guardado de esa carta en el aire
    para siempre y, como los envíos de una misma carta van encadenados, congela en
    silencio todos los guardados siguientes de esa carta. */
-const CORTE = 15000
+const REQUEST_TIMEOUT_MS = 15000
 
-async function pedir(ruta, opciones = {}) {
+async function request(path, options = {}) {
   const t = token()
   let r
-  const corte = new AbortController()
-  const reloj = setTimeout(() => corte.abort(), CORTE)
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
   try {
-    r = await fetch(RAIZ + ruta, {
-      signal: corte.signal,
-      ...opciones,
+    r = await fetch(API_BASE + path, {
+      signal: controller.signal,
+      ...options,
       headers: {
-        ...(opciones.cuerpo !== undefined && { 'Content-Type': 'application/json' }),
+        ...(options.json !== undefined && { 'Content-Type': 'application/json' }),
         ...(t && { Authorization: `Bearer ${t}` }),
-        ...opciones.headers,
+        ...options.headers,
       },
-      ...(opciones.cuerpo !== undefined && { body: JSON.stringify(opciones.cuerpo) }),
+      ...(options.json !== undefined && { body: JSON.stringify(options.json) }),
     })
   } catch {
-    throw new ErrorApi('Sin conexión con el servidor.')
+    throw new ApiError('Sin conexión con el servidor.')
   } finally {
-    clearTimeout(reloj)
+    clearTimeout(timer)
   }
 
   /* UN 401 NO SIEMPRE ES «se venció la sesión». En las tres rutas donde las credenciales
@@ -85,18 +85,18 @@ async function pedir(ruta, opciones = {}) {
        estaba perfecta: borraba el token, tiraba la cola de guardados pendientes —o sea
        que un toque de carta se perdía sin salir a la red— y te mandaba a entrar de nuevo
        con la misma clave sobre la que la app te acababa de hacer dudar. */
-  if (r.status === 401 && !opciones.credenciales) {
+  if (r.status === 401 && !options.credentialsInBody) {
     // El token venció o lo revocaron: no sirve de nada guardarlo.
-    recordarToken(null)
+    storeToken(null)
     // Marcado, porque quien lo reciba tiene que hacer algo muy distinto que con un
     // error de red: no hay nada que reintentar, hay que volver a entrar.
-    const muerta = new ErrorApi('Tenés que entrar de nuevo.')
-    muerta.sesion = true
-    throw muerta
+    const expiredError = new ApiError('Tenés que entrar de nuevo.')
+    expiredError.sessionExpired = true
+    throw expiredError
   }
   if (!r.ok) {
-    const dicho = await r.json().catch(() => null)
-    throw new ErrorApi(dicho?.error ?? 'No se pudo completar la operación.')
+    const data = await r.json().catch(() => null)
+    throw new ApiError(data?.error ?? 'No se pudo completar la operación.')
   }
   return r.status === 204 ? null : r.json()
 }
@@ -105,50 +105,50 @@ async function pedir(ruta, opciones = {}) {
 
 // Devuelve la cuenta, no el nombre a secas: el front necesita saber además si es
 // administrador, para mostrarle el panel de números.
-async function entrarPor(ruta, usuario, clave) {
-  const dicho = await pedir(ruta + marcaApp(), { method: 'POST', cuerpo: { usuario, clave }, credenciales: true })
-  recordarToken(dicho.token)
+async function authenticate(path, username, password) {
+  const data = await request(path + appQuery(), { method: 'POST', json: { usuario: username, clave: password }, credentialsInBody: true })
+  storeToken(data.token)
   // `mustChange`: entró con una clave provisoria y tiene que elegir la suya.
-  return { usuario: dicho.usuario, admin: !!dicho.admin, mustChange: !!dicho.mustChange }
+  return { username: data.usuario, admin: !!data.admin, mustChange: !!data.mustChange }
 }
 
-export const registrarse = (usuario, clave) => entrarPor('/registro', usuario, clave)
-export const entrar = (usuario, clave) => entrarPor('/sesion', usuario, clave)
+export const signup = (username, password) => authenticate('/registro', username, password)
+export const login = (username, password) => authenticate('/sesion', username, password)
 
 /* Cambiar la clave. Devuelve cuántas OTRAS sesiones se cerraron, que es lo que el
    diálogo le dice al usuario: sin ese número, «listo» no cuenta si echó a alguien. */
-export const cambiarClave = (actual, nueva) =>
-  pedir('/clave', { method: 'PUT', cuerpo: { actual, nueva }, credenciales: true })
+export const changePassword = (currentPassword, newPassword) =>
+  request('/clave', { method: 'PUT', json: { actual: currentPassword, nueva: newPassword }, credentialsInBody: true })
 
 /* «Mi perfil»: nombre, segundo nombre, apellido, WhatsApp y ciudad, todo opcional. El
    PUT manda los cinco campos siempre —el servidor reemplaza el perfil entero— y contesta
    con cómo quedó guardado. */
-export const getProfile = () => pedir('/profile')
-export const saveProfile = (profile) => pedir('/profile', { method: 'PUT', cuerpo: profile })
+export const getProfile = () => request('/profile')
+export const saveProfile = (profile) => request('/profile', { method: 'PUT', json: profile })
 
 /* La clave provisoria de otra cuenta, desde el panel. Sólo el admin: a otro le da 404. */
-export const resetUserPassword = (usuario) =>
-  pedir('/admin/reset-password', { method: 'POST', cuerpo: { usuario } })
+export const resetUserPassword = (username) =>
+  request('/admin/reset-password', { method: 'POST', json: { usuario: username } })
 
-export async function salir() {
-  await pedir('/sesion', { method: 'DELETE' }).catch(() => {})
-  recordarToken(null)
+export async function logout() {
+  await request('/sesion', { method: 'DELETE' }).catch(() => {})
+  storeToken(null)
 }
 
 // Al abrir: ¿el token guardado sigue sirviendo? Si no, se muestra la pantalla de entrada.
-export async function quienSoy() {
+export async function fetchAccount() {
   if (!token()) return null
   /* LA CUENTA SE ARMA A MANO, y cada campo nuevo de /api/yo hay que DEJARLO PASAR acá.
      No pasaba `salud`: el punto rojo del botón «Panel» —el aviso de que la copia de la
-     base está vieja, lo único que Angel pidió que le avise— lee `cuenta.salud`, y desde
+     base está vieja, lo único que Angel pidió que le avise— lee `account.health`, y desde
      que existe (2026-09-28) nunca pudo encenderse. Se descubrió el 2026-09-30 agregando
      `mustChange`, que sin este cambio tampoco llegaba. Hay test en pages.test.js. */
-  return pedir('/yo' + marcaApp())
+  return request('/yo' + appQuery())
     .then((d) => ({
-      usuario: d.usuario,
+      username: d.usuario,
       admin: !!d.admin,
       mustChange: !!d.mustChange,
-      ...(d.salud ? { salud: d.salud } : {}),
+      ...(d.salud ? { health: d.salud } : {}),
     }))
     /* `null` quiere decir UNA sola cosa: no hay sesión, andá al formulario. Antes se
        tragaba cualquier error y devolvía null igual, así que el servidor caído, un
@@ -156,43 +156,43 @@ export async function quienSoy() {
        una sesión vencida: parecía que había que volver a escribir la clave, cuando lo
        único que hacía falta era esperar. Lo demás sube, y la app lo muestra como lo
        que es, con un botón de reintentar. */
-    .catch((e) => { if (e?.sesion) return null; throw e })
+    .catch((e) => { if (e?.sessionExpired) return null; throw e })
 }
 
 // Los números de toda la app. A quien no es administrador el servidor le contesta
 // 404, así que el botón ni se dibuja.
-/* `mapa` es {idDeColeccion: [prefijos de sus expansiones]}. Va en la dirección y no en
+/* `expansionIdsByCollection` es {idDeColeccion: [ids de sus expansiones]}. Va en la dirección y no en
    el cuerpo porque esto es un GET, y el catálogo lo conoce el front: el servidor no puede
    saber qué prefijo es de qué colección sin que se lo digan. Si no se manda, el panel
    contesta igual pero sin partir por colección. */
-export const estadisticas = (mapa) =>
-  pedir('/admin/resumen' + (mapa ? `?cols=${encodeURIComponent(JSON.stringify(mapa))}` : ''))
+export const fetchAdminSummary = (expansionIdsByCollection) =>
+  request('/admin/resumen' + (expansionIdsByCollection ? `?cols=${encodeURIComponent(JSON.stringify(expansionIdsByCollection))}` : ''))
 
 /* ---------------------------------- colección ---------------------------------- */
 
-export const leerColeccion = () => pedir('/coleccion')
+export const fetchCollection = () => request('/coleccion')
 
 // Un toque manda sólo la carta que cambió, no las 1936.
 // keepalive deja que el pedido termine aunque se cierre la pestaña: se usa para
 // vaciar lo que todavía no salió cuando te vas.
-export const guardarCarta = (clave, cantidad, estado, opciones = {}) =>
-  pedir(`/cartas/${encodeURIComponent(clave)}`, {
+export const saveCard = (cardKey, quantity, condition, options = {}) =>
+  request(`/cartas/${encodeURIComponent(cardKey)}`, {
     method: 'PUT',
-    cuerpo: { cantidad, estado: estado ?? null },
-    ...opciones,
+    json: { cantidad: quantity, estado: condition ?? null },
+    ...options,
   })
 
-export const reemplazarColeccion = (datos) =>
-  pedir('/coleccion', { method: 'PUT', cuerpo: datos })
+export const replaceCollection = (collection) =>
+  request('/coleccion', { method: 'PUT', json: collection })
 
 /* ------------------------------- copias en disco ------------------------------- */
 
-export function descargar(datos, nombre = 'mi-coleccion-dbz.json') {
-  const blob = new Blob([JSON.stringify(datos, null, 2)], { type: 'application/json' })
+export function downloadJson(data, filename = 'mi-coleccion-dbz.json') {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = nombre
+  a.download = filename
   /* El <a> tiene que estar EN el documento, y la URL no se puede soltar en el mismo
      instante del click: revocarla ahí es una carrera con el navegador, que todavía no
      empezó a bajar nada. Antes andaba en Chrome por suerte y no por diseño — es el
@@ -222,55 +222,55 @@ export function descargar(datos, nombre = 'mi-coleccion-dbz.json') {
 
    Ahora, lo que no se reconoce se rechaza. Sigue entendiendo las dos formas anteriores
    del archivo, porque un respaldo puede ser viejo. Devuelve `null` si no es una copia. */
-const esMapa = (v) => !!v && typeof v === 'object' && !Array.isArray(v)
+const isPlainObject = (v) => !!v && typeof v === 'object' && !Array.isArray(v)
 
 /* La forma de una clave de carta, para reconocer la forma más vieja del archivo.
 
-   34 Y NO 40, que es lo que aceptaba: tiene que ser la misma que `claveValida` del
+   34 Y NO 40, que es lo que aceptaba: tiene que ser la misma que `isValidCardKey` del
    servidor, que son 34 + `:` + 5 dígitos = los 40 justos de la columna. Con 40 acá, un
    archivo con claves de entre 35 y 40 caracteres pasaba por copia válida, el front
    preguntaba «vas a perder N» y recién el servidor lo rechazaba con un 400 — en el único
    camino de la app que se usa para RECUPERAR algo. Es la misma clase de desacuerdo que ya
    costó un 500: la validación tiene que cerrar con el ancho de la columna. */
-const PARECE_CARTA = /^[a-z0-9-]{1,34}:\d{1,5}$/
+const CARD_KEY_PATTERN = /^[a-z0-9-]{1,34}:\d{1,5}$/
 
-export function normalizar(datos) {
-  if (!esMapa(datos)) return null
+export function normalizeBackup(data) {
+  if (!isPlainObject(data)) return null
 
   // La forma de hoy: { estados, cantidades }.
-  if (esMapa(datos.cantidades))
-    return { estados: esMapa(datos.estados) ? datos.estados : {}, cantidades: datos.cantidades }
+  if (isPlainObject(data.cantidades))
+    return { estados: isPlainObject(data.estados) ? data.estados : {}, cantidades: data.cantidades }
 
   // Una anterior: { estados, repetidas }.
-  if (esMapa(datos.estados)) {
-    const cantidades = {}
-    for (const clave of Object.keys(datos.estados))
-      cantidades[clave] = 1 + (datos.repetidas?.[clave] ?? 0)
-    return { estados: datos.estados, cantidades }
+  if (isPlainObject(data.estados)) {
+    const quantities = {}
+    for (const cardKey of Object.keys(data.estados))
+      quantities[cardKey] = 1 + (data.repetidas?.[cardKey] ?? 0)
+    return { estados: data.estados, cantidades: quantities }
   }
 
   // La más vieja: un mapa de estados suelto. Se reconoce porque TODAS sus claves tienen
   // forma de carta; si alguna no, es otro archivo cualquiera y no se toca nada.
-  const claves = Object.keys(datos)
-  if (claves.length && claves.every((c) => PARECE_CARTA.test(c))) {
-    const cantidades = {}
-    for (const clave of claves) cantidades[clave] = 1
-    return { estados: datos, cantidades }
+  const keys = Object.keys(data)
+  if (keys.length && keys.every((c) => CARD_KEY_PATTERN.test(c))) {
+    const quantities = {}
+    for (const cardKey of keys) quantities[cardKey] = 1
+    return { estados: data, cantidades: quantities }
   }
 
   return null
 }
 
-export function restaurar(archivo) {
-  return archivo.text().then((t) => {
-    let crudo
+export function readBackupFile(file) {
+  return file.text().then((t) => {
+    let raw
     try {
-      crudo = JSON.parse(t)
+      raw = JSON.parse(t)
     } catch {
-      throw new ErrorApi('Ese archivo no es un .json válido.')
+      throw new ApiError('Ese archivo no es un .json válido.')
     }
-    const datos = normalizar(crudo)
-    if (!datos) throw new ErrorApi('Ese archivo no parece una copia de tu colección.')
-    return datos
+    const backup = normalizeBackup(raw)
+    if (!backup) throw new ApiError('Ese archivo no parece una copia de tu colección.')
+    return backup
   })
 }

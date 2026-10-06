@@ -26,11 +26,11 @@ import { Component } from 'react'
 export class ErrorBoundary extends Component {
   constructor(props) {
     super(props)
-    this.state = { fallo: false }
+    this.state = { hasError: false }
   }
 
   static getDerivedStateFromError() {
-    return { fallo: true }
+    return { hasError: true }
   }
 
   componentDidCatch(error) {
@@ -39,19 +39,19 @@ export class ErrorBoundary extends Component {
     console.error('Se rompió al dibujar:', error)
   }
 
-  reintentar = () => {
-    this.setState({ fallo: false })
+  retry = () => {
+    this.setState({ hasError: false })
     if (this.props.onReset) this.props.onReset()
     else location.reload()
   }
 
   render() {
-    if (!this.state.fallo) return this.props.children
+    if (!this.state.hasError) return this.props.children
     return (
       <div className="sheet">
-        <p className="loading">{this.props.aviso ?? 'Algo se rompió en la pantalla.'}</p>
+        <p className="loading">{this.props.message ?? 'Algo se rompió en la pantalla.'}</p>
         <p className="error-actions">
-          <button className="retry" onClick={this.reintentar}>
+          <button className="retry" onClick={this.retry}>
             {this.props.onReset ? 'Reintentar' : 'Recargar'}
           </button>
         </p>

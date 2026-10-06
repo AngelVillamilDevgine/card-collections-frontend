@@ -256,7 +256,7 @@ button { cursor: pointer; }
   .band .range,
   .band .count { font-size: 11px; }
 }
-/* Sin opacity: el color de la banda se elige midiendo contraste (textoSobre), y bajarle
+/* Sin opacity: el color de la banda se elige midiendo contraste (textColorOn), y bajarle
    la opacidad encima deshacía ese cálculo — el rango fallaba en 10 de las 16 bandas y la
    cuenta en 3. La jerarquía la hace el tamaño, que ya es menor. */
 .band .range { font-size: 13px; font-variant-numeric: tabular-nums; }
@@ -1549,7 +1549,7 @@ button { cursor: pointer; }
 /* El ícono es papel sobre papel: sin el borde se funde con el blanco de la barra y
    parece un dibujo suelto en vez de un ícono de app. */
 /* El relleno que deja el pie alcanzable cuando la barra está puesta. El alto lo mide
-   Instalar.jsx sobre la barra de verdad; el valor de aquí es sólo el respaldo. */
+   InstallPrompt.jsx sobre la barra de verdad; el valor de aquí es sólo el respaldo. */
 body.with-install-bar { padding-bottom: var(--install-height, 150px); }
 
 /* Las dos barras fijas del teléfono no pueden pisarse: la de instalar se apoya arriba de

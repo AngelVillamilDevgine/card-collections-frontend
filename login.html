@@ -6,7 +6,7 @@
     <!-- Atrapa `beforeinstallprompt`, que se dispara a los ~180 ms y una sola vez. Va
          `async` porque un script clásico sin eso frena el parseo del HTML, y el bundle es
          un módulo que sólo ejecuta cuando el parseo termina. -->
-    <script async src="./temprano.js"></script>
+    <script async src="./early.js"></script>
 
     <!-- Abrir la conexión con la API mientras todavía se parsea el HTML. -->
     <link rel="preconnect" href="https://api.cromeros.com.ar" crossorigin />

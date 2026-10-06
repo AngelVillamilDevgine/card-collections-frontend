@@ -21,11 +21,11 @@
     <!-- QUE CHROME NO OFREZCA INSTALAR EN LA LANDING. La página linkea el manifest —tiene
          que hacerlo: hay instalaciones viejas con `start_url=/` que dejarían de reconocerse
          como la app— y con el manifest a la vista Chrome en Android puede sacar SU cartel
-         de instalar solo. Lo que lo apaga es el `preventDefault` de `temprano.js` sobre
+         de instalar solo. Lo que lo apaga es el `preventDefault` de `early.js` sobre
          `beforeinstallprompt`. Acá el evento guardado no lo usa nadie (la barra de instalar
          es de React y esta página no carga el bundle): se lo captura únicamente para que el
          cartel del navegador no salte sobre la página de venta. -->
-    <script async src="./temprano.js"></script>
+    <script async src="./early.js"></script>
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#101d33" />
@@ -82,7 +82,7 @@
     <link rel="preload" as="font" type="font/woff2" href="/landing/anton.woff2" crossorigin />
 
     <!-- EL CSS VA EN LÍNEA Y ES TODO EL QUE HAY: la landing no carga el bundle ni
-         `estilos.css`, así que es UN documento. La CSP lo permite (style-src
+         `styles.css`, así que es UN documento. La CSP lo permite (style-src
          'unsafe-inline'), y la tipografía es un woff2 autohospedado porque font-src es
          'self': Google Fonts no entra, y está bien que no entre.
 
@@ -94,10 +94,10 @@
          sobre frío claro con UNA cinta de brillo holográfico, y el cielo nocturno del
          héroe lleva el rayado de sol de las CARTA ÚNICA. Angel soltó la paleta de la app
          a propósito («podés despegarte todo lo que quieras»), así que los colores de acá
-         NO son los de estilos.css y no tienen que sincronizarse con ellos.
+         NO son los de styles.css y no tienen que sincronizarse con ellos.
 
          RENDIMIENTO, que fue la otra mitad del pedido («que no se laggee»): el único
-         JavaScript es resume.js (el ruteo) y temprano.js (apagar el cartel de instalar
+         JavaScript es resume.js (el ruteo) y early.js (apagar el cartel de instalar
          del navegador). Las tres animaciones de reposo (breathe, bob, sway) y el
          hover de la carta animan sólo transform/translate/rotate — compositor, nada
          relayoutea — y TODAS van adentro de prefers-reduced-motion. Las dieciséis fotos
@@ -771,7 +771,7 @@
       </div>
 
       <!-- El `?f=` es el pulso de la pasarela: dice desde qué botón se llegó al
-           formulario. `Entrar.jsx` lo lee y lo manda; una `f` inventada cuenta como
+           formulario. `Login.jsx` lo lee y lo manda; una `f` inventada cuenta como
            llegada directa. -->
       <div class="actions">
         <a class="cta" href="/login?new=1&f=hero">Anotá tus faltantes</a>

@@ -3,31 +3,31 @@
 // Tres pasos, con el mismo diálogo que ya pregunta la condición de la carta:
 // qué lista, de qué expansiones (se marcan varias), y el texto con el botón de copiar.
 import { useEffect, useRef, useState } from 'react'
-import { atraparFoco, usarEscape } from './foco'
+import { trapFocus, useCloseOnEscape } from './dialog'
 import { slotsOf, slotKey, variantsFor, cardLabel } from './collections'
-import { ESTADOS } from './estados'
+import { CONDITIONS } from './conditions'
 
-const OPCIONES = [
-  { id: 'falta',     label: 'Las que me faltan' },
-  { id: 'repetidas', label: 'Las repetidas' },
-  { id: 'ambas',     label: 'Las dos cosas' },
-  { id: 'tengo',     label: 'Las que ya tengo' },
-  { id: 'variantes', label: 'Me faltan variantes', soloConVariantes: true },
+const LIST_OPTIONS = [
+  { id: 'missing',         label: 'Las que me faltan' },
+  { id: 'duplicates',      label: 'Las repetidas' },
+  { id: 'both',            label: 'Las dos cosas' },
+  { id: 'owned',           label: 'Las que ya tengo' },
+  { id: 'missingVariants', label: 'Me faltan variantes', onlyWithVariants: true },
 ]
 
 /* Cómo se lee cada condición adentro del título. No es el `label` del selector: ahí dice
    «Perfecta» porque califica a una carta, y acá tiene que caer después de «las que tengo».
    Son tres frases y viven al lado del título que las usa. */
-const COMO = {
+const CONDITION_PHRASES = {
   bien: 'EN BUEN ESTADO',
   perfecta: 'PERFECTAS',
   reemplazar: 'PARA REEMPLAZAR',
 }
 
 /* Una carta que tenés sin condición cargada cuenta como «buen estado», que es lo mismo
-   que hace `resumen` en App.jsx con `cuenta[est ?? 'bien']++`. Si no, las que vienen de
+   que hace `summary` en App.jsx con `conditionCounts[condition ?? 'bien']++`. Si no, las que vienen de
    una copia vieja —y todo Leyenda— no caerían en ningún cajón. */
-const condicionDe = (e) => (ESTADOS.some((x) => x.id === e) ? e : 'bien')
+const conditionOf = (e) => (CONDITIONS.some((x) => x.id === e) ? e : 'bien')
 
 /* EL NÚMERO QUE SE IMPRIME LLEVA EL PREFIJO DE SU EXPANSIÓN, y sin eso el texto miente.
    En Leyenda, `ley-f` va de 504 a 513 y `ley-4` de 385 a 550: sin prefijo, dos cartas
@@ -42,7 +42,7 @@ const condicionDe = (e) => (ESTADOS.some((x) => x.id === e) ? e : 'bien')
 
    Vive en `collections.js` porque la grilla y el diálogo dicen lo mismo: cómo se llama una
    carta es una sola respuesta, y tenerla en dos lados es como se desincronizó `numbersOf`. */
-const rotulo = cardLabel
+const printedLabel = cardLabel
 
 /* LAS DOS LISTAS SE ARMAN SOBRE LOS CASILLEROS DEL HUECO, NO SOBRE LA CLAVE BASE, y eso
    no es un detalle: leyendo sólo `${exp.id}:${n}`, **una carta que tenés en variante
@@ -50,7 +50,7 @@ const rotulo = cardLabel
    cartas que ya tenés, y las repetidas de una variante no salían nunca — justo las que
    sirven para cambiar. En Leyenda, que es donde hay variantes, eso es casi todo.
 
-   La cuenta es la misma que hace `resumen` en App.jsx, y tiene que serlo o los números
+   La cuenta es la misma que hace `summary` en App.jsx, y tiene que serlo o los números
    del diálogo no coinciden con los de la barra de filtros:
 
    - **falta** el hueco entero: ningún casillero con cantidad mayor que cero;
@@ -59,12 +59,12 @@ const rotulo = cardLabel
 
    En Cromeros no hay variantes, así que `slotsOf` devuelve el único casillero de siempre
    y el texto sale byte por byte igual que antes. */
-function faltantesDe(exp, cantidades, variantes) {
-  const numeros = exp.lista.filter((n) =>
-    slotsOf(exp, n, variantes ?? exp.variantes ?? [], cantidades)
-      .every((s) => !((cantidades[s.clave] ?? 0) > 0))
+function listMissing(exp, quantities, variants) {
+  const numbers = exp.cardNumbers.filter((n) =>
+    slotsOf(exp, n, variants ?? exp.variantes ?? [], quantities)
+      .every((s) => !((quantities[s.cardKey] ?? 0) > 0))
   )
-  return { textos: numeros.map((n) => rotulo(exp, n)), total: numeros.length }
+  return { entries: numbers.map((n) => printedLabel(exp, n)), total: numbers.length }
 }
 
 /* Y LAS REPETIDAS DICEN EN QUÉ VARIANTE SOBRAN. Una repetida existe para cambiarla, y con
@@ -74,34 +74,34 @@ function faltantesDe(exp, cantidades, variantes) {
    EN CROMEROS EL TEXTO NO CAMBIA UNA LETRA. Ahí no hay variantes, así que `slotsOf`
    devuelve el único casillero de siempre, no hay ninguna variante en juego y sale el
    `504x2` de toda la vida. Son 28 personas que ya leen ese formato. */
-function repetidasDe(exp, cantidades, variantes) {
-  const textos = []
+function listDuplicates(exp, quantities, variants) {
+  const entries = []
   let total = 0
-  for (const n of exp.lista) {
+  for (const n of exp.cardNumbers) {
     // Tener 3 es que me sobran 2. Es lo mismo que cuenta el contador de "repetidas"
     // de arriba, así que los números coinciden.
-    const conSobrante = []
-    let sobran = 0
-    for (const s of slotsOf(exp, n, variantes ?? exp.variantes ?? [], cantidades)) {
-      const cant = cantidades[s.clave] ?? 0
-      if (cant < 2) continue
-      conSobrante.push({ variante: s.variante, cuantas: cant - 1 })
-      sobran += cant - 1
+    const spareSlots = []
+    let spares = 0
+    for (const s of slotsOf(exp, n, variants ?? exp.variantes ?? [], quantities)) {
+      const quantity = quantities[s.cardKey] ?? 0
+      if (quantity < 2) continue
+      spareSlots.push({ variant: s.variant, count: quantity - 1 })
+      spares += quantity - 1
     }
-    if (sobran <= 0) continue
-    total += sobran
-    if (!conSobrante.some((x) => x.variante)) {
-      textos.push(sobran > 1 ? `${rotulo(exp, n)}x${sobran}` : rotulo(exp, n))
+    if (spares <= 0) continue
+    total += spares
+    if (!spareSlots.some((x) => x.variant)) {
+      entries.push(spares > 1 ? `${printedLabel(exp, n)}x${spares}` : printedLabel(exp, n))
       continue
     }
     /* «sin variante» es el casillero base cuando la carta SÍ tiene variantes declaradas:
        una fila de antes de que el catálogo supiera en cuáles sale. No es una variante
        inventado, es decir que no sabemos cuál es. */
-    textos.push(`${rotulo(exp, n)} · ` + conSobrante
-      .map((x) => `${x.variante ? x.variante.nombre.toLowerCase() : 'sin variante'}${x.cuantas > 1 ? ` x${x.cuantas}` : ''}`)
+    entries.push(`${printedLabel(exp, n)} · ` + spareSlots
+      .map((x) => `${x.variant ? x.variant.nombre.toLowerCase() : 'sin variante'}${x.count > 1 ? ` x${x.count}` : ''}`)
       .join(', '))
   }
-  return { textos, total }
+  return { entries, total }
 }
 
 /* ME FALTAN VARIANTES: las que YA TENÉS pero no en todos los fondos en que salieron.
@@ -118,21 +118,21 @@ function repetidasDe(exp, cantidades, variantes) {
  * que no tenés en ninguna variante va en «me faltan» y no acá.
  *
  * `total` cuenta VARIANTES y no cartas, que es lo que se está pidiendo. */
-function faltanVariantesDe(exp, cantidades) {
-  const textos = []
+function listMissingVariants(exp, quantities) {
+  const entries = []
   let total = 0
-  for (const n of exp.lista) {
-    const suyas = variantsFor(exp, n)
-    if (!suyas.length) continue
-    const tiene = (v) => (cantidades[slotKey(exp.id, n, v?.id)] ?? 0) > 0
+  for (const n of exp.cardNumbers) {
+    const cardVariants = variantsFor(exp, n)
+    if (!cardVariants.length) continue
+    const owns = (v) => (quantities[slotKey(exp.id, n, v?.id)] ?? 0) > 0
     /* Si no tenés ninguno, la carta entera te falta: va en la otra lista. */
-    if (!((cantidades[slotKey(exp.id, n)] ?? 0) > 0) && !suyas.some(tiene)) continue
-    const sinTener = suyas.filter((v) => !tiene(v))
-    if (!sinTener.length) continue
-    total += sinTener.length
-    textos.push(`${rotulo(exp, n)} · ${sinTener.map((v) => v.nombre.toLowerCase()).join(', ')}`)
+    if (!((quantities[slotKey(exp.id, n)] ?? 0) > 0) && !cardVariants.some(owns)) continue
+    const missingVariants = cardVariants.filter((v) => !owns(v))
+    if (!missingVariants.length) continue
+    total += missingVariants.length
+    entries.push(`${printedLabel(exp, n)} · ${missingVariants.map((v) => v.nombre.toLowerCase()).join(', ')}`)
   }
-  return { textos, total }
+  return { entries, total }
 }
 
 /* LAS QUE YA TENGO. Es la lista que se pega para ofrecer, no para pedir, así que lo que
@@ -140,25 +140,25 @@ function faltanVariantesDe(exp, cantidades) {
    junto con las perfectas.
 
    Un hueco entra si ALGUNO de sus casilleros tiene algo y pasa el filtro — la misma
-   cuenta que `faltantesDe`, dada vuelta. `filtro` en `null` es «todas», y es también lo
+   cuenta que `listMissing`, dada vuelta. `conditionFilter` en `null` es «todas», y es también lo
    que llega de una colección que no usa condición, como Leyenda. */
-function tengoDe(exp, cantidades, variantes, filtro, estados) {
-  const textos = []
-  for (const n of exp.lista) {
-    const hay = slotsOf(exp, n, variantes ?? exp.variantes ?? [], cantidades).some((s) => {
-      if (!((cantidades[s.clave] ?? 0) > 0)) return false
-      return !filtro || filtro.has(condicionDe(estados?.[s.clave]))
+function listOwned(exp, quantities, variants, conditionFilter, conditions) {
+  const entries = []
+  for (const n of exp.cardNumbers) {
+    const isOwned = slotsOf(exp, n, variants ?? exp.variantes ?? [], quantities).some((s) => {
+      if (!((quantities[s.cardKey] ?? 0) > 0)) return false
+      return !conditionFilter || conditionFilter.has(conditionOf(conditions?.[s.cardKey]))
     })
-    if (hay) textos.push(rotulo(exp, n))
+    if (isOwned) entries.push(printedLabel(exp, n))
   }
-  return { textos, total: textos.length }
+  return { entries, total: entries.length }
 }
 
 /* El título dice CUÁLES, porque el que lo lee no tiene forma de saberlo de otro modo. */
-const tituloTengo = (filtro) => {
-  if (!filtro) return 'LAS QUE TENGO'
-  const cuales = ESTADOS.filter((e) => filtro.has(e.id)).map((e) => COMO[e.id])
-  return `LAS QUE TENGO ${cuales.join(' Y ')}`
+const ownedTitle = (conditionFilter) => {
+  if (!conditionFilter) return 'LAS QUE TENGO'
+  const phrases = CONDITIONS.filter((e) => conditionFilter.has(e.id)).map((e) => CONDITION_PHRASES[e.id])
+  return `LAS QUE TENGO ${phrases.join(' Y ')}`
 }
 
 /* Una estrella a cada lado del titulo de cada bloque. El texto se pega en un grupo de
@@ -168,7 +168,7 @@ const tituloTengo = (filtro) => {
    la dibujan todos los telefonos, incluidos los Android viejos, asi que no hay forma
    de que le llegue a alguien como un cuadradito. Y va con el tema: las esferas del
    dragon se cuentan por estrellas. */
-const ESTRELLA = '⭐'
+const STAR = '⭐'
 
 /* EL PIE, que es la única parte del texto que no habla de cartas.
    Este texto se pega en un grupo de WhatsApp o de Facebook, donde lo lee gente que no
@@ -188,71 +188,71 @@ const ESTRELLA = '⭐'
    Esto CAMBIA el texto de Cromeros, que hasta ahora salía byte por byte como siempre.
    Lo pidió Angel y es a propósito: son 28 personas que ya leen ese formato y ahora
    además ven de dónde sale. */
-const PIE = 'https://www.cromeros.com.ar'
+const FOOTER_URL = 'https://www.cromeros.com.ar'
 
-const SECCIONES = {
-  falta:     [{ titulo: 'ME FALTAN', de: faltantesDe }],
-  repetidas: [{ titulo: 'REPETIDAS', de: repetidasDe }],
-  ambas:     [{ titulo: 'ME FALTAN', de: faltantesDe },
-              { titulo: 'REPETIDAS', de: repetidasDe }],
-  tengo:     [{ titulo: tituloTengo, de: tengoDe }],
+const SECTIONS = {
+  missing:         [{ title: 'ME FALTAN', list: listMissing }],
+  duplicates:      [{ title: 'REPETIDAS', list: listDuplicates }],
+  both:            [{ title: 'ME FALTAN', list: listMissing },
+                    { title: 'REPETIDAS', list: listDuplicates }],
+  owned:           [{ title: ownedTitle, list: listOwned }],
   /* Un renglón por carta: «821 · azul, dorado, ...» pegado con comas al lado del
      siguiente no se lee. Es la única lista que lo necesita. */
-  variantes: [{ titulo: 'ME FALTAN VARIANTES', de: faltanVariantesDe, porRenglon: true,
-                aclara: 'éstas ya las tengo, me faltan estos fondos' }],
+  missingVariants: [{ title: 'ME FALTAN VARIANTES', list: listMissingVariants, onePerLine: true,
+                      note: 'éstas ya las tengo, me faltan estos fondos' }],
 }
 
 /* Para el paso 2: sólo las expansiones que tienen algo que listar, con cuántas. */
-function expansionesCon(modo, catalogo, cantidades, variantes, filtro, estados) {
-  const salida = []
-  for (const exp of catalogo) {
-    let cuenta = 0
-    for (const s of SECCIONES[modo]) cuenta += s.de(exp, cantidades, variantes?.[exp.id], filtro, estados).total
-    if (cuenta) salida.push({ exp, cuenta })
+function expansionsWithItems(mode, catalog, quantities, variantsByExpansion, conditionFilter, conditions) {
+  const result = []
+  for (const exp of catalog) {
+    let count = 0
+    for (const s of SECTIONS[mode]) count += s.list(exp, quantities, variantsByExpansion?.[exp.id], conditionFilter, conditions).total
+    if (count) result.push({ exp, count })
   }
-  return salida
+  return result
 }
 
 /* Las cartas van una por una, sin agrupar en rangos: así se pega y se lee derecho. */
-function armar(modo, elegidas, catalogo, cantidades, encabezado, variantes, filtro, estados) {
-  const partes = []
-  for (const s of SECCIONES[modo]) {
-    const lineas = []
+function buildText(mode, selectedExpansions, catalog, quantities, heading, variantsByExpansion, conditionFilter, conditions) {
+  const blocks = []
+  for (const s of SECTIONS[mode]) {
+    const lines = []
     let total = 0
-    for (const exp of catalogo) {
-      if (!elegidas.has(exp.id)) continue
-      const { textos, total: suma } = s.de(exp, cantidades, variantes?.[exp.id], filtro, estados)
-      if (!textos.length) continue
-      total += suma
+    for (const exp of catalog) {
+      if (!selectedExpansions.has(exp.id)) continue
+      const { entries, total: expansionTotal } = s.list(exp, quantities, variantsByExpansion?.[exp.id], conditionFilter, conditions)
+      if (!entries.length) continue
+      total += expansionTotal
       /* Un renglón por carta cuando el texto lleva variantes. Pegados con comas,
          «821 · plata x2, 845 · plata» se lee como si la 845 fuera parte de la 821.
          Se decide MIRANDO EL TEXTO y no la colección: así Cromeros, donde nunca hay
          variantes, sigue saliendo en un renglón corrido como siempre. */
-      const enRenglones = s.porRenglon || textos.some((t) => t.includes(' · '))
-      lineas.push(enRenglones
-        ? `${exp.nombre}\n${textos.map((t) => `  ${t}`).join('\n')}`
-        : `${exp.nombre}: ${textos.join(', ')}`)
+      const onePerLine = s.onePerLine || entries.some((t) => t.includes(' · '))
+      lines.push(onePerLine
+        ? `${exp.nombre}\n${entries.map((t) => `  ${t}`).join('\n')}`
+        : `${exp.nombre}: ${entries.join(', ')}`)
     }
-    if (lineas.length) {
-      const titulo = typeof s.titulo === 'function' ? s.titulo(filtro) : s.titulo
+    if (lines.length) {
+      const title = typeof s.title === 'function' ? s.title(conditionFilter) : s.title
       /* Una línea que diga qué contesta la lista. Sin ella el que la lee sigue
          adivinando si estás pidiendo la carta o sólo un fondo. */
-      const aclara = s.aclara ? `\n${s.aclara}` : ''
-      partes.push(`${ESTRELLA} ${titulo} (${total}) ${ESTRELLA}${aclara}\n${lineas.join('\n')}`)
+      const note = s.note ? `\n${s.note}` : ''
+      blocks.push(`${STAR} ${title} (${total}) ${STAR}${note}\n${lines.join('\n')}`)
     }
   }
-  if (!partes.length) return 'No hay nada para listar.'
+  if (!blocks.length) return 'No hay nada para listar.'
   /* Una línea al principio diciendo de qué álbum es. Hace falta desde que hay dos: «me
      falta la 551» no significa lo mismo en uno que en otro. Cromeros no la lleva — su
      texto tiene que salir idéntico al de siempre. */
-  const cuerpo = partes.join('\n\n')
-  const conEncabezado = encabezado ? `${encabezado}\n\n${cuerpo}` : cuerpo
-  return `${conEncabezado}\n\n${PIE}`
+  const body = blocks.join('\n\n')
+  const withHeading = heading ? `${heading}\n\n${body}` : body
+  return `${withHeading}\n\n${FOOTER_URL}`
 }
 
-const Tilde = ({ marcada }) => (
-  <span className={`check${marcada ? ' on' : ''}`} aria-hidden="true">
-    {marcada && (
+const Checkmark = ({ checked }) => (
+  <span className={`check${checked ? ' on' : ''}`} aria-hidden="true">
+    {checked && (
       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
            strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M5 13l4 4L19 7" />
@@ -261,55 +261,55 @@ const Tilde = ({ marcada }) => (
   </span>
 )
 
-export default function Exportar({ catalogo, datos, variantes, condicion, encabezado, onCerrar }) {
-  const [modo, setModo] = useState(null)
+export default function ExportDialog({ catalog, collectionData, variantsByExpansion, usesCondition, heading, onClose }) {
+  const [mode, setMode] = useState(null)
   /* Arrancan las tres marcadas: lo más común es querer todo, y desmarcar es menos trabajo.
-     `eligiendoCondicion` es el paso de más que sólo tiene «las que ya tengo». */
-  const [condiciones, setCondiciones] = useState(new Set(ESTADOS.map((e) => e.id)))
-  const [eligiendoCondicion, setEligiendoCondicion] = useState(false)
-  const [elegidas, setElegidas] = useState(new Set())
-  const [mostrando, setMostrando] = useState(false)
-  const [aviso, setAviso] = useState(null)
+     `pickingConditions` es el paso de más que sólo tiene «las que ya tengo». */
+  const [selectedConditions, setSelectedConditions] = useState(new Set(CONDITIONS.map((e) => e.id)))
+  const [pickingConditions, setPickingConditions] = useState(false)
+  const [selectedExpansions, setSelectedExpansions] = useState(new Set())
+  const [showingText, setShowingText] = useState(false)
+  const [copyStatus, setCopyStatus] = useState(null)
   const areaRef = useRef(null)
   /* El reloj del aviso de Copiar. Este diálogo se cierra con Escape, con el botón y
      tocando afuera, así que el timeout puede quedar corriendo con el diálogo ya
      desmontado — y entonces el setState no va a ninguna parte. */
-  const relojAviso = useRef(null)
-  const caja = useRef(null)
+  const copyTimerRef = useRef(null)
+  const boxRef = useRef(null)
   /* Quién tenía el foco antes de abrir, leído en el render: para cuando corren los
      efectos, el autoFocus del diálogo ya se lo llevó. */
-  const abrio = useRef(document.activeElement)
+  const previousFocusRef = useRef(document.activeElement)
 
-  usarEscape(onCerrar)
+  useCloseOnEscape(onClose)
 
-  /* Una sola vez, al abrir: si colgara de `onCerrar` —una flecha nueva en cada render—
+  /* Una sola vez, al abrir: si colgara de `onClose` —una flecha nueva en cada render—
      volvería a capturar el foco de antes y al cerrar lo devolvería acá adentro. */
-  useEffect(() => atraparFoco(caja.current, abrio.current), [])
-  useEffect(() => () => clearTimeout(relojAviso.current), [])
+  useEffect(() => trapFocus(boxRef.current, previousFocusRef.current), [])
+  useEffect(() => () => clearTimeout(copyTimerRef.current), [])
 
-  const { cantidades, estados } = datos
-  const hayVariantes = catalogo.some((e) => (e.grupos?.length ?? 0) > 0 || (e.variantes?.length ?? 0) > 0)
+  const { cantidades: quantities, estados: conditions } = collectionData
+  const hasVariants = catalog.some((e) => (e.grupos?.length ?? 0) > 0 || (e.variantes?.length ?? 0) > 0)
 
   /* `null` es «todas»: cuando están las tres marcadas, y siempre en una colección que no
      usa condición. Así el título no aclara algo que no acota nada. */
-  const filtro = modo === 'tengo' && condicion && condiciones.size < ESTADOS.length
-    ? condiciones
+  const conditionFilter = mode === 'owned' && usesCondition && selectedConditions.size < CONDITIONS.length
+    ? selectedConditions
     : null
 
-  const expansiones = modo && !eligiendoCondicion
-    ? expansionesCon(modo, catalogo, cantidades, variantes, filtro, estados)
+  const expansions = mode && !pickingConditions
+    ? expansionsWithItems(mode, catalog, quantities, variantsByExpansion, conditionFilter, conditions)
     : []
-  const marcadas = expansiones.filter(({ exp }) => elegidas.has(exp.id))
-  const enTotal = marcadas.reduce((a, e) => a + e.cuenta, 0)
-  const texto = mostrando
-    ? armar(modo, elegidas, catalogo, cantidades, encabezado, variantes, filtro, estados)
+  const checkedExpansions = expansions.filter(({ exp }) => selectedExpansions.has(exp.id))
+  const checkedTotal = checkedExpansions.reduce((a, e) => a + e.count, 0)
+  const text = showingText
+    ? buildText(mode, selectedExpansions, catalog, quantities, heading, variantsByExpansion, conditionFilter, conditions)
     : ''
 
   /* Cuántos huecos hay en cada condición, para que el selector no sea a ciegas. */
-  const cuantasCon = (id) => {
-    const solo = new Set([id])
+  const countOwnedWith = (id) => {
+    const only = new Set([id])
     let n = 0
-    for (const exp of catalogo) n += tengoDe(exp, cantidades, variantes?.[exp.id], solo, estados).total
+    for (const exp of catalog) n += listOwned(exp, quantities, variantsByExpansion?.[exp.id], only, conditions).total
     return n
   }
 
@@ -318,161 +318,161 @@ export default function Exportar({ catalogo, datos, variantes, condicion, encabe
   /* Al elegir las expansiones arrancan todas marcadas. Se calcula con las MISMAS
      variantes y el mismo filtro con que se va a dibujar la lista; sin eso, una expansión
      cuyas cartas tenés sólo en variante arrancaba desmarcada. */
-  const marcarTodasLasQueTienen = (id, elFiltro) =>
-    setElegidas(new Set(
-      expansionesCon(id, catalogo, cantidades, variantes, elFiltro, estados).map((e) => e.exp.id)
+  const selectAllWithItems = (id, nextFilter) =>
+    setSelectedExpansions(new Set(
+      expansionsWithItems(id, catalog, quantities, variantsByExpansion, nextFilter, conditions).map((e) => e.exp.id)
     ))
 
-  function elegirModo(id) {
-    setModo(id)
+  function pickMode(id) {
+    setMode(id)
     /* «Las que ya tengo» pregunta primero en qué condición — pero sólo si la colección
        tiene condición. En Leyenda no la hay: preguntar tendría una sola respuesta. */
-    if (id === 'tengo' && condicion) {
-      setEligiendoCondicion(true)
+    if (id === 'owned' && usesCondition) {
+      setPickingConditions(true)
       return
     }
-    setEligiendoCondicion(false)
-    marcarTodasLasQueTienen(id, null)
+    setPickingConditions(false)
+    selectAllWithItems(id, null)
   }
 
-  function alternarCondicion(id) {
-    setCondiciones((antes) => {
-      const ahora = new Set(antes)
-      if (ahora.has(id)) ahora.delete(id)
-      else ahora.add(id)
-      return ahora
+  function toggleCondition(id) {
+    setSelectedConditions((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
     })
   }
 
-  function seguirDesdeCondicion() {
-    const elFiltro = condiciones.size < ESTADOS.length ? condiciones : null
-    setEligiendoCondicion(false)
-    marcarTodasLasQueTienen('tengo', elFiltro)
+  function confirmConditions() {
+    const nextFilter = selectedConditions.size < CONDITIONS.length ? selectedConditions : null
+    setPickingConditions(false)
+    selectAllWithItems('owned', nextFilter)
   }
 
-  function alternar(id) {
-    setElegidas((antes) => {
-      const ahora = new Set(antes)
-      if (ahora.has(id)) ahora.delete(id)
-      else ahora.add(id)
-      return ahora
+  function toggleExpansion(id) {
+    setSelectedExpansions((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
     })
   }
 
-  const todasMarcadas = expansiones.length > 0 && marcadas.length === expansiones.length
-  const alternarTodas = () =>
-    setElegidas(todasMarcadas ? new Set() : new Set(expansiones.map((e) => e.exp.id)))
+  const allChecked = expansions.length > 0 && checkedExpansions.length === expansions.length
+  const toggleAll = () =>
+    setSelectedExpansions(allChecked ? new Set() : new Set(expansions.map((e) => e.exp.id)))
 
-  async function copiar() {
+  async function copyText() {
     // Se selecciona primero: si los dos caminos fallan, al menos queda listo para
     // copiar a mano en vez de un botón que no hace nada.
     areaRef.current?.focus()
     areaRef.current?.select()
     try {
-      await navigator.clipboard.writeText(texto)
-      setAviso('Copiado')
+      await navigator.clipboard.writeText(text)
+      setCopyStatus('Copiado')
     } catch {
       // El portapapeles moderno pide pestaña con foco y sitio seguro. Donde no se
       // puede, el de toda la vida todavía anda.
-      setAviso(document.execCommand?.('copy') ? 'Copiado' : 'Apretá Ctrl+C')
+      setCopyStatus(document.execCommand?.('copy') ? 'Copiado' : 'Apretá Ctrl+C')
     }
-    clearTimeout(relojAviso.current)
-    relojAviso.current = setTimeout(() => setAviso(null), 2000)
+    clearTimeout(copyTimerRef.current)
+    copyTimerRef.current = setTimeout(() => setCopyStatus(null), 2000)
   }
 
   return (
-    <div className="overlay" onClick={onCerrar}>
+    <div className="overlay" onClick={onClose}>
       <div
-        className={`dialog${mostrando ? ' wide' : ''}`}
+        className={`dialog${showingText ? ' wide' : ''}`}
         role="dialog"
         aria-modal="true"
         aria-label="Exportar"
-        ref={caja}
+        ref={boxRef}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
       >
         <h3>Exportar</h3>
 
-        {!modo && (
+        {!mode && (
           <>
             <p>¿Qué lista querés?</p>
             {/* «Me faltan variantes» sólo aparece donde hay variantes. En Cromeros sería un
                 botón que siempre contesta «no hay nada para listar». */}
-            {OPCIONES.filter((o) => !o.soloConVariantes || hayVariantes).map((o, i) => (
-              <button key={o.id} className="option simple" onClick={() => elegirModo(o.id)} autoFocus={i === 0}>
+            {LIST_OPTIONS.filter((o) => !o.onlyWithVariants || hasVariants).map((o, i) => (
+              <button key={o.id} className="option simple" onClick={() => pickMode(o.id)} autoFocus={i === 0}>
                 {o.label}
               </button>
             ))}
-            <button className="cancel" onClick={onCerrar}>Cancelar</button>
+            <button className="cancel" onClick={onClose}>Cancelar</button>
           </>
         )}
 
-        {eligiendoCondicion && (
+        {pickingConditions && (
           <>
             <p>¿En qué estado? Tocá para marcar y desmarcar.</p>
             <div className="options">
-              {ESTADOS.map((e, i) => {
-                const marcada = condiciones.has(e.id)
+              {CONDITIONS.map((e, i) => {
+                const checked = selectedConditions.has(e.id)
                 return (
                   <button
                     key={e.id}
-                    className={`option simple selectable${marcada ? ' checked' : ''}`}
-                    onClick={() => alternarCondicion(e.id)}
-                    aria-pressed={marcada}
+                    className={`option simple selectable${checked ? ' checked' : ''}`}
+                    onClick={() => toggleCondition(e.id)}
+                    aria-pressed={checked}
                     autoFocus={i === 0}
                   >
-                    <Tilde marcada={marcada} />
+                    <Checkmark checked={checked} />
                     {e.label}
-                    <b>{cuantasCon(e.id)}</b>
+                    <b>{countOwnedWith(e.id)}</b>
                   </button>
                 )
               })}
             </div>
-            <button className="show" onClick={seguirDesdeCondicion} disabled={!condiciones.size}>
-              {condiciones.size ? 'Seguir' : 'Marcá al menos uno'}
+            <button className="show" onClick={confirmConditions} disabled={!selectedConditions.size}>
+              {selectedConditions.size ? 'Seguir' : 'Marcá al menos uno'}
             </button>
             <div className="exits">
-              <button className="cancel" onClick={() => { setEligiendoCondicion(false); setModo(null) }}>
+              <button className="cancel" onClick={() => { setPickingConditions(false); setMode(null) }}>
                 Elegir otra lista
               </button>
-              <button className="cancel" onClick={onCerrar}>Cerrar</button>
+              <button className="cancel" onClick={onClose}>Cerrar</button>
             </div>
           </>
         )}
 
-        {modo && !eligiendoCondicion && !mostrando && (
+        {mode && !pickingConditions && !showingText && (
           <>
             <p>¿De qué expansiones? Tocá para marcar y desmarcar.</p>
-            {expansiones.length ? (
+            {expansions.length ? (
               <>
                 <div className="options">
                   <button
-                    className={`option simple selectable${todasMarcadas ? ' checked' : ''}`}
-                    onClick={alternarTodas}
-                    aria-pressed={todasMarcadas}
+                    className={`option simple selectable${allChecked ? ' checked' : ''}`}
+                    onClick={toggleAll}
+                    aria-pressed={allChecked}
                     autoFocus
                   >
-                    <Tilde marcada={todasMarcadas} />
+                    <Checkmark checked={allChecked} />
                     Todas
                   </button>
-                  {expansiones.map(({ exp, cuenta }) => {
-                    const marcada = elegidas.has(exp.id)
+                  {expansions.map(({ exp, count }) => {
+                    const checked = selectedExpansions.has(exp.id)
                     return (
                       <button
                         key={exp.id}
-                        className={`option simple selectable${marcada ? ' checked' : ''}`}
-                        onClick={() => alternar(exp.id)}
-                        aria-pressed={marcada}
+                        className={`option simple selectable${checked ? ' checked' : ''}`}
+                        onClick={() => toggleExpansion(exp.id)}
+                        aria-pressed={checked}
                       >
-                        <Tilde marcada={marcada} />
+                        <Checkmark checked={checked} />
                         {exp.nombre}
-                        <b>{cuenta}</b>
+                        <b>{count}</b>
                       </button>
                     )
                   })}
                 </div>
-                <button className="show" onClick={() => setMostrando(true)} disabled={!marcadas.length}>
-                  {marcadas.length ? `Ver la lista · ${enTotal} cartas` : 'Marcá al menos una'}
+                <button className="show" onClick={() => setShowingText(true)} disabled={!checkedExpansions.length}>
+                  {checkedExpansions.length ? `Ver la lista · ${checkedTotal} cartas` : 'Marcá al menos una'}
                 </button>
               </>
             ) : (
@@ -481,31 +481,31 @@ export default function Exportar({ catalogo, datos, variantes, condicion, encabe
             <div className="exits">
               <button
                 className="cancel"
-                onClick={() => (modo === 'tengo' && condicion ? setEligiendoCondicion(true) : setModo(null))}
+                onClick={() => (mode === 'owned' && usesCondition ? setPickingConditions(true) : setMode(null))}
               >
-                {modo === 'tengo' && condicion ? 'Elegir otro estado' : 'Elegir otra lista'}
+                {mode === 'owned' && usesCondition ? 'Elegir otro estado' : 'Elegir otra lista'}
               </button>
-              <button className="cancel" onClick={onCerrar}>Cerrar</button>
+              <button className="cancel" onClick={onClose}>Cerrar</button>
             </div>
           </>
         )}
 
-        {mostrando && (
+        {showingText && (
           <>
             <p>Copiala y pegala donde quieras.</p>
             <textarea
               className="list"
               readOnly
-              value={texto}
+              value={text}
               ref={areaRef}
               onFocus={(e) => e.target.select()}
             />
-            <button className="option copy" onClick={copiar} autoFocus>
-              {aviso ?? 'Copiar'}
+            <button className="option copy" onClick={copyText} autoFocus>
+              {copyStatus ?? 'Copiar'}
             </button>
             <div className="exits">
-              <button className="cancel" onClick={() => setMostrando(false)}>Elegir otras expansiones</button>
-              <button className="cancel" onClick={onCerrar}>Cerrar</button>
+              <button className="cancel" onClick={() => setShowingText(false)}>Elegir otras expansiones</button>
+              <button className="cancel" onClick={onClose}>Cerrar</button>
             </div>
           </>
         )}

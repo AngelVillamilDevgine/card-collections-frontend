@@ -4,22 +4,22 @@
 // vuelve: arriba el embudo de "se anotó" a "volvió otro día", y recién después el
 // detalle. Si alguna vez se cobra algo, se le cobra a los que vuelven.
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { usarEscape, usarAtras, atraparFoco } from './foco'
-import { estadisticas, resetUserPassword } from './almacenamiento'
+import { useCloseOnEscape, useCloseOnBack, trapFocus } from './dialog'
+import { fetchAdminSummary, resetUserPassword } from './api'
 import { albumPercent } from './collections'
 import { isStale } from './health'
 import { displayInternational, whatsappLink } from './phone'
 import './dashboard.css'
 
-const dia = (f) => (f ? f.slice(8, 10) + '/' + f.slice(5, 7) : '—')
+const formatDayMonth = (f) => (f ? f.slice(8, 10) + '/' + f.slice(5, 7) : '—')
 
 /* Hace cuánto, en palabras. El panel no tiene que hacer cuentas con husos: el servidor
    manda los minutos. */
-function cuando(minutos) {
-  if (minutos == null) return 'nunca'
-  if (minutos < 90) return `hace ${Math.max(1, Math.round(minutos))} min`
-  if (minutos < 60 * 36) return `hace ${Math.round(minutos / 60)} h`
-  return `hace ${Math.round(minutos / 60 / 24)} días`
+function timeAgo(minutes) {
+  if (minutes == null) return 'nunca'
+  if (minutes < 90) return `hace ${Math.max(1, Math.round(minutes))} min`
+  if (minutes < 60 * 36) return `hace ${Math.round(minutes / 60)} h`
+  return `hace ${Math.round(minutes / 60 / 24)} días`
 }
 
 /* Cómo anda lo que corre FUERA de la app: el respaldo diario y el despliegue.
@@ -30,18 +30,18 @@ function cuando(minutos) {
    base es el único canal que ven los dos lados, así que ellos anotan ahí y esto lo lee.
 
    Si algo deja de correr, la fecha se pone vieja sola. Esa fecha vieja ES el aviso. */
-function Salud({ salud }) {
-  if (!salud) return null
-  const r = salud.respaldo
-  const d = salud.despliegue
-  const p = salud.restauracion
+function HealthStatus({ health }) {
+  if (!health) return null
+  const r = health.respaldo
+  const d = health.despliegue
+  const p = health.restauracion
 
-  const cosas = [
+  const checks = [
     {
-      que: 'Copia de la base',
-      mal: isStale(r, 'respaldo'),
-      dice: r
-        ? `${cuando(r.hace)} · ${Math.round((r.valor?.bytes ?? 0) / 1024)} KB · ${r.valor?.copias ?? '?'} guardadas`
+      label: 'Copia de la base',
+      isBad: isStale(r, 'respaldo'),
+      detail: r
+        ? `${timeAgo(r.hace)} · ${Math.round((r.valor?.bytes ?? 0) / 1024)} KB · ${r.valor?.copias ?? '?'} guardadas`
         : 'nunca se anotó ninguna',
     },
     {
@@ -53,14 +53,14 @@ function Salud({ salud }) {
          sí. Y `dbz-probar-restauracion.sh` anota SÓLO cuando la prueba pasa — si falla,
          no toca la fecha, así que esto se pone rojo solo. Un fracaso anotado con la
          fecha de hoy dejaría el panel en verde con una copia que no sirve. */
-      que: 'Se restaura de verdad',
-      mal: isStale(p, 'restauracion'),
-      dice: p
-        ? `${cuando(p.hace)} · ${p.valor?.tablas ?? '?'} tablas · ${(p.valor?.cartas ?? 0).toLocaleString('es-AR')} cartas`
+      label: 'Se restaura de verdad',
+      isBad: isStale(p, 'restauracion'),
+      detail: p
+        ? `${timeAgo(p.hace)} · ${p.valor?.tablas ?? '?'} tablas · ${(p.valor?.cartas ?? 0).toLocaleString('es-AR')} cartas`
         : 'nunca se probó',
     },
     {
-      que: 'Último despliegue',
+      label: 'Último despliegue',
       /* CUALQUIER estado que no sea «ok» va en rojo, y no sólo «descartado».
          `dbz-despliegue.sh` escribe cuatro estados y acá se miraba uno: un
          `dockerfile-sin-aprobar` —que es el portón puesto para que el Dockerfile de un
@@ -68,18 +68,18 @@ function Salud({ salud }) {
          idéntico a un deploy que salió bien. Y el correo del servidor no sale, así que
          este bloque es el único aviso que llega. Lista blanca y no negra: lo que no
          conocemos es sospechoso, no correcto. */
-      mal: !!d && d.valor?.estado !== 'ok',
-      dice: d
-        ? `${cuando(d.hace)} · ${d.valor?.estado && d.valor.estado !== 'ok' ? `${d.valor.estado.toUpperCase()} ${d.valor?.commit ?? ''}`.trim() : d.valor?.commit ?? 'ok'}`
+      isBad: !!d && d.valor?.estado !== 'ok',
+      detail: d
+        ? `${timeAgo(d.hace)} · ${d.valor?.estado && d.valor.estado !== 'ok' ? `${d.valor.estado.toUpperCase()} ${d.valor?.commit ?? ''}`.trim() : d.valor?.commit ?? 'ok'}`
         : 'todavía no se anotó ninguno',
     },
   ]
 
   return (
-    <div className={`health${cosas.some((c) => c.mal) ? ' alert' : ''}`}>
-      {cosas.map((c) => (
-        <span key={c.que} className={c.mal ? 'bad' : undefined}>
-          <b>{c.que}:</b> {c.dice}
+    <div className={`health${checks.some((c) => c.isBad) ? ' alert' : ''}`}>
+      {checks.map((c) => (
+        <span key={c.label} className={c.isBad ? 'bad' : undefined}>
+          <b>{c.label}:</b> {c.detail}
         </span>
       ))}
     </div>
@@ -94,23 +94,23 @@ function Salud({ salud }) {
    la primera versión de la app gritara «hecho con IA», y el CLAUDE.md lo sigue prohibiendo
    aunque las cajas ahora estén permitidas. Lo que separa un cuadro del papel es un borde
    de un píxel. */
-function Cuadro({ valor, rotulo, de, pie, chico }) {
-  const parteDe = de ? Math.min(100, (valor / de) * 100) : null
+function StatTile({ value, label, outOf, footnote, small }) {
+  const meterPercent = outOf ? Math.min(100, (value / outOf) * 100) : null
   return (
-    <div className={`tile${chico ? ' small' : ''}`}>
-      <b>{valor.toLocaleString('es-AR')}</b>
-      <span className="tile-label">{rotulo}</span>
-      {parteDe != null && (
+    <div className={`tile${small ? ' small' : ''}`}>
+      <b>{value.toLocaleString('es-AR')}</b>
+      <span className="tile-label">{label}</span>
+      {meterPercent != null && (
         <>
           {/* `min-width` para que «1 de 40» se vea: sin eso, una raya de 2.5% no se dibuja
               y el cuadro parece vacío. El relleno va en `--accent` y no en `--orange`
               porque contra el riel tiene que llegar a 3:1, que es lo que pide un elemento
               no textual que informa. */}
-          <span className="meter"><span style={{ width: `${parteDe}%` }} /></span>
-          <span className="tile-foot">de {de.toLocaleString('es-AR')}</span>
+          <span className="meter"><span style={{ width: `${meterPercent}%` }} /></span>
+          <span className="tile-foot">de {outOf.toLocaleString('es-AR')}</span>
         </>
       )}
-      {pie && parteDe == null && <span className="tile-foot">{pie}</span>}
+      {footnote && meterPercent == null && <span className="tile-foot">{footnote}</span>}
     </div>
   )
 }
@@ -149,7 +149,7 @@ const DEVICE_COLORS = {
    librería de gráficos: son veinte líneas y el panel viaja en su propio chunk. Arranca
    arriba (offset 25) y gira en el sentido del reloj. Entre tramos queda una ranura de
    0.8 para que dos colores vecinos no se fundan; con un solo aparato, círculo entero. */
-function Pie({ rows, total }) {
+function DonutChart({ rows, total }) {
   const R = 15.9155
   const gap = rows.length > 1 ? 0.8 : 0
   let acc = 0
@@ -178,7 +178,7 @@ function Pie({ rows, total }) {
    primera estación, que abre la torta — y el bloque de barras del cuerpo desaparece.
 
    Es un diálogo DE VERDAD encima de una página, así que lleva lo que llevan los de la
-   app (`foco.js`): Atrás lo cierra sin cerrar el panel (`usarAtras` empuja una entrada
+   app (`dialog.js`): Atrás lo cierra sin cerrar el panel (`useCloseOnBack` empuja una entrada
    sin tocar el hash, así que `#panel` sigue en pie), el foco queda adentro y vuelve al
    botón al cerrar, y Escape cierra. El Escape del PANEL mira si hay un modal abierto y
    se hace a un lado — si no, un Escape cerraba los dos. Tocar el telón también cierra.
@@ -190,14 +190,14 @@ function Pie({ rows, total }) {
    vez anterior. */
 /* EL ARMAZÓN DE LOS MODALES DEL PANEL — hoy los aparatos y la ficha de un usuario. Todo
    lo que hace de un modal un diálogo de verdad vive acá una sola vez: Atrás lo cierra sin
-   cerrar el panel (`usarAtras`), el foco queda adentro y vuelve al botón, Escape y el
+   cerrar el panel (`useCloseOnBack`), el foco queda adentro y vuelve al botón, Escape y el
    telón cierran. El Escape del PANEL se hace a un lado cuando hay un `.panel-modal`. */
 function PanelModal({ titleId, title, sub, onClose, children }) {
   const box = useRef(null)
   const prevFocus = useRef(document.activeElement)
-  usarEscape(onClose)
-  usarAtras(true, onClose)
-  useEffect(() => atraparFoco(box.current, prevFocus.current), [])
+  useCloseOnEscape(onClose)
+  useCloseOnBack(true, onClose)
+  useEffect(() => trapFocus(box.current, prevFocus.current), [])
   return (
     <div className="panel-modal-backdrop" onClick={onClose}>
       <div className="panel-modal" ref={box} role="dialog" aria-modal="true"
@@ -220,7 +220,7 @@ function DevicesModal({ rows, total, periodLabel, onClose }) {
   return (
     <PanelModal titleId="devices-modal-title" title="Visitantes por aparato" onClose={onClose}
                 sub={`${periodLabel} · ${total} ${total === 1 ? 'visitante único' : 'visitantes únicos'} de la landing`}>
-      <Pie rows={rows} total={total} />
+      <DonutChart rows={rows} total={total} />
       <ul className="devices-legend">
         {rows.map((r) => (
           <li key={r.device}>
@@ -245,7 +245,7 @@ function DevicesModal({ rows, total, periodLabel, onClose }) {
 
    La provisoria se muestra UNA vez, grande y con «Copiar»: el servidor no la guarda en
    claro en ningún lado, así que si se cierra la ficha sin copiarla hay que generar otra. */
-function UserModal({ user, onClose, onSesionMuerta }) {
+function UserModal({ user, onClose, onSessionExpired }) {
   const [step, setStep] = useState('idle') // idle | confirm | working | done
   const [temp, setTemp] = useState(null)
   const [error, setError] = useState(null)
@@ -261,7 +261,7 @@ function UserModal({ user, onClose, onSesionMuerta }) {
       setTemp(r.temp)
       setStep('done')
     } catch (e) {
-      if (e?.sesion) return onSesionMuerta?.()
+      if (e?.sessionExpired) return onSessionExpired?.()
       setError(e.message)
       setStep('confirm')
     }
@@ -283,8 +283,8 @@ function UserModal({ user, onClose, onSesionMuerta }) {
       </a>
     )],
     ['Provincia', pr.province],
-    ['Alta', dia(user.alta)],
-    ['Última vez', dia(user.ultima)],
+    ['Alta', formatDayMonth(user.alta)],
+    ['Última vez', formatDayMonth(user.ultima)],
     ['Cartas', user.cartas?.toLocaleString('es-AR')],
   ]
 
@@ -358,7 +358,7 @@ function HistoricFunnel({ f, u }) {
   const pct = (a, b) => (b > 0 ? Math.round((a / b) * 100) : null)
   const nodes = []
   if (f && v) {
-    nodes.push({ n: v.total, label: 'Pasaron por la puerta', note: `personas distintas, con o sin cuenta · desde el ${dia(f.since)}` })
+    nodes.push({ n: v.total, label: 'Pasaron por la puerta', note: `personas distintas, con o sin cuenta · desde el ${formatDayMonth(f.since)}` })
     nodes.push({ n: f.toSignup, label: 'Salieron a anotarse', note: 'tocaron «Anotá tus faltantes»', conv: pct(f.toSignup, v.total) })
     nodes.push({ n: f.signups ?? 0, label: 'Se anotaron', note: 'cuentas nuevas desde que se mide la puerta', conv: pct(f.signups ?? 0, f.toSignup) })
   }
@@ -371,7 +371,7 @@ function HistoricFunnel({ f, u }) {
 }
 
 /* La espina compartida: la dibujan el embudo histórico (cuando el back no manda
-   períodos) y el del período. Un nodo con `costura` CORTA la lista y abre un título de
+   períodos) y el del período. Un nodo con `section` CORTA la lista y abre un título de
    sección con EXACTAMENTE el mismo estilo que los h4 — la primera versión lo dibujaba
    como un renglón adentro del nodo, corrido a la derecha, y Angel lo enterró con razón:
    un cambio de sección se marca como todas las demás secciones, no con un injerto. */
@@ -490,20 +490,20 @@ function PeriodFunnel({ p, periodLabel }) {
   )
 }
 
-function Barra({ rotulo, valor, techo, nota, flaca }) {
+function BarRow({ label, value, max, note, thin }) {
   return (
-    <div className={`row${flaca ? ' thin' : ''}`}>
-      <span className="row-label">{rotulo}</span>
+    <div className={`row${thin ? ' thin' : ''}`}>
+      <span className="row-label">{label}</span>
       <span className="rail">
-        <span className="fill" style={{ width: `${techo ? (valor / techo) * 100 : 0}%` }} />
+        <span className="fill" style={{ width: `${max ? (value / max) * 100 : 0}%` }} />
       </span>
-      <b>{valor}</b>
-      <span className="row-note">{nota ?? ''}</span>
+      <b>{value}</b>
+      <span className="row-note">{note ?? ''}</span>
     </div>
   )
 }
 
-/* `colecciones` llega del catálogo que la app ya tiene cargado, no del servidor: cada una
+/* `collections` llega del catálogo que la app ya tiene cargado, no del servidor: cada una
    con su nombre, cuántos huecos tiene y qué prefijos de clave son suyos. El catálogo se
    edita sin recompilar nada, así que el servidor no puede saberlo — antes acá hubo un
    1936 escrito a mano y por eso se sacó.
@@ -517,8 +517,8 @@ function Barra({ rotulo, valor, techo, nota, flaca }) {
 const PERIODS = [['hoy', 'Hoy'], ['semana', '7 días'], ['mes', 'Este mes'], ['mesPasado', 'Mes pasado']]
 const PERIOD_KEY = 'dbz-cromeros-panel-period'
 
-export default function Estadisticas({ onCerrar, onSesionMuerta, colecciones }) {
-  const [datos, setDatos] = useState(null)
+export default function Dashboard({ onClose, onSessionExpired, collections }) {
+  const [summary, setSummary] = useState(null)
   const [error, setError] = useState(null)
   /* El período elegido se recuerda en el aparato, como las expansiones plegadas: es una
      preferencia de ESTE dispositivo, no un dato. Sin nada guardado (o con un valor
@@ -534,20 +534,20 @@ export default function Estadisticas({ onCerrar, onSesionMuerta, colecciones }) 
     setPeriod(id)
     try { localStorage.setItem(PERIOD_KEY, id) } catch { /* modo privado */ }
   }
-  const titulo = useRef(null)
+  const titleRef = useRef(null)
   /* Quién tenía el foco antes de abrir, leído en el render: para cuando corren los
      efectos, el autoFocus del diálogo ya se lo llevó. */
-  const abrio = useRef(document.activeElement)
+  const prevFocusRef = useRef(document.activeElement)
 
   useEffect(() => {
     // Un 401 acá tiene que mandar a entrar de nuevo, igual que en el resto de la app,
     // y no pintar el error adentro del panel.
-    const mapa = colecciones?.length
-      ? Object.fromEntries(colecciones.map((c) => [c.id, c.prefijos]))
+    const expansionIdsByCollection = collections?.length
+      ? Object.fromEntries(collections.map((c) => [c.id, c.expansionIds]))
       : null
-    estadisticas(mapa)
-      .then(setDatos)
-      .catch((e) => (e?.sesion ? onSesionMuerta?.() : setError(e.message)))
+    fetchAdminSummary(expansionIdsByCollection)
+      .then(setSummary)
+      .catch((e) => (e?.sessionExpired ? onSessionExpired?.() : setError(e.message)))
   }, [])
 
   /* Con un modal abierto encima (los aparatos), Escape es SUYO: los dos escuchan en
@@ -555,20 +555,20 @@ export default function Estadisticas({ onCerrar, onSesionMuerta, colecciones }) 
      `history.back()` seguidos. Se mira el DOM y no un estado porque el modal vive
      adentro de otro componente; este listener se registró antes, así que corre primero
      y todavía encuentra el modal en pantalla. */
-  usarEscape(() => { if (!document.querySelector('.panel-modal')) onCerrar() })
+  useCloseOnEscape(() => { if (!document.querySelector('.panel-modal')) onClose() })
 
-  /* UNA PÁGINA NO ATRAPA EL FOCO, un diálogo sí. Esto era un `.dialogo` y usaba
-     `atraparFoco`, que cicla el Tab adentro — correcto para algo que flota encima de otra
+  /* UNA PÁGINA NO ATRAPA EL FOCO, un diálogo sí. Esto era un `.dialog` y usaba
+     `trapFocus`, que cicla el Tab adentro — correcto para algo que flota encima de otra
      cosa, y molesto para algo que ES la pantalla. Lo que sí hace falta es mover el foco al
      título, para que un lector de pantalla anuncie que cambió de vista, y devolverlo al
      botón de donde vino al cerrar. */
   useEffect(() => {
-    titulo.current?.focus()
-    const antes = abrio.current
-    return () => { if (antes?.isConnected) antes.focus() }
+    titleRef.current?.focus()
+    const opener = prevFocusRef.current
+    return () => { if (opener?.isConnected) opener.focus() }
   }, [])
 
-  /* PÁGINA Y NO POPUP. Era un `.dialogo` centrado con techo de alto encima de las 1936
+  /* PÁGINA Y NO POPUP. Era un `.dialog` centrado con techo de alto encima de las 1936
      cartas, y en un teléfono eso es lo peor posible: una tabla de siete columnas metida en
      una caja de 620 px con scroll propio adentro de otro scroll. Angel: «ese pop up me
      tiene cansado, me corta todo en celular».
@@ -579,7 +579,7 @@ export default function Estadisticas({ onCerrar, onSesionMuerta, colecciones }) 
   return (
     <div className="panel-page">
       <header className="panel-head">
-        <button className="back" onClick={onCerrar}>
+        <button className="back" onClick={onClose}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M15 18l-6-6 6-6" />
@@ -587,34 +587,34 @@ export default function Estadisticas({ onCerrar, onSesionMuerta, colecciones }) 
           Volver
         </button>
         {/* `tabIndex={-1}` para poder enfocarlo al entrar sin meterlo en el orden del Tab. */}
-        <h1 tabIndex={-1} ref={titulo}>Los números</h1>
+        <h1 tabIndex={-1} ref={titleRef}>Los números</h1>
       </header>
       <div className="panel-body stats">
         {/* EL FILTRO DE PERÍODO, PRIMERO EN EL CUERPO y NO en la cabecera — lo marcó
             Angel: un filtro no comparte estructura con un título y un botón de volver.
             Sólo aparece si el back ya manda los períodos. */}
-        {datos?.periodos && (
+        {summary?.periodos && (
           <div className="periods" role="group" aria-label="Período">
-            {PERIODS.map(([id, rotulo]) => (
+            {PERIODS.map(([id, label]) => (
               <button key={id} type="button" aria-pressed={period === id}
                       className={period === id ? 'active' : undefined}
                       onClick={() => pick(id)}>
-                {rotulo}
+                {label}
               </button>
             ))}
           </div>
         )}
         {error && <p className="nothing">{error}</p>}
-        {!datos && !error && <p className="nothing">Buscando…</p>}
-        {datos && <Cuerpo d={datos} colecciones={colecciones ?? []} period={period} onSesionMuerta={onSesionMuerta} />}
+        {!summary && !error && <p className="nothing">Buscando…</p>}
+        {summary && <DashboardBody d={summary} collections={collections ?? []} period={period} onSessionExpired={onSessionExpired} />}
       </div>
     </div>
   )
 }
 
-function Cuerpo({ d, colecciones, period, onSesionMuerta }) {
+function DashboardBody({ d, collections, period, onSessionExpired }) {
   const [selectedUser, setSelectedUser] = useState(null)
-  const { usuarios: u, cartas,  gente } = d
+  const { usuarios: u, cartas: cardTotals,  gente: people } = d
 
 
   /* EL PERÍODO ELEGIDO, si el back ya lo manda. Sin `periodos` (back viejo) el panel cae
@@ -625,14 +625,14 @@ function Cuerpo({ d, colecciones, period, onSesionMuerta }) {
   /* Cada colección con lo que trajo el servidor. `porColeccion` puede venir en null si el
      back es más viejo que el front: entonces no se dibuja nada partido, que es mejor que
      dibujar ceros. */
-  const partido = d.porColeccion
-  const porCol = partido
-    ? colecciones.map((c) => ({
+  const collectionTotals = d.porColeccion
+  const byCollection = collectionTotals
+    ? collections.map((c) => ({
         ...c,
-        ...(partido.find((p) => p.col === c.id) ?? { cartas: 0, repetidas: 0, huecos: 0, personas: 0 }),
+        ...(collectionTotals.find((p) => p.col === c.id) ?? { cartas: 0, repetidas: 0, huecos: 0, personas: 0 }),
       }))
     : null
-  const picoCol = Math.max(1, ...(porCol ?? []).map((c) => c.cartas))
+  const maxCollectionCards = Math.max(1, ...(byCollection ?? []).map((c) => c.cartas))
 
   /* LAS COLUMNAS SE ORDENAN, y cada una sabe de qué sacar su valor. Una sola lista para el
      encabezado y para el criterio: si se separaran, agregar una columna dejaría un botón
@@ -640,41 +640,41 @@ function Cuerpo({ d, colecciones, period, onSesionMuerta }) {
 
      Arranca por la columna de la primera colección, de mayor a menor, que es como venía
      ordenada del servidor: la tabla no cambia de aspecto hasta que la tocás. */
-  const columnas = useMemo(() => [
-    { id: 'usuario', rotulo: 'Cuenta', valor: (g) => g.usuario.toLowerCase(), texto: true },
-    { id: 'alta', rotulo: 'Alta', valor: (g) => g.alta ?? '' },
-    { id: 'ultima', rotulo: 'Última', valor: (g) => g.ultima ?? '' },
-    { id: 'dias', rotulo: 'Días', ayuda: 'Días distintos en que usó la app', valor: (g) => g.dias },
-    ...(porCol
-      ? porCol.map((c) => ({
-          id: `col:${c.id}`, rotulo: c.nombre, ayuda: `De ${c.total} huecos`,
+  const columns = useMemo(() => [
+    { id: 'username', label: 'Cuenta', getValue: (g) => g.usuario.toLowerCase(), isText: true },
+    { id: 'signup', label: 'Alta', getValue: (g) => g.alta ?? '' },
+    { id: 'lastSeen', label: 'Última', getValue: (g) => g.ultima ?? '' },
+    { id: 'days', label: 'Días', hint: 'Días distintos en que usó la app', getValue: (g) => g.dias },
+    ...(byCollection
+      ? byCollection.map((c) => ({
+          id: `col:${c.id}`, label: c.name, hint: `De ${c.total} huecos`,
           /* Se ordena por HUECOS, que es lo que muestra el porcentaje; si no, la flecha
              ordenaría por un número distinto del que se está mirando. */
-          valor: (g) => g.porColeccion?.[c.id]?.huecos ?? g.porColeccion?.[c.id]?.cartas ?? 0,
+          getValue: (g) => g.porColeccion?.[c.id]?.huecos ?? g.porColeccion?.[c.id]?.cartas ?? 0,
         }))
-      : [{ id: 'cartas', rotulo: 'Cartas', valor: (g) => g.cartas }, { id: 'album', rotulo: 'Álbum', valor: () => 0 }]),
-    { id: 'repetidas', rotulo: 'Repes', valor: (g) => g.repetidas },
-  ], [porCol])
+      : [{ id: 'cards', label: 'Cartas', getValue: (g) => g.cartas }, { id: 'album', label: 'Álbum', getValue: () => 0 }]),
+    { id: 'duplicates', label: 'Repes', getValue: (g) => g.repetidas },
+  ], [byCollection])
 
-  const [orden, setOrden] = useState(() => ({ col: null, desc: true }))
-  const ordenarPor = (id) =>
-    setOrden((o) => (o.col === id ? { col: id, desc: !o.desc } : { col: id, desc: true }))
+  const [sort, setSort] = useState(() => ({ column: null, desc: true }))
+  const sortBy = (id) =>
+    setSort((o) => (o.column === id ? { column: id, desc: !o.desc } : { column: id, desc: true }))
 
-  const ordenada = useMemo(() => {
-    if (!orden.col) return gente
-    const c = columnas.find((x) => x.id === orden.col)
-    if (!c) return gente
-    const signo = orden.desc ? -1 : 1
-    /* Copia: `gente` viene del servidor y ordenar en el lugar lo dejaría revuelto para
+  const sortedPeople = useMemo(() => {
+    if (!sort.column) return people
+    const c = columns.find((x) => x.id === sort.column)
+    if (!c) return people
+    const sign = sort.desc ? -1 : 1
+    /* Copia: `people` viene del servidor y ordenar en el lugar lo dejaría revuelto para
        cualquier otra cosa que lo mire. Y el desempate por nombre es lo que hace que dos
        renglones con el mismo valor no salten de lugar en cada render. */
-    return [...gente].sort((a, b) => {
-      const va = c.valor(a), vb = c.valor(b)
-      if (va < vb) return -1 * signo
-      if (va > vb) return 1 * signo
+    return [...people].sort((a, b) => {
+      const va = c.getValue(a), vb = c.getValue(b)
+      if (va < vb) return -1 * sign
+      if (va > vb) return 1 * sign
       return a.usuario.localeCompare(b.usuario)
     })
-  }, [gente, orden, columnas])
+  }, [people, sort, columns])
 
   /* Tramos que no son de ninguna colección: claves guardadas de un catálogo que ya no
      existe. Es el único lugar donde aparecen, y si alguna vez hay una conviene verla.
@@ -683,9 +683,9 @@ function Cuerpo({ d, colecciones, period, onSesionMuerta }) {
      variante de `ley-6` y es una carta perfectamente válida. Comparando entero, las once
      que Angel tenía cargadas salían acá como «de un catálogo viejo» y el texto invitaba a
      borrarlas. */
-  const esDeAlguna = (tramo) =>
-    colecciones.some((c) => c.prefijos.some((p) => tramo === p || tramo.startsWith(p + '-')))
-  const sueltas = (d.porTramo ?? []).filter((t) => !esDeAlguna(t.tramo))
+  const isInAnyCollection = (expansionId) =>
+    collections.some((c) => c.expansionIds.some((p) => expansionId === p || expansionId.startsWith(p + '-')))
+  const orphanExpansions = (d.porTramo ?? []).filter((t) => !isInAnyCollection(t.tramo))
 
   return (
     <>
@@ -710,10 +710,10 @@ function Cuerpo({ d, colecciones, period, onSesionMuerta }) {
         <>
           <h4>Totales históricos</h4>
           <div className="tiles small four">
-            <Cuadro valor={u.total} rotulo="Cuentas" pie={u.altas7 ? `+${u.altas7} esta semana` : undefined} />
-            <Cuadro valor={u.conCartas} rotulo="Con cartas" de={u.total} />
-            <Cuadro valor={u.volvieron} rotulo="Volvieron alguna vez" de={u.total} />
-            <Cuadro valor={u.conApp} rotulo="Con la app" de={u.total} />
+            <StatTile value={u.total} label="Cuentas" footnote={u.altas7 ? `+${u.altas7} esta semana` : undefined} />
+            <StatTile value={u.conCartas} label="Con cartas" outOf={u.total} />
+            <StatTile value={u.volvieron} label="Volvieron alguna vez" outOf={u.total} />
+            <StatTile value={u.conApp} label="Con la app" outOf={u.total} />
           </div>
         </>
       )}
@@ -731,19 +731,19 @@ function Cuerpo({ d, colecciones, period, onSesionMuerta }) {
           tiene cada uno» cuatro bloques más abajo, hablando de lo mismo. Angel: «"Qué
           colección usan" está acomodado medio mal». Van juntos y después de la gente,
           porque el cuello de botella no es cuántas cartas hay. */}
-      {porCol && (
-        /* `colecciones` además de `grupo`: la dualidad dorado/azul del CSS es SÓLO de
-           este bloque — puesta sobre `.grupo` a secas, teñía de azul renglón por medio
+      {byCollection && (
+        /* `collections` además de `group`: la dualidad dorado/azul del CSS es SÓLO de
+           este bloque — puesta sobre `.group` a secas, teñía de azul renglón por medio
            a los devices, donde el azul no significa nada. */
         <div className="group collections">
-          {porCol.map((c) => (
+          {byCollection.map((c) => (
             /* SIN porcentaje, a propósito: acá `cartas` son las filas de TODA la gente
                sumadas, y dividirlas por los huecos de un álbum no significa nada — con
                19 personas dan 8026 sobre 1936 y el tope de 100% lo disfrazaba de
                «álbum completo». El porcentaje sólo tiene sentido por persona, y ahí
                está, en la tabla de abajo. */
-            <Barra key={c.id} rotulo={c.nombre} valor={c.cartas} techo={picoCol}
-                   nota={`${c.personas} ${c.personas === 1 ? 'persona' : 'personas'}${c.repetidas ? ` · ${c.repetidas} ${c.repetidas === 1 ? 'repetida' : 'repetidas'}` : ''}`} />
+            <BarRow key={c.id} label={c.name} value={c.cartas} max={maxCollectionCards}
+                   note={`${c.personas} ${c.personas === 1 ? 'persona' : 'personas'}${c.repetidas ? ` · ${c.repetidas} ${c.repetidas === 1 ? 'repetida' : 'repetidas'}` : ''}`} />
           ))}
         </div>
       )}
@@ -757,11 +757,11 @@ function Cuerpo({ d, colecciones, period, onSesionMuerta }) {
           qué colección se usa, acá arriba; y cuánto tiene cada persona, en la tabla de
           abajo, que además ahora se ordena por esa columna. */}
       <p className="nothing">
-        {cartas.total.toLocaleString('es-AR')} cartas marcadas
-        {' · '}{cartas.repetidas.toLocaleString('es-AR')} repetidas
-        {sueltas.length > 0 && (
-          <> · y {sueltas.reduce((a, t) => a + t.filas, 0)} en tramos que ya no están en
-            ningún catálogo ({sueltas.map((t) => t.tramo).join(', ')}), que el pie de la app
+        {cardTotals.total.toLocaleString('es-AR')} cartas marcadas
+        {' · '}{cardTotals.repetidas.toLocaleString('es-AR')} repetidas
+        {orphanExpansions.length > 0 && (
+          <> · y {orphanExpansions.reduce((a, t) => a + t.filas, 0)} en tramos que ya no están en
+            ningún catálogo ({orphanExpansions.map((t) => t.tramo).join(', ')}), que el pie de la app
             ofrece sacar</>
         )}
       </p>
@@ -782,28 +782,28 @@ function Cuerpo({ d, colecciones, period, onSesionMuerta }) {
       <p className="summary-table">
         {u.total} cuentas · {u.conCartas} con cartas ·{' '}
         <b>{u.conApp} entran desde la app</b>, marcadas abajo
-        {u.total > gente.length && (
-          <> · <i>se listan las {gente.length} con más cartas</i></>
+        {u.total > people.length && (
+          <> · <i>se listan las {people.length} con más cartas</i></>
         )}
       </p>
       <div className="board">
         <table className="people large">
           <thead>
             <tr>
-              {columnas.map((c) => (
-                <th key={c.id} title={c.ayuda} aria-sort={orden.col === c.id ? (orden.desc ? 'descending' : 'ascending') : undefined}>
-                  <button type="button" className="sort" onClick={() => ordenarPor(c.id)}>
-                    {c.rotulo}
+              {columns.map((c) => (
+                <th key={c.id} title={c.hint} aria-sort={sort.column === c.id ? (sort.desc ? 'descending' : 'ascending') : undefined}>
+                  <button type="button" className="sort" onClick={() => sortBy(c.id)}>
+                    {c.label}
                     {/* La flecha sólo en la columna por la que se está ordenando: una en
                         cada encabezado es ruido y no dice cuál manda. */}
-                    <span aria-hidden="true">{orden.col === c.id ? (orden.desc ? ' ↓' : ' ↑') : ''}</span>
+                    <span aria-hidden="true">{sort.column === c.id ? (sort.desc ? ' ↓' : ' ↑') : ''}</span>
                   </button>
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {ordenada.map((g) => (
+            {sortedPeople.map((g) => (
               <tr key={g.usuario}
                   className={[g.cartas ? '' : 'dim', g.app ? 'with-app' : ''].filter(Boolean).join(' ') || undefined}>
                 {/* El chip ANTES del nombre: después, un mail largo lo recortaba con el
@@ -818,13 +818,13 @@ function Cuerpo({ d, colecciones, period, onSesionMuerta }) {
                     {g.usuario}
                   </button>
                 </td>
-                <td>{dia(g.alta)}</td>
-                <td>{dia(g.ultima)}</td>
+                <td>{formatDayMonth(g.alta)}</td>
+                <td>{formatDayMonth(g.ultima)}</td>
                 <td>{g.dias}</td>
-                {porCol
-                  ? porCol.map((c) => {
-                      const suyo = g.porColeccion?.[c.id]
-                      const n = suyo?.cartas ?? 0
+                {byCollection
+                  ? byCollection.map((c) => {
+                      const personStats = g.porColeccion?.[c.id]
+                      const n = personStats?.cartas ?? 0
                       /* EL PORCENTAJE VA SOBRE LOS HUECOS, no sobre las filas. Una variante
                          es una fila propia pero no es un hueco del álbum: contándolas, el
                          número de arriba incluía variantes y el de abajo no, podía pasarse
@@ -833,7 +833,7 @@ function Cuerpo({ d, colecciones, period, onSesionMuerta }) {
 
                          `huecos` puede no venir si el back es más viejo que el front: ahí
                          no se dibuja el porcentaje, que es mejor que dibujar uno falso. */
-                      const h = suyo?.huecos
+                      const h = personStats?.huecos
                       return (
                         <td key={c.id}>
                           {/* `albumPercent` y NO un `Math.round` cualquiera: éste es el
@@ -866,10 +866,10 @@ function Cuerpo({ d, colecciones, period, onSesionMuerta }) {
           botón «Panel» de la app ya lleva el punto rojo, y acá abajo el bloque se pinta
           entero — no hace falta verlo primero para verlo. */}
       <h4>Infra</h4>
-      <Salud salud={d.salud} />
+      <HealthStatus health={d.salud} />
 
       {selectedUser && (
-        <UserModal user={selectedUser} onClose={() => setSelectedUser(null)} onSesionMuerta={onSesionMuerta} />
+        <UserModal user={selectedUser} onClose={() => setSelectedUser(null)} onSessionExpired={onSessionExpired} />
       )}
     </>
   )

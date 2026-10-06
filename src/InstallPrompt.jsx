@@ -14,28 +14,28 @@
 // Es el único lugar del código donde se mira el user agent. No hay alternativa: no
 // existe una API que diga "estás adentro de Instagram".
 import { useEffect, useRef, useState } from 'react'
-import { comoApp, esTelefono, esIOS, enOtraApp } from './donde-corre.js'
+import { isStandalone, isPhone, isIOS, isInAppBrowser } from './platform.js'
 
-const CLAVE = 'dbz-cromeros-instalar'
-const DESCANSO = 5 * 24 * 60 * 60 * 1000 // si lo cierra, se va cinco días
-const VECES = 4                          // y después no molesta más
+const KEY = 'dbz-cromeros-instalar'
+const SNOOZE = 5 * 24 * 60 * 60 * 1000 // si lo cierra, se va cinco días
+const MAX_TIMES = 4                    // y después no molesta más
 
 
-function leer() {
-  try { return JSON.parse(localStorage.getItem(CLAVE)) ?? {} } catch { return {} }
+function read() {
+  try { return JSON.parse(localStorage.getItem(KEY)) ?? {} } catch { return {} }
 }
-function guardar(datos) {
-  try { localStorage.setItem(CLAVE, JSON.stringify(datos)) } catch { /* modo privado */ }
+function save(data) {
+  try { localStorage.setItem(KEY, JSON.stringify(data)) } catch { /* modo privado */ }
 }
 
 /* Que ya la tenga instalada se sabe una sola vez: cuando entra como app. Desde ese
    momento no se le vuelve a ofrecer nunca, entre otra cosa porque no hay forma de
    preguntarlo desde el navegador. */
-export function anotarSiEsApp() {
-  if (comoApp()) guardar({ ...leer(), tiene: true })
+export function rememberIfInstalled() {
+  if (isStandalone()) save({ ...read(), tiene: true })
 }
 
-const Cruz = () => (
+const CloseIcon = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
        strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
     <path d="M6 6l12 12M18 6L6 18" />
@@ -43,7 +43,7 @@ const Cruz = () => (
 )
 
 /* El ícono de Compartir de iOS, que es la única forma de explicar el paso. */
-const Compartir = () => (
+const ShareIcon = () => (
   <svg className="glyph" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M12 15V3" />
@@ -52,21 +52,21 @@ const Compartir = () => (
   </svg>
 )
 
-export default function Instalar() {
+export default function InstallPrompt() {
   const [visible, setVisible] = useState(false)
-  const [instalador, setInstalador] = useState(null)
-  const caja = useRef(null)
+  const [deferredPrompt, setDeferredPrompt] = useState(null)
+  const box = useRef(null)
 
   useEffect(() => {
-    if (comoApp()) return anotarSiEsApp()
-    if (!esTelefono()) return
+    if (isStandalone()) return rememberIfInstalled()
+    if (!isPhone()) return
 
-    const { tiene, visto = 0, veces = 0 } = leer()
-    if (tiene || veces >= VECES || Date.now() - visto < DESCANSO) return
+    const { tiene: installed, visto: seenAt = 0, veces: times = 0 } = read()
+    if (installed || times >= MAX_TIMES || Date.now() - seenAt < SNOOZE) return
 
     /* El evento de instalación NO se escucha desde acá: para cuando este efecto corre
-       —después de que quienSoy() resolvió y la app se dibujó— hace más de un segundo
-       que pasó. Lo agarra `public/temprano.js`, que corre antes que todo, y
+       —después de que fetchAccount() resolvió y la app se dibujó— hace más de un segundo
+       que pasó. Lo agarra `public/early.js`, que corre antes que todo, y
        acá se recoge lo que haya guardado.
 
        Medido contra producción con un Android emulado: el evento a los 182 ms, este
@@ -76,13 +76,13 @@ export default function Instalar() {
        De paso esto deja sin efecto al doble montaje de StrictMode: el listener de
        verdad se registra una vez, en el otro archivo, y el evento queda guardado —
        antes, si caía justo en el desmontaje y montaje del modo estricto, se perdía. */
-    if (window.__dbzInstalador) setInstalador(window.__dbzInstalador)
-    const alPoder = () => setInstalador(window.__dbzInstalador)
-    window.addEventListener('dbz-instalable', alPoder)
+    if (window.__dbzInstallPrompt) setDeferredPrompt(window.__dbzInstallPrompt)
+    const onInstallable = () => setDeferredPrompt(window.__dbzInstallPrompt)
+    window.addEventListener('dbz-installable', onInstallable)
 
     // Un rato después de entrar, no encima de la carga.
-    const reloj = setTimeout(() => setVisible(true), 4000)
-    return () => { clearTimeout(reloj); window.removeEventListener('dbz-instalable', alPoder) }
+    const timer = setTimeout(() => setVisible(true), 4000)
+    return () => { clearTimeout(timer); window.removeEventListener('dbz-installable', onInstallable) }
   }, [])
 
   /* La barra es fija abajo, así que tapaba el final del pie: a 320 px mide 134 px y se
@@ -90,45 +90,45 @@ export default function Instalar() {
      página ya en el fondo, o sea sin forma de alcanzarlos. Se le agrega al body ese
      mismo alto de relleno, medido y no adivinado, para que el pie quede accesible. */
   useEffect(() => {
-    if (!visible || !caja.current) return
-    const alto = caja.current.offsetHeight + 20
-    document.body.style.setProperty('--install-height', alto + 'px')
+    if (!visible || !box.current) return
+    const height = box.current.offsetHeight + 20
+    document.body.style.setProperty('--install-height', height + 'px')
     document.body.classList.add('with-install-bar')
     return () => {
       document.body.classList.remove('with-install-bar')
       document.body.style.removeProperty('--install-height')
     }
-  }, [visible, instalador])
+  }, [visible, deferredPrompt])
 
-  function cerrar() {
-    const { veces = 0 } = leer()
-    guardar({ ...leer(), visto: Date.now(), veces: veces + 1 })
+  function dismiss() {
+    const { veces: times = 0 } = read()
+    save({ ...read(), visto: Date.now(), veces: times + 1 })
     setVisible(false)
   }
 
-  async function instalar() {
-    if (!instalador) return
-    instalador.prompt()
-    const { outcome } = await instalador.userChoice.catch(() => ({ outcome: 'dismissed' }))
+  async function install() {
+    if (!deferredPrompt) return
+    deferredPrompt.prompt()
+    const { outcome } = await deferredPrompt.userChoice.catch(() => ({ outcome: 'dismissed' }))
     // Si aceptó, no hay nada más que ofrecerle nunca.
-    guardar(outcome === 'accepted' ? { ...leer(), tiene: true } : { ...leer(), visto: Date.now(), veces: (leer().veces ?? 0) + 1 })
+    save(outcome === 'accepted' ? { ...read(), tiene: true } : { ...read(), visto: Date.now(), veces: (read().veces ?? 0) + 1 })
     setVisible(false)
   }
 
-  const enOtra = enOtraApp()
-  const ios = esIOS()
+  const inAppBrowser = isInAppBrowser()
+  const ios = isIOS()
 
   /* En Android la barra sólo sirve si el navegador avisó que se puede instalar: sin
      ese evento no hay botón, y una barra que dice "instalala" sin decir cómo es peor
      que nada. En iPhone y en el navegador de otra app no hay evento nunca, pero sí
      hay algo para explicar. */
-  if (!visible || (!ios && !enOtra && !instalador)) return null
+  if (!visible || (!ios && !inAppBrowser && !deferredPrompt)) return null
 
   return (
-    <aside className="install" role="note" ref={caja}>
+    <aside className="install" role="note" ref={box}>
       <img src="./icono-192.png" alt="" width="38" height="38" />
       <div className="install-text">
-        {enOtra ? (
+        {inAppBrowser ? (
           <>
             <b>Tenela como app</b>
             <span>Abrila en {ios ? 'Safari' : 'Chrome'} y vas a poder instalarla en tu teléfono.</span>
@@ -136,7 +136,7 @@ export default function Instalar() {
         ) : ios ? (
           <>
             <b>Tenela como app</b>
-            <span>Tocá <Compartir /> abajo y después «Añadir a pantalla de inicio».</span>
+            <span>Tocá <ShareIcon /> abajo y después «Añadir a pantalla de inicio».</span>
           </>
         ) : (
           <>
@@ -145,10 +145,10 @@ export default function Instalar() {
           </>
         )}
       </div>
-      {!enOtra && !ios && instalador && (
-        <button className="install-yes" onClick={instalar}>Instalar</button>
+      {!inAppBrowser && !ios && deferredPrompt && (
+        <button className="install-yes" onClick={install}>Instalar</button>
       )}
-      <button className="install-no" onClick={cerrar} aria-label="Ahora no"><Cruz /></button>
+      <button className="install-no" onClick={dismiss} aria-label="Ahora no"><CloseIcon /></button>
     </aside>
   )
 }

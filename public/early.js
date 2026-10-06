@@ -41,17 +41,17 @@
  * de la primera.
  */
 ;(function () {
-  window.__dbzInstalador = null
+  window.__dbzInstallPrompt = null
   window.addEventListener('beforeinstallprompt', function (e) {
     // Que no salga el cartel del navegador: lo ofrecemos nosotros, con una frase que
     // explica para qué sirve. Quien ya lo cerró cuatro veces puede instalarla igual
     // desde el menú de Chrome.
     e.preventDefault()
-    window.__dbzInstalador = e
-    window.dispatchEvent(new Event('dbz-instalable'))
+    window.__dbzInstallPrompt = e
+    window.dispatchEvent(new Event('dbz-installable'))
   })
   // Si la instalan, el evento guardado ya no sirve para nada.
   window.addEventListener('appinstalled', function () {
-    window.__dbzInstalador = null
+    window.__dbzInstallPrompt = null
   })
 })()

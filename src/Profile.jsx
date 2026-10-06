@@ -3,8 +3,8 @@
    marcar cartas. El panel la comparte (muestra el WhatsApp de cada uno), así que Vite la
    deja en un pedazo aparte que bajan los dos. */
 import { useLayoutEffect, useEffect, useMemo, useRef, useState } from 'react'
-import { atraparFoco, usarEscape } from './foco'
-import { getProfile, saveProfile } from './almacenamiento'
+import { trapFocus, useCloseOnEscape } from './dialog'
+import { getProfile, saveProfile } from './api'
 import {
   canonical, countryOptions, dialCode, formatNational, fromStored, isTooLong,
   placeholderFor, readInput, toWire,
@@ -362,7 +362,7 @@ function ProvinceField({ value, onChange, disabled, invalid, describedBy, inputR
    que se cierre es la confirmación. Lo que no sale bien —un dato que no va, el servidor que
    no contesta, una provincia que el servidor todavía no conoce— lo deja abierto diciendo
    qué pasó, con lo tipeado intacto para corregirlo. */
-export default function ProfileDialog({ onClose, onSesionMuerta }) {
+export default function ProfileDialog({ onClose, onSessionExpired }) {
   const [form, setForm] = useState(null) // null mientras llega
   const [phone, setPhone] = useState(() => fromStored(''))
   const [account, setAccount] = useState('')
@@ -374,16 +374,16 @@ export default function ProfileDialog({ onClose, onSesionMuerta }) {
   const provinceInput = useRef(null)
   const prevFocus = useRef(document.activeElement)
 
-  usarEscape(onClose)
-  useEffect(() => atraparFoco(box.current, prevFocus.current), [])
+  useCloseOnEscape(onClose)
+  useEffect(() => trapFocus(box.current, prevFocus.current), [])
   useEffect(() => {
     getProfile()
-      .then(({ usuario, ...fields }) => {
-        setAccount(usuario)
+      .then(({ usuario: username, ...fields }) => {
+        setAccount(username)
         setForm(fields)
         setPhone(fromStored(fields.whatsapp))
       })
-      .catch((e) => (e?.sesion ? onSesionMuerta() : setError(e.message)))
+      .catch((e) => (e?.sessionExpired ? onSessionExpired() : setError(e.message)))
   }, [])
 
   function flag(field, message, input) {
@@ -404,7 +404,7 @@ export default function ProfileDialog({ onClose, onSesionMuerta }) {
     if (province === null) return flag('province', 'Elegí la provincia de la lista.', provinceInput)
     setSaving(true)
     try {
-      const { usuario, ...fields } = await saveProfile({ ...form, whatsapp: wire.value, province })
+      const { usuario: username, ...fields } = await saveProfile({ ...form, whatsapp: wire.value, province })
       /* Un servidor que todavía no sabe de provincias —el rato de un deploy, o un rollback—
          guarda todo lo demás y la tira sin decir nada. Se dice, y no se borra del campo. */
       if (!('province' in fields)) {
@@ -415,7 +415,7 @@ export default function ProfileDialog({ onClose, onSesionMuerta }) {
         return onClose()
       }
     } catch (e) {
-      if (e?.sesion) return onSesionMuerta()
+      if (e?.sessionExpired) return onSessionExpired()
       setError(e.message)
     }
     setSaving(false)

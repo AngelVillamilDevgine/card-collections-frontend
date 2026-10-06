@@ -12,7 +12,7 @@
  *
  * La regla: cada selector de `dashboard.css` va colgado de algo del panel (`.stats`,
  * `.panel-page`, `.panel-*`, `.periods`, `.devices-*`, `body:has(...)`), o su primera
- * clase no puede existir en `estilos.css`. */
+ * clase no puede existir en `styles.css`. */
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
@@ -22,7 +22,7 @@ const withoutComments = (css) => css.replace(/\/\*[\s\S]*?\*\//g, '')
 
 /* Todas las clases que la app usa en su hoja. */
 const appClasses = new Set(
-  [...withoutComments(read('estilos.css')).matchAll(/\.([a-zA-Z][\w-]*)/g)].map((m) => m[1])
+  [...withoutComments(read('styles.css')).matchAll(/\.([a-zA-Z][\w-]*)/g)].map((m) => m[1])
 )
 
 /* Los selectores de nivel superior de la hoja del panel (los de adentro de un @media

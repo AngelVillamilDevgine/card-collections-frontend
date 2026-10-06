@@ -1,10 +1,10 @@
 // La pantalla de entrada. Un solo formulario que hace las dos cosas: si no tenés
 // cuenta, la crea. Dos pantallas separadas para dos campos iguales no se justifican.
 //
-// No usa la clase .hoja del resto de la app: acá no hay contenido que fluya hacia
+// No usa la clase .sheet del resto de la app: acá no hay contenido que fluya hacia
 // abajo, hay una sola cosa y va en el medio de la pantalla.
 import { useEffect, useState } from 'react'
-import { entrar, registrarse, pulse } from './almacenamiento'
+import { login, signup, pulse } from './api'
 import { albumNames } from './collections'
 import { whatsappTo, forgotPasswordText } from './contact'
 
@@ -26,17 +26,17 @@ let arrivalSent = false
    El texto ya viene escrito y dice de qué sitio se trata: él atiende varios. El número y
    los textos viven en contact.js, que usa también el pie de la app. */
 
-export default function Entrar({ onEntro, aviso }) {
-  const [usuario, setUsuario] = useState('')
-  const [clave, setClave] = useState('')
+export default function Login({ onLogin, notice }) {
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
   /* La landing tiene dos botones que llevan al mismo lugar: «Anotá tus faltantes» viene con
      `?new=1` y «Ya tengo cuenta» sin nada. Sale de la dirección y no de otro lado para que
      el enlace se pueda pegar en cualquier parte y siga queriendo decir lo mismo. */
-  const [nuevo, setNuevo] = useState(() => {
+  const [isSignup, setIsSignup] = useState(() => {
     try { return new URLSearchParams(location.search).get('new') === '1' } catch { return false }
   })
   const [error, setError] = useState(null)
-  const [yendo, setYendo] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     if (arrivalSent) return
@@ -46,15 +46,15 @@ export default function Entrar({ onEntro, aviso }) {
     pulse(FROM.has(f) ? `login:${f}` : 'login:direct')
   }, [])
 
-  async function enviar(ev) {
+  async function handleSubmit(ev) {
     ev.preventDefault()
     setError(null)
-    setYendo(true)
+    setSubmitting(true)
     try {
-      onEntro(await (nuevo ? registrarse : entrar)(usuario.trim(), clave))
+      onLogin(await (isSignup ? signup : login)(username.trim(), password))
     } catch (e) {
       setError(e.message)
-      setYendo(false)
+      setSubmitting(false)
     }
   }
 
@@ -68,16 +68,16 @@ export default function Entrar({ onEntro, aviso }) {
             década. Es lo primero que lee alguien que llega. */}
         <p className="login-tagline">Mi colección · {albumNames()}</p>
 
-        <form className="login-form" onSubmit={enviar}>
+        <form className="login-form" onSubmit={handleSubmit}>
           <label>
-            {nuevo ? 'Tu mail' : 'Mail o usuario'}
+            {isSignup ? 'Tu mail' : 'Mail o usuario'}
             {/* type="email" sólo al crear la cuenta. Al entrar va de texto: hay cuentas
                 viejas con nombre a secas, y el navegador no las dejaría escribirlo. */}
             <input
-              type={nuevo ? 'email' : 'text'}
-              value={usuario}
-              onChange={(ev) => setUsuario(ev.target.value)}
-              autoComplete={nuevo ? 'email' : 'username'}
+              type={isSignup ? 'email' : 'text'}
+              value={username}
+              onChange={(ev) => setUsername(ev.target.value)}
+              autoComplete={isSignup ? 'email' : 'username'}
               autoCapitalize="none"
               autoCorrect="off"
               spellCheck="false"
@@ -90,37 +90,37 @@ export default function Entrar({ onEntro, aviso }) {
             Clave
             <input
               type="password"
-              value={clave}
-              onChange={(ev) => setClave(ev.target.value)}
-              autoComplete={nuevo ? 'new-password' : 'current-password'}
+              value={password}
+              onChange={(ev) => setPassword(ev.target.value)}
+              autoComplete={isSignup ? 'new-password' : 'current-password'}
               required
             />
           </label>
 
           {/* Si llegaste acá porque se venció la sesión, que se diga: si no, la
               colección entera desaparece de golpe y sin ninguna explicación. */}
-          {aviso && !error && <p className="notice-session">{aviso}</p>}
+          {notice && !error && <p className="notice-session">{notice}</p>}
           {error && <p className="error" role="alert">{error}</p>}
 
-          <button type="submit" className="primary" disabled={yendo}>
-            {yendo ? 'Un segundo…' : nuevo ? 'Crear mi colección' : 'Entrar'}
+          <button type="submit" className="primary" disabled={submitting}>
+            {submitting ? 'Un segundo…' : isSignup ? 'Crear mi colección' : 'Entrar'}
           </button>
 
           <button
             type="button"
             className="secondary"
-            onClick={() => { setNuevo(!nuevo); setError(null) }}
+            onClick={() => { setIsSignup(!isSignup); setError(null) }}
           >
-            {nuevo ? 'Ya tengo cuenta' : 'No tengo cuenta todavía'}
+            {isSignup ? 'Ya tengo cuenta' : 'No tengo cuenta todavía'}
           </button>
 
           {/* Sólo al entrar: a quien está creando la cuenta no se le perdió ninguna
               clave todavía. Se manda lo que haya escrito en el campo de usuario, así
               Angel no tiene que preguntar quién es. */}
-          {!nuevo && (
+          {!isSignup && (
             <a
               className="forgot"
-              href={whatsappTo(forgotPasswordText(usuario.trim()))}
+              href={whatsappTo(forgotPasswordText(username.trim()))}
               target="_blank"
               rel="noopener noreferrer"
             >

@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const aca = dirname(fileURLToPath(import.meta.url))
+const ROOT_DIR = dirname(fileURLToPath(import.meta.url))
 
 // El front ya no guarda nada: se lo pide a la API. En desarrollo el proxy manda /api
 // al servidor local, así que el navegador ve un solo origen y no hay CORS que arreglar.
@@ -33,9 +33,9 @@ export default defineConfig({
        * contrato del cartel de «Cargando…» pasó de ser entre dos archivos a serlo entre
        * tres. Lo ata `test/pages.test.js`, que es más de lo que tenía antes. */
       input: {
-        index: resolve(aca, 'index.html'),
-        login: resolve(aca, 'login.html'),
-        collection: resolve(aca, 'collection.html'),
+        index: resolve(ROOT_DIR, 'index.html'),
+        login: resolve(ROOT_DIR, 'login.html'),
+        collection: resolve(ROOT_DIR, 'collection.html'),
       },
     },
   },

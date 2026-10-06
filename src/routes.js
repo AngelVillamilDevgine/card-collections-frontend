@@ -15,7 +15,7 @@
  * justo donde Vite los pone — o sea que el `base: './'` sigue andando sin tocar nada.
  *
  * LA URL SIGUE AL ESTADO, NO AL REVÉS, y es la decisión que hace que esto no pueda romper
- * nada. `App.jsx` decide qué dibujar exactamente igual que antes —por `cuenta`, no por la
+ * nada. `App.jsx` decide qué dibujar exactamente igual que antes —por `account`, no por la
  * dirección— y lo único que hace este módulo es dejar la barra de direcciones diciendo la
  * verdad. Al revés habría que reescribir el árbol de decisión de la app, que es donde
  * viven los tres estados de carga que costaron sus bugs.
@@ -33,9 +33,9 @@ export const LANDING = '/'
 /* La dirección que le corresponde a un estado. `undefined` es «todavía no sé si hay
    sesión» y ahí no se toca nada: mover la URL antes de saberlo haría parpadear `/login`
    en cada carga de alguien que sí tiene sesión. */
-export function pathFor(cuenta) {
-  if (cuenta === undefined) return null
-  return cuenta ? COLLECTION : LOGIN
+export function pathFor(account) {
+  if (account === undefined) return null
+  return account ? COLLECTION : LOGIN
 }
 
 /* Deja la dirección en `path`.
@@ -46,14 +46,14 @@ export function pathFor(cuenta) {
  * pantalla cierre el panel solo.
  *
  * La query se tira porque la única que existe es `?new=1`, que la landing usa para abrir
- * el formulario en modo «crear cuenta» y que `Entrar` consume una sola vez al montarse.
+ * el formulario en modo «crear cuenta» y que `Login` consume una sola vez al montarse.
  * Conservándola —que es lo que hacía la primera versión— quedaba pegada para siempre: al
  * entrar te dejaba en `/collection?new=1`, y sobre todo al SALIR te devolvía a
  * `/login?new=1`, o sea al formulario de crear una cuenta nueva a alguien que acaba de
  * cerrar la suya. Lo agarró la prueba con clicks, no el compilador. */
 export function syncPath(path) {
   if (!path) return
-  const actual = location.pathname.replace(/\.html$/, '')
-  if (actual === path) return
+  const currentPath = location.pathname.replace(/\.html$/, '')
+  if (currentPath === path) return
   history.replaceState(history.state, '', path + location.hash)
 }

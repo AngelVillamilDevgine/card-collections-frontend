@@ -18,38 +18,36 @@ import fs from 'node:fs'
 import { numbersOf } from '../src/collections.js'
 
 const TOTAL = 1936
-const catalogo = JSON.parse(
+const expansions = JSON.parse(
   fs.readFileSync(new URL('../public/data/expansiones.json', import.meta.url), 'utf8')
 ).expansiones
 
-const numerosDe = numbersOf
-
-const todos = catalogo.flatMap(numerosDe)
+const allNumbers = expansions.flatMap(numbersOf)
 
 test('son 1936 cartas y ni una más', () => {
-  assert.equal(todos.length, TOTAL)
+  assert.equal(allNumbers.length, TOTAL)
 })
 
 test('la corrida es exacta del 1 al 1936: sin duplicados y sin huecos', () => {
-  const vistos = new Map()
-  const repetidos = []
-  for (const exp of catalogo) {
-    for (const n of numerosDe(exp)) {
-      if (vistos.has(n)) repetidos.push(`${n} está en «${vistos.get(n)}» y en «${exp.nombre}»`)
-      else vistos.set(n, exp.nombre)
+  const seenIn = new Map()
+  const duplicates = []
+  for (const exp of expansions) {
+    for (const n of numbersOf(exp)) {
+      if (seenIn.has(n)) duplicates.push(`${n} está en «${seenIn.get(n)}» y en «${exp.nombre}»`)
+      else seenIn.set(n, exp.nombre)
     }
   }
-  assert.deepEqual(repetidos, [], 'no puede haber un número en dos expansiones')
+  assert.deepEqual(duplicates, [], 'no puede haber un número en dos expansiones')
 
-  const faltan = []
-  for (let n = 1; n <= TOTAL; n++) if (!vistos.has(n)) faltan.push(n)
-  assert.deepEqual(faltan, [], 'no puede faltar ningún número del 1 al 1936')
+  const missing = []
+  for (let n = 1; n <= TOTAL; n++) if (!seenIn.has(n)) missing.push(n)
+  assert.deepEqual(missing, [], 'no puede faltar ningún número del 1 al 1936')
 })
 
 test('son 16 expansiones y cada una tiene lo que necesita para dibujarse', () => {
-  assert.equal(catalogo.length, 16)
+  assert.equal(expansions.length, 16)
   const ids = new Set()
-  for (const exp of catalogo) {
+  for (const exp of expansions) {
     assert.ok(exp.id, `una expansión sin id: ${JSON.stringify(exp).slice(0, 80)}`)
     assert.ok(!ids.has(exp.id), `el id «${exp.id}» está repetido`)
     ids.add(exp.id)
@@ -67,13 +65,13 @@ test('son 16 expansiones y cada una tiene lo que necesita para dibujarse', () =>
    regulares son todos de 136, y las excepciones son cuatro y están documentadas. Si
    aparece una quinta, casi seguro es un error de carga y no una expansión nueva. */
 test('los sets son de 136 cartas, salvo las cuatro excepciones conocidas', () => {
-  const excepciones = { 129: 2, 6: 1, 88: 2 } // Expansión 1 y Especial GT, Ocultas, las dos de Batalla Final
-  const raros = []
-  for (const exp of catalogo) {
-    const n = numerosDe(exp).length
+  const knownExceptions = { 129: 2, 6: 1, 88: 2 } // Expansión 1 y Especial GT, Ocultas, las dos de Batalla Final
+  const unexpected = []
+  for (const exp of expansions) {
+    const n = numbersOf(exp).length
     if (n === 136) continue
-    if (excepciones[n]) { excepciones[n]--; continue }
-    raros.push(`«${exp.nombre}» tiene ${n}`)
+    if (knownExceptions[n]) { knownExceptions[n]--; continue }
+    unexpected.push(`«${exp.nombre}» tiene ${n}`)
   }
-  assert.deepEqual(raros, [], 'un tamaño que no es 136 ni una de las excepciones conocidas')
+  assert.deepEqual(unexpected, [], 'un tamaño que no es 136 ni una de las excepciones conocidas')
 })

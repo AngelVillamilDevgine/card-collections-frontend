@@ -11,7 +11,7 @@
  * parseo, decide, y redirige ANTES de que se pinte un pixel. Con `async` el que tiene
  * sesión vería un flash de página de venta antes de sus cartas cada vez que abre la app.
  *
- * Es al revés que `temprano.js`, que va `async` justamente para no frenar nada — y no es
+ * Es al revés que `early.js`, que va `async` justamente para no frenar nada — y no es
  * una contradicción: ahí lo que importa es no demorar el primer pintado, y acá lo que
  * importa es que el primer pintado no sea el equivocado.
  *
@@ -45,7 +45,7 @@
      archivo no corre nunca y el cartel no aparece jamás. */
   if (runningAsApp) { try { sessionStorage.setItem(FROM_ROOT, '1') } catch (e) {} }
 
-  /* EL VISITANTE DE LA LANDING, ANTES DE REDIRIGIR A NADIE. Va acá y no en temprano.js
+  /* EL VISITANTE DE LA LANDING, ANTES DE REDIRIGIR A NADIE. Va acá y no en early.js
      por una razón física: al que tiene sesión este archivo lo saca de la página en el
      renglón de abajo, y un script async pierde esa carrera — el beacon no salía nunca.
      `sendBeacon` está diseñado para sobrevivir a la navegación, así que mandarlo acá,
@@ -56,7 +56,7 @@
      dato de la persona. «Misma persona» = mismo navegador, que es el techo honesto.
      Sin `crypto.getRandomValues` no se inventa un id (serían todos iguales): se cuenta
      la visita cruda sola. El cuerpo va en texto plano — pedido simple, sin OPTIONS — y
-     la dirección de la API está escrita acá igual que en `almacenamiento.js`: este
+     la dirección de la API está escrita acá igual que en `api.js`: este
      archivo es estático y no puede importarla. */
   try {
     var vid = ''

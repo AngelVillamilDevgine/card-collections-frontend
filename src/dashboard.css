@@ -1,4 +1,4 @@
-/* El CSS del panel del administrador, aparte de estilos.css a propósito.
+/* El CSS del panel del administrador, aparte de styles.css a propósito.
 
    El panel entra por `lazy()`, así que su JavaScript ya viaja en un chunk propio. Pero
    el CSS importado desde `main.jsx` NO se parte por eso: Vite lo emite igual en la hoja
@@ -6,7 +6,7 @@
    para no usarlas nunca. Importándolo desde el componente perezoso, Vite le da su propia
    hoja y la carga recién cuando alguien abre el panel.
 
-   La otra mitad de por qué está separado es de mantenimiento: `estilos.css` es un archivo
+   La otra mitad de por qué está separado es de mantenimiento: `styles.css` es un archivo
    solo, sin convención de nombres, donde ya pasó que `.bar` del panel pisara a `.bar`
    de la barrita de progreso. El panel va a crecer; que crezca en su propio archivo.
 
@@ -19,7 +19,7 @@
    La estética de la app (papel, contenida) sigue intacta del otro lado del botón.
 
    Lo que NO cambió es la estructura, que salió del rechazo del 2026-09-28 («dashboard mal
-   gerarquizado») y está toda razonada en los comentarios de Estadisticas.jsx: el orden por
+   gerarquizado») y está toda razonada en los comentarios de Dashboard.jsx: el orden por
    preguntas, los cuadros con el número primero, la tira horizontal, ningún porcentaje
    capado a 100, la nota medida por su contenido. Esto es la piel, no el esqueleto.
 
@@ -29,7 +29,7 @@
    azul Leyenda #7fa8e6 vs riel 7.5. El piso exigido: 4.5 texto, 3:1 no textual. */
 
 /* La misma Anton de la landing, servida desde el mismo archivo: no hay segundo woff2.
-   Se declara acá y no en estilos.css para que sólo la baje quien abre el panel. */
+   Se declara acá y no en styles.css para que sólo la baje quien abre el panel. */
 @font-face {
   font-family: 'Anton';
   src: url('/landing/anton.woff2') format('woff2');
@@ -51,7 +51,7 @@
  * El `env(safe-area-inset-*)` no es opcional: sin él, la cabecera se mete debajo de la
  * isla del iPhone y el último renglón debajo de la barra de gestos.
  *
- * Los tokens van ACÁ y con prefijo `--p-`, no en el `:root` de estilos.css: el panel no
+ * Los tokens van ACÁ y con prefijo `--p-`, no en el `:root` de styles.css: el panel no
  * comparte paleta con la app y un token global llamado parecido es la clase de trampa que
  * este proyecto ya pagó dos veces. */
 /* CON EL PANEL ABIERTO, EL DOCUMENTO DE ATRÁS NO SCROLLEA — lo marcó Angel: en
@@ -197,7 +197,7 @@ body:has(.panel-page) {
 
 .stats .group { display: flex; flex-direction: column; gap: 7px; }
 
-/* «Buscando…», la nota de cohortes y el renglón de cartas marcadas: en estilos.css
+/* «Buscando…», la nota de cohortes y el renglón de cartas marcadas: en styles.css
    `.nothing` está pensada para el papel y acá quedaría ilegible. */
 .stats .nothing { color: var(--p-text3); }
 
@@ -477,7 +477,7 @@ body:has(.panel-page) {
   font-size: 13px;
   color: var(--p-text2);
 }
-/* La alarma en el rojo medido para la noche (6.6:1) — el `--reem-*` de la app es de la
+/* La alarma en el rojo medido para la noche (6.6:1) — el `--replace-*` de la app es de la
    paleta de papel y acá desaparecía. */
 .stats .health.alert { border-color: var(--p-bad); background: rgba(255, 140, 115, 0.08); }
 .stats .health b { color: var(--p-text); font-weight: 600; }

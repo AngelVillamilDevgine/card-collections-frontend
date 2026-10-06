@@ -28,7 +28,7 @@ const login = read('login.html')
 const collection = read('collection.html')
 const resume = read('public/resume.js')
 const app = read('src/App.jsx')
-const storageSrc = read('src/almacenamiento.js')
+const apiSrc = read('src/api.js')
 const reinstall = read('src/Reinstall.jsx')
 const manifest = JSON.parse(read('public/manifest.webmanifest'))
 
@@ -42,9 +42,9 @@ test('los dos cascarones de la app dicen exactamente lo mismo en #root', () => {
 })
 
 test('y eso es lo mismo que dibuja App.jsx mientras no sabe si hay sesión', () => {
-  /* El estado `cuenta === undefined`. Si esto cambia en App.jsx y no en los HTML, al montar
+  /* El estado `account === undefined`. Si esto cambia en App.jsx y no en los HTML, al montar
      React reemplaza un cartel por otro distinto y se ve un salto. */
-  assert.match(app, /cuenta === undefined\) return <div className="sheet"><p className="loading">Cargando…<\/p><\/div>/)
+  assert.match(app, /account === undefined\) return <div className="sheet"><p className="loading">Cargando…<\/p><\/div>/)
   for (const html of [login, collection])
     assert.equal(root(html), '<div id="root"><div class="sheet"><p class="loading">Cargando…</p></div></div>')
 })
@@ -66,21 +66,21 @@ test('resume.js va PRIMERO y SIN async ni defer', () => {
   assert.ok(tag, 'la landing no carga resume.js')
   assert.ok(!/\basync\b|\bdefer\b/.test(tag[0]), `resume.js no puede ser diferido: ${tag[0]}`)
   /* Y antes que cualquier otro script, porque lo que sigue ya pinta. */
-  const primero = landing.match(/<script[^>]*>/)
-  assert.equal(primero[0], tag[0])
+  const firstScript = landing.match(/<script[^>]*>/)
+  assert.equal(firstScript[0], tag[0])
 })
 
-test('la landing carga temprano.js, que es lo que le apaga a Chrome su cartel de instalar', () => {
+test('la landing carga early.js, que es lo que le apaga a Chrome su cartel de instalar', () => {
   /* La landing linkea el manifest —obligatorio: hay instalaciones viejas con `start_url=/`—
      y con el manifest a la vista Chrome en Android puede ofrecer instalar por su cuenta,
      encima de la página de venta. Lo único que lo apaga es el `preventDefault` de
-     `temprano.js` sobre `beforeinstallprompt`. Acá nadie usa el evento guardado (no hay
+     `early.js` sobre `beforeinstallprompt`. Acá nadie usa el evento guardado (no hay
      bundle): está sólo para suprimir el cartel. Y va `async` porque no puede frenar el
      primer pintado de la única página que ve un desconocido. */
   assert.ok(landing.includes('manifest.webmanifest'), 'si el manifest se fue, este test ya no aplica: leé el comentario')
-  const tag = landing.match(/<script[^>]*temprano\.js[^>]*>/)
-  assert.ok(tag, 'la landing no carga temprano.js: Chrome puede ofrecer instalar sobre la página de venta')
-  assert.ok(/\basync\b/.test(tag[0]), `temprano.js va async para no frenar el pintado: ${tag[0]}`)
+  const tag = landing.match(/<script[^>]*early\.js[^>]*>/)
+  assert.ok(tag, 'la landing no carga early.js: Chrome puede ofrecer instalar sobre la página de venta')
+  assert.ok(/\basync\b/.test(tag[0]), `early.js va async para no frenar el pintado: ${tag[0]}`)
 })
 
 test('cada asset que la landing referencia existe en public/', () => {
@@ -114,15 +114,15 @@ test('los botones de la landing llevan a /login, que es lo que dice routes.js', 
 })
 
 test('la pasarela: los marcadores f= de la landing son los que lee el formulario', () => {
-  /* El tercer contrato de este archivo entre la landing y Entrar.jsx. Si divergen, el
-     contador pierde EN SILENCIO: una `f` que Entrar no lista cuenta como «directo» y
+  /* El tercer contrato de este archivo entre la landing y Login.jsx. Si divergen, el
+     contador pierde EN SILENCIO: una `f` que Login no lista cuenta como «directo» y
      nadie se entera de que el botón dejó de medirse. */
-  const fs = [...landing.matchAll(/[?&]f=([a-z-]+)"/g)].map((m) => m[1])
-  assert.equal(new Set(fs).size, 4, `se esperaban 4 marcadores distintos y hay: ${fs.join(', ')}`)
-  const lista = read('src/Entrar.jsx').match(/const FROM = new Set\(\[([^\]]+)\]\)/)?.[1] ?? ''
-  for (const f of fs) assert.ok(lista.includes(`'${f}'`), `la landing manda f=${f} y Entrar no lo lista`)
-  /* Y el beacon del visitante vive en RESUME.JS, no en temprano: al que tiene sesión,
-     resume lo redirige antes de que un script async llegue a correr — en temprano, el
+  const markers = [...landing.matchAll(/[?&]f=([a-z-]+)"/g)].map((m) => m[1])
+  assert.equal(new Set(markers).size, 4, `se esperaban 4 marcadores distintos y hay: ${markers.join(', ')}`)
+  const allowedMarkers = read('src/Login.jsx').match(/const FROM = new Set\(\[([^\]]+)\]\)/)?.[1] ?? ''
+  for (const f of markers) assert.ok(allowedMarkers.includes(`'${f}'`), `la landing manda f=${f} y Login no lo lista`)
+  /* Y el beacon del visitante vive en RESUME.JS, no en early: al que tiene sesión,
+     resume lo redirige antes de que un script async llegue a correr — en early, el
      beacon del que ya entró no salía nunca. Se mira que mande el `v1|` con el vid y que
      dispare ANTES del replace, porque después ya no hay página. */
   const resumeSrc = read('public/resume.js')
@@ -133,19 +133,19 @@ test('la pasarela: los marcadores f= de la landing son los que lee el formulario
     resumeSrc.indexOf('sendBeacon') < resumeSrc.indexOf('location.replace'),
     'el beacon tiene que dispararse ANTES del replace'
   )
-  assert.ok(!read('public/temprano.js').includes('sendBeacon'), 'el beacon volvió a temprano.js, donde pierde la carrera')
+  assert.ok(!read('public/early.js').includes('sendBeacon'), 'el beacon volvió a early.js, donde pierde la carrera')
 })
 
-test('el parámetro que pone la landing es el que lee Entrar.jsx', () => {
+test('el parámetro que pone la landing es el que lee Login.jsx', () => {
   /* Otro contrato entre un HTML y un módulo, o sea otro que no se puede verificar
      importando. Y falló de verdad: al pasar el nombre a inglés se cambió el `?crear=1` del
      enlace y NO el `get('crear')` del componente, así que el botón «Anotá tus faltantes»
      seguía abriendo el formulario en modo «Entrar». No lo agarró ningún test —el de arriba
      sólo mira el enlace— sino la prueba con clicks. */
-  const enLaLanding = landing.match(new RegExp(`href="${LOGIN}\\?([a-z]+)=1&`))?.[1]
-  const enElFormulario = read('src/Entrar.jsx').match(/location\.search\)\.get\('([^']+)'\)/)?.[1]
-  assert.ok(enLaLanding, 'la landing no lleva ningún parámetro')
-  assert.equal(enElFormulario, enLaLanding)
+  const landingParam = landing.match(new RegExp(`href="${LOGIN}\\?([a-z]+)=1&`))?.[1]
+  const formParam = read('src/Login.jsx').match(/location\.search\)\.get\('([^']+)'\)/)?.[1]
+  assert.ok(landingParam, 'la landing no lleva ningún parámetro')
+  assert.equal(formParam, landingParam)
 })
 
 // ------------------------------------------- los contratos entre archivos sueltos
@@ -155,9 +155,9 @@ test('resume.js redirige a las MISMAS rutas que declara routes.js', () => {
     assert.ok(resume.includes(`'${route}'`), `resume.js no menciona ${route}`)
 })
 
-test('resume.js usa la MISMA key de token que almacenamiento.js', () => {
-  const key = storageSrc.match(/CLAVE_TOKEN = '([^']+)'/)?.[1]
-  assert.ok(key, 'no se encontró CLAVE_TOKEN en almacenamiento.js')
+test('resume.js usa la MISMA key de token que api.js', () => {
+  const key = apiSrc.match(/TOKEN_STORAGE_KEY = '([^']+)'/)?.[1]
+  assert.ok(key, 'no se encontró TOKEN_STORAGE_KEY en api.js')
   assert.ok(resume.includes(`'${key}'`), `resume.js no usa ${key}`)
 })
 
@@ -168,15 +168,15 @@ test('la marca que deja resume.js es la que lee Reinstall.jsx', () => {
   assert.equal(gotten, written)
 })
 
-test('resume.js y donde-corre.js detectan la app instalada de la MISMA forma', () => {
-  /* `resume.js` es un script clásico de `public/`: no puede importar `comoApp`, así que la
+test('resume.js y platform.js detectan la app instalada de la MISMA forma', () => {
+  /* `resume.js` es un script clásico de `public/`: no puede importar `isStandalone`, así que la
      detección está duplicada. Si divergen, la app instalada se reconoce de un lado y del
-     otro no: `resume.js` dejaría de redirigir desde la raíz, o `comoApp()` dejaría de mandar
+     otro no: `resume.js` dejaría de redirigir desde la raíz, o `isStandalone()` dejaría de mandar
      el `?app=1` y el cuarto escalón del embudo se desalinea. Ninguna de las dos avisa. */
-  const dondeCorre = read('src/donde-corre.js')
-  for (const senal of ['display-mode: standalone', 'navigator.standalone']) {
-    assert.ok(dondeCorre.includes(senal), `donde-corre.js dejó de mirar ${senal}`)
-    assert.ok(resume.includes(senal), `resume.js dejó de mirar ${senal}`)
+  const platformSrc = read('src/platform.js')
+  for (const signal of ['display-mode: standalone', 'navigator.standalone']) {
+    assert.ok(platformSrc.includes(signal), `platform.js dejó de mirar ${signal}`)
+    assert.ok(resume.includes(signal), `resume.js dejó de mirar ${signal}`)
   }
 })
 
@@ -184,10 +184,10 @@ test('los archivos que nombra el manifest existen', () => {
   /* El manifest lleva comentarios en claves `//` que citan archivos del repo, y una quedó
      apuntando a `public/reanudar.js` después de renombrarlo: una referencia muerta que
      ningún build mira, porque es un JSON. */
-  for (const [clave, valor] of Object.entries(manifest)) {
-    if (typeof valor !== 'string') continue
-    for (const ruta of valor.match(/\b(?:public|src|test)\/[\w.-]+\.\w+/g) ?? [])
-      assert.ok(existsSync(new URL(ruta, rootUrl)), `${clave} nombra ${ruta}, que no existe`)
+  for (const [key, value] of Object.entries(manifest)) {
+    if (typeof value !== 'string') continue
+    for (const filePath of value.match(/\b(?:public|src|test)\/[\w.-]+\.\w+/g) ?? [])
+      assert.ok(existsSync(new URL(filePath, rootUrl)), `${key} nombra ${filePath}, que no existe`)
   }
 })
 
@@ -211,9 +211,9 @@ test('el footer del texto exportado lleva https://, que es lo que lo hace tocabl
      conoce la app llega a ella. Medido por Angel el 2026-09-28 mandándoselo a sí mismo: con
      la dirección pelada NO ANDUVO — sin el esquema el cliente no arma el enlace ni la
      tarjeta, o la resuelve como `http://` y se come un 301 (comprobado contra producción).
-     `Exportar.jsx` tiene JSX adentro, así que no se puede importar desde acá; se lee. */
-  const exportSrc = read('src/Exportar.jsx')
-  const footer = exportSrc.match(/const PIE = '([^']+)'/)?.[1]
+     `ExportDialog.jsx` tiene JSX adentro, así que no se puede importar desde acá; se lee. */
+  const exportSrc = read('src/ExportDialog.jsx')
+  const footer = exportSrc.match(/const FOOTER_URL = '([^']+)'/)?.[1]
   assert.ok(footer, 'no se encontró el footer del texto exportado')
   assert.ok(footer.startsWith('https://'), `el footer tiene que llevar el esquema: ${footer}`)
 })
@@ -225,7 +225,7 @@ test('pathFor no toca la dirección mientras no se sabe si hay sesión', () => {
      carga de alguien que sí tiene sesión. */
   assert.equal(pathFor(undefined), null)
   assert.equal(pathFor(null), LOGIN)
-  assert.equal(pathFor({ usuario: 'angel' }), COLLECTION)
+  assert.equal(pathFor({ username: 'angel' }), COLLECTION)
 })
 
 /* El WhatsApp del pie de la landing es un literal en el HTML, porque la landing no carga el

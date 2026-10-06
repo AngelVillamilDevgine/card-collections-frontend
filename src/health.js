@@ -1,6 +1,6 @@
 /* CUÁNDO UNA COPIA DE SEGURIDAD ESTÁ VIEJA. Un solo lugar, y por eso este archivo existe.
  *
- * El umbral vivía escrito a mano adentro de `Estadisticas.jsx`, que es el componente
+ * El umbral vivía escrito a mano adentro de `Dashboard.jsx`, que es el componente
  * perezoso del panel. Cuando el aviso salió también al encabezado de la app hubo que
  * elegir: copiarlo —y que los dos lados dijeran cosas distintas el día que alguien tocara
  * uno— o sacarlo a un módulo que importen los dos. Es exactamente la clase de duplicación
@@ -21,14 +21,14 @@ export const STALE_DAYS = {
 
 /* `hace` viene en MINUTOS desde el servidor, a propósito: así el navegador no tiene que
    hacer cuentas con husos horarios, que en este proyecto ya costaron un bug. */
-export const daysAgo = (minutos) => (minutos ?? 0) / 60 / 24
+export const daysAgo = (minutes) => (minutes ?? 0) / 60 / 24
 
 /* Sin entrada es lo PEOR, no lo mejor: que nunca se haya anotado una copia significa que el
    timer no corrió nunca, no que esté todo bien. */
-export function isStale(entrada, clave) {
-  const tope = STALE_DAYS[clave]
-  if (tope == null) return false
-  return !entrada || daysAgo(entrada.hace) > tope
+export function isStale(entry, key) {
+  const maxDays = STALE_DAYS[key]
+  if (maxDays == null) return false
+  return !entry || daysAgo(entry.hace) > maxDays
 }
 
 /* Cómo se dice cada una en voz alta. La clave es del servidor; esto es para la persona, así
@@ -40,13 +40,13 @@ export const STALE_LABEL = {
 
 /* Lo que el encabezado necesita saber: ¿hay algo que mirar? Devuelve las claves en falta,
    para que el aviso pueda decir cuál. */
-export function whatIsStale(salud) {
-  if (!salud) return []
-  return Object.keys(STALE_DAYS).filter((k) => STALE_DAYS[k] != null && isStale(salud[k], k))
+export function whatIsStale(health) {
+  if (!health) return []
+  return Object.keys(STALE_DAYS).filter((k) => STALE_DAYS[k] != null && isStale(health[k], k))
 }
 
 /* La frase del aviso, ya armada: «la copia de la base» o «la copia de la base y la prueba de
    restauración». Sin esto, el botón decía «revisá respaldo y restauracion», que es la clave
    de la tabla y no una frase. */
-export const staleText = (claves) =>
-  claves.map((k) => STALE_LABEL[k] ?? k).join(' y ')
+export const staleText = (keys) =>
+  keys.map((k) => STALE_LABEL[k] ?? k).join(' y ')
