@@ -3,6 +3,7 @@ import { CONDITIONS, conditionLabel, conditionClass } from './conditions'
 import { trapFocus, useCloseOnEscape, useCloseOnBack } from './dialog'
 import Login from './Login'
 import ExportDialog from './ExportDialog'
+import Celebration from './Celebration'
 /* El panel del administrador se baja aparte y recién cuando se abre.
 
    Lo ven 1 de 40 cuentas, y estaba en el chunk principal: las otras 39 se bajaban el
@@ -17,7 +18,7 @@ import { pathFor, syncPath } from './routes'
 import { whatIsStale, staleText } from './health'
 import { ErrorBoundary } from './ErrorBoundary'
 import { whatsappTo, suggestionText } from './contact'
-import { COLLECTIONS, DEFAULT_COLLECTION, readCollection, rememberCollection, loadCatalogs, slotKey, slotsOf, variantsFor, drawableVariants, pointsToASlot, cardLabel, cardDetail, albumPercent, slotOf, slotName, orphanName } from './collections'
+import { COLLECTIONS, DEFAULT_COLLECTION, readCollection, rememberCollection, loadCatalogs, slotKey, slotsOf, variantsFor, drawableVariants, pointsToASlot, cardLabel, cardDetail, albumPercent, slotOf, slotName, orphanName, completionBy } from './collections'
 import {
   ApiError,
   downloadJson, readBackupFile, fetchAccount, logout,
@@ -723,13 +724,15 @@ export default function App() {
   const [profileOpen, setProfileOpen] = useState(false)
   const [orphansDialogOpen, setOrphansDialogOpen] = useState(false)
   const [variantPrompt, setVariantPrompt] = useState(null)
+  // Qué se completó con el último toque: {expansion, album}, o null.
+  const [celebration, setCelebration] = useState(null)
 
-  /* Los seis diálogos, con un solo mecanismo: en esta app no hay dos abiertos a la vez
+  /* Los diálogos, con un solo mecanismo: en esta app no hay dos abiertos a la vez
      —el telón se come los clicks de atrás— así que alcanza con «hay alguno» y «cerrá el
      que sea». Si algún día se pueden apilar, esto pasa a ser uno por diálogo. */
   const isDialogOpen =
     exportOpen || passwordDialogOpen || profileOpen || orphansDialogOpen ||
-    !!conditionPrompt || !!variantPrompt || !!pendingRestore
+    !!conditionPrompt || !!variantPrompt || !!pendingRestore || !!celebration
   const closeDialogs = useCallback(() => {
     setExportOpen(false)
     setPasswordDialogOpen(false)
@@ -738,6 +741,7 @@ export default function App() {
     setConditionPrompt(null)
     setVariantPrompt(null)
     setPendingRestore(null)
+    setCelebration(null)
   }, [])
   useCloseOnBack(isDialogOpen, closeDialogs)
 
@@ -1220,6 +1224,7 @@ export default function App() {
   /* Cambiar una carta: primero se ve en pantalla, después sale para el servidor. */
   function applyChange(cardKey, quantity, condition) {
     const d = liveRef.current
+    const previousQuantity = d.cantidades[cardKey] ?? 0
     const nextQuantities = { ...d.cantidades }
     const nextConditions = { ...d.estados }
     if (quantity > 0) {
@@ -1236,6 +1241,13 @@ export default function App() {
     liveRef.current = { estados: nextConditions, cantidades: nextQuantities }
     setCollectionData(liveRef.current)
     queueSave(cardKey, quantity, quantity > 0 ? condition : null)
+
+    /* El festejo, sólo cuando un casillero pasa de no tenerla a tenerla: es el único toque
+       que puede completar algo. Si cuando llega éste ya hay uno abierto, queda el primero. */
+    if (!previousQuantity && quantity > 0) {
+      const done = completionBy(cardKey, d.cantidades, nextQuantities, album)
+      if (done) setCelebration((current) => current ?? done)
+    }
   }
 
   /* Cartas que están en tu cuenta pero NO en el catálogo.
@@ -2027,6 +2039,16 @@ export default function App() {
             catalogs={catalogs}
             onConfirm={removeOrphans}
             onClose={() => setOrphansDialogOpen(false)}
+          />
+        )}
+
+        {celebration && (
+          <Celebration
+            title={celebration.album ? '¡Completaste el álbum!' : '¡Completaste una expansión!'}
+            detail={celebration.album
+              ? `Ya tenés las ${(summary?.total ?? 0).toLocaleString('es-AR')} cartas de ${availableCollections.find((c) => c.id === shownCollectionId)?.name ?? 'este álbum'}.`
+              : `Ya tenés las ${celebration.expansion.cardNumbers.length} cartas de ${celebration.expansion.nombre}.`}
+            onClose={() => setCelebration(null)}
           />
         )}
 

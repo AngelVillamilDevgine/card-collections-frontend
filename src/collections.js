@@ -246,6 +246,33 @@ export function drawableVariants(expansions, quantities) {
   return result
 }
 
+/* ¿ESTE TOQUE COMPLETÓ ALGO? Lo pidió Angel: «cuando completo una colección, que salten
+   fuegos artificiales o algo».
+
+   Se pregunta SÓLO por el toque que acaba de pasar, comparando el antes y el después: así
+   no festeja al cargar la página, ni al volver a la pestaña, ni al restaurar una copia —
+   nada de eso es un logro de ese momento—. Y un toque que suma una repetida, o una
+   variante de un hueco que ya tenías, no completa nada: ese hueco ya contaba.
+
+   «Tener» un hueco es lo mismo que cuenta la banda de la expansión: alguno de sus
+   casilleros con algo, incluidas las variantes que el catálogo no declara
+   (`drawableVariants`). Si fuera otra cuenta, el festejo podría saltar con la banda en
+   «135 de 136».
+
+   Devuelve null, o la expansión que se completó y si con ella se completó el álbum. */
+export function completionBy(cardKey, before, after, album) {
+  const expansions = album?.expansiones ?? []
+  const slot = slotOf(cardKey, { album })
+  if (!slot) return null
+  const owns = (exp, n, quantities, drawable) =>
+    slotsOf(exp, n, drawable[exp.id], quantities).some((s) => (quantities[s.cardKey] ?? 0) > 0)
+  if (owns(slot.exp, slot.n, before, drawableVariants(expansions, before))) return null
+  const drawableAfter = drawableVariants(expansions, after)
+  const isComplete = (exp) => exp.cardNumbers.every((n) => owns(exp, n, after, drawableAfter))
+  if (!isComplete(slot.exp)) return null
+  return { expansion: slot.exp, album: expansions.every(isComplete) }
+}
+
 /* ¿Esta clave apunta a un hueco que existe? Se usa para las huérfanas, y la respuesta
    tiene que ser SÍ también cuando el sufijo de variante no está declarado.
 

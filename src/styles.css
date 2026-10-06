@@ -441,6 +441,27 @@ button { cursor: pointer; }
 
 .dialog p { margin: 2px 0 16px; color: var(--ink2); font-size: 14px; }
 
+/* EL FESTEJO de completar una expansión o el álbum. El diálogo de siempre, centrado y con
+   el título un punto más grande; entra con un salto corto, salvo con «reducir
+   movimiento». Los fuegos van en un canvas ENCIMA del telón (si no, se verían
+   oscurecidos) y sin recibir toques, así nunca tapan el botón. */
+.dialog.celebration { text-align: center; }
+.dialog.celebration h3 { font-size: 20px; margin-bottom: 8px; }
+.dialog.celebration p { font-size: 15px; color: var(--ink); }
+.dialog.celebration .primary { width: 100%; }
+.fireworks {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 21;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .dialog.celebration { animation: celebration-in 0.32s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+}
+@keyframes celebration-in { from { transform: scale(0.86); opacity: 0; } }
+
 /* La advertencia del reemplazo: el mismo color que las cartas "para reemplazar", que en
    esta app ya significa "ojo con esto". */
 .dialog .eye {

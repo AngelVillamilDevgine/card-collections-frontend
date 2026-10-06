@@ -14,7 +14,7 @@ import fs from 'node:fs'
 import {
   COLLECTIONS, DEFAULT_COLLECTION, readCollection, albumNames, cardLabel, cardDetail, listLabel, albumPercent,
   withVariants, variantsFor, slotKey, slotsOf, drawableVariants, pointsToASlot, numbersOf,
-  slotOf, slotName, orphanName,
+  slotOf, slotName, orphanName, completionBy,
 } from '../src/collections.js'
 
 /* Una expansión como sale de un json, para no depender de los catálogos de verdad: lo que
@@ -433,4 +433,50 @@ test('cada colección tiene id, nombre y archivo, y ningún id repetido', () => 
     assert.match(c.file, /^data\/.+\.json$/, `${c.id}: el archivo va en public/data/`)
   }
   assert.equal(new Set(COLLECTIONS.map((c) => c.id)).size, COLLECTIONS.length)
+})
+
+// ---------------------------------------------------------------- completionBy
+
+test('completionBy: festeja el toque que completa la expansión, y ningún otro', () => {
+  const a = makeExpansion({ id: 'a', desde: 1, hasta: 3 })
+  const b = makeExpansion({ id: 'b', desde: 4, hasta: 5 })
+  const album = { expansiones: [a, b] }
+  const before = { 'a:1': 1, 'a:2': 1 }
+  assert.deepEqual(completionBy('a:3', before, { ...before, 'a:3': 1 }, album), { expansion: a, album: false })
+  assert.equal(completionBy('a:2', before, { ...before, 'a:2': 2 }, album), null, 'una repetida no completa nada')
+  assert.equal(completionBy('b:4', before, { ...before, 'b:4': 1 }, album), null, 'a la b le falta la 5')
+})
+
+test('completionBy: el último hueco del álbum lo dice', () => {
+  const a = makeExpansion({ id: 'a', desde: 1, hasta: 2 })
+  const b = makeExpansion({ id: 'b', desde: 3, hasta: 3 })
+  const album = { expansiones: [a, b] }
+  const before = { 'a:1': 1, 'a:2': 3 }
+  assert.deepEqual(completionBy('b:3', before, { ...before, 'b:3': 1 }, album), { expansion: b, album: true })
+})
+
+test('completionBy: una variante cuenta como tener el hueco, y una segunda variante del mismo hueco no festeja', () => {
+  const a = makeExpansion({ id: 'a', desde: 1, hasta: 2, grupos: [{ cartas: [2], variantes: [GOLD, SILVER] }] })
+  const album = { expansiones: [a] }
+  const before = { 'a:1': 1 }
+  assert.deepEqual(completionBy('a-dor:2', before, { ...before, 'a-dor:2': 1 }, album), { expansion: a, album: true },
+    'la 2 sólo en dorado completa')
+  const full = { 'a:1': 1, 'a-dor:2': 1 }
+  assert.equal(completionBy('a-pla:2', full, { ...full, 'a-pla:2': 1 }, album), null, 'la 2 ya contaba')
+  assert.equal(completionBy('a:2', full, { ...full, 'a:2': 1 }, album), null, 'la base de la 2 tampoco')
+})
+
+test('completionBy: una variante que el catálogo no declara cuenta igual que en la banda', () => {
+  const a = makeExpansion({ id: 'a', desde: 1, hasta: 2 })
+  const album = { expansiones: [a] }
+  const before = { 'a:1': 1 }
+  assert.deepEqual(completionBy('a-zz:2', before, { ...before, 'a-zz:2': 1 }, album), { expansion: a, album: true })
+})
+
+test('completionBy: una clave de otro álbum, o que no apunta a ningún hueco, no festeja', () => {
+  const a = makeExpansion({ id: 'a', desde: 1, hasta: 1 })
+  const album = { expansiones: [a] }
+  assert.equal(completionBy('b:1', {}, { 'b:1': 1 }, album), null)
+  assert.equal(completionBy('a:9', {}, { 'a:9': 1 }, album), null)
+  assert.equal(completionBy('a:1', {}, { 'a:1': 1 }, null), null, 'sin álbum cargado')
 })
