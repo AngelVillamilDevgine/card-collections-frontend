@@ -458,6 +458,13 @@ function PeriodFunnel({ p, periodLabel }) {
     { n: p.visitorsNew, label: 'Visitantes únicos nuevos', conv: pct(p.visitorsNew, p.visitors) },
     { n: p.toSignup, label: 'Clicks a anotarse', conv: pct(p.toSignup, p.visitorsNew) },
     { n: p.signups, label: 'Registros', conv: pct(p.signups, p.toSignup) },
+    /* De los que se registraron en el período, los que de verdad la usan: más de 20 cartas
+       marcadas hoy. Lo pidió Angel —«si carga 1 o ninguna no me interesa»— después de ver
+       que 5 de los 9 registros de una semana no habían marcado ni una. Un back viejo no
+       manda el número, y entonces la estación no se dibuja. */
+    ...(p.signupsLoaded != null
+      ? [{ n: p.signupsLoaded, label: 'Cargaron más de 20 cartas', conv: pct(p.signupsLoaded, p.signups) }]
+      : []),
     /* El uso, partido por dónde entraron — lo pidió Angel: «usuarios que usaron la
        página, y abajo uno nuevo que diga usuarios que usaron la app». La bandera es por
        día, así que web y app pueden solaparse y no tienen por qué sumar el total; la
