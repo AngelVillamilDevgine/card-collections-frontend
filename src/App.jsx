@@ -1868,9 +1868,16 @@ export default function App() {
               <svg className="icon" width="21" height="21" viewBox="0 0 24 24" fill="none"
                    stroke="currentColor" strokeWidth="2" strokeLinecap="round"
                    strokeLinejoin="round" aria-hidden="true">
-                <path d="M12 3v12" />
-                <path d="M7 8l5-5 5 5" />
-                <path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" />
+                {/* El avión de papel (pedido de Angel: «exportar» es mandarle la lista a alguien).
+                    Va CENTRADO POR MASA y no por caja, como la Z del ícono de la app: la caja
+                    llena el lienzo, pero el peso cae hacia la punta —medido: 1,85 a la derecha
+                    y 1,9 arriba del centro— y se veía corrido. Correrlo solo lo cortaba en el
+                    borde, así que se achica a 0,86 y el trazo se compensa (2 / 0,86) para que
+                    pese lo mismo que los demás íconos. */}
+                <g transform="translate(0.09 3.31) scale(0.86)" strokeWidth="2.33">
+                  <path d="M22 2L11 13" />
+                  <path d="M22 2l-7 20-4-9-9-4 20-7z" />
+                </g>
               </svg>
               <span className="short">Exportar</span>
             </button>
