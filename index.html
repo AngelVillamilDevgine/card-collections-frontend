@@ -696,13 +696,18 @@
         .fan picture:nth-child(4) img {
           transform: translateX(-50%) rotate(13deg) translateX(62%);
         }
-        /* Las tres cajas entran en fila en 412 px achicándolas apenas; la del medio
-           conserva su ventaja. */
+        /* Las tres cajas en fila, achicándose con la pantalla; la del medio conserva su
+           ventaja (1,2 veces). EL ALTO SALE DEL ANCHO: entre las tres miden 2,665 veces el
+           alto de las de los costados (por sus proporciones) más dos huecos de 3vw, y eso
+           tiene que entrar en la pantalla con 12 px de aire por lado. Tenían un piso de
+           140 px y debajo de ~400 px de pantalla se salían por la derecha —35 px en 320, la
+           página entera corría de costado—: el «entran en fila en 412» se había medido en
+           un solo ancho. */
         .showcase .box {
-          height: clamp(140px, 34vw, 200px);
+          height: min(200px, calc(35vw - 9px));
         }
         .showcase .box-starter {
-          height: clamp(165px, 41vw, 240px);
+          height: min(240px, calc(42vw - 11px));
         }
         .act {
           padding: 56px 0;
