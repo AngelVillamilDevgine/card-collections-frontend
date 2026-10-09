@@ -592,6 +592,7 @@ button { cursor: pointer; }
   margin: 0 0 28px;
   color: var(--ink2);
   font-size: 14px;
+  font-weight: 400; /* es un h1 por el lector de pantalla; la negrita de fábrica no va */
 }
 
 .login-form {

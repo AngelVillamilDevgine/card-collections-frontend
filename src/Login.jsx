@@ -66,7 +66,9 @@ export default function Login({ onLogin, notice }) {
         {/* Los álbumes salen de `COLLECTIONS`: acá decía «Cartas Cromeros · 2007–2008» y
             quedó sin cambiar el día que entró Leyenda, que es de otra editorial y de otra
             década. Es lo primero que lee alguien que llega. */}
-        <p className="login-tagline">Mi colección · {albumNames()}</p>
+        {/* h1 y no p: era el único «título» de la página y el lector de pantalla no
+            tenía a dónde saltar. El peso lo tapa .login-tagline, así se ve igual. */}
+        <h1 className="login-tagline">Mi colección · {albumNames()}</h1>
 
         <form className="login-form" onSubmit={handleSubmit}>
           <label>

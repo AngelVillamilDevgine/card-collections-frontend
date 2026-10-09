@@ -54,10 +54,13 @@
          texto, «Cargando…». La dirección viaja a los grupos en cada lista exportada.
          La imagen es el ícono y no el logo porque el logo es 3,9 a 1 y se recorta; el
          canonical, porque el apex y el www sirven los mismos bytes sin redirección.
-         Todo medido el 2026-09-28; el detalle está en el CLAUDE.md. -->
+         Todo medido el 2026-09-28; el detalle está en el CLAUDE.md.
+         La description va con las dos marcas AL PRINCIPIO y en ≤160 caracteres: Google
+         corta ahí, y con 181 lo que se truncaba era justo «Cromeros 2007 y Leyenda»
+         (medido el 09-10). -->
     <meta
       name="description"
-      content="Llevá el seguimiento de tus cartas de Dragon Ball Z: marcá las que tenés, las que te faltan y las repetidas, y compartí la lista en tu grupo de intercambio. Cromeros 2007 y Leyenda." />
+      content="Cartas de Dragon Ball Z, Cromeros 2007 y Leyenda: marcá las que tenés, las que te faltan y las repetidas, y compartí la lista en tu grupo de intercambio." />
     <link rel="canonical" href="https://cromeros.com.ar/" />
 
     <meta property="og:type" content="website" />
@@ -796,16 +799,18 @@
         <p class="text">Dieciséis expansiones, sobres de a cinco cartas, y una colección que no se terminaba nunca: siempre faltaba una.</p>
         <p class="text">Adentro estaban también las siete Esferas del Dragón Definitivas — van seguidas, de la 1761 a la 1767, por si algún día te lo preguntaste.</p>
 
-        <!-- Con width/height aunque el CSS mande: el navegador reserva el alto por el
+        <!-- A 2x de su render de ~96 px: viajaban a 303 px y 92 KB, y el lazy no las
+             salva (están a 1,3 pantallas y el umbral de Chrome las alcanza). Medido el
+             09-10. Con width/height aunque el CSS mande: el navegador reserva el alto por el
              aspect-ratio y el bloque no crece de golpe cuando las lazy llegan. -->
         <div class="spheres" aria-hidden="true">
-          <img src="/landing/esfera-1.webp" alt="" loading="lazy" width="302" height="306" />
-          <img src="/landing/esfera-2.webp" alt="" loading="lazy" width="303" height="306" />
-          <img src="/landing/esfera-3.webp" alt="" loading="lazy" width="303" height="306" />
-          <img src="/landing/esfera-4.webp" alt="" loading="lazy" width="303" height="306" />
-          <img src="/landing/esfera-5.webp" alt="" loading="lazy" width="302" height="306" />
-          <img src="/landing/esfera-6.webp" alt="" loading="lazy" width="304" height="306" />
-          <img src="/landing/esfera-7.webp" alt="" loading="lazy" width="302" height="306" />
+          <img src="/landing/esfera-1.webp" alt="" loading="lazy" width="191" height="194" />
+          <img src="/landing/esfera-2.webp" alt="" loading="lazy" width="192" height="194" />
+          <img src="/landing/esfera-3.webp" alt="" loading="lazy" width="192" height="194" />
+          <img src="/landing/esfera-4.webp" alt="" loading="lazy" width="192" height="194" />
+          <img src="/landing/esfera-5.webp" alt="" loading="lazy" width="191" height="194" />
+          <img src="/landing/esfera-6.webp" alt="" loading="lazy" width="193" height="194" />
+          <img src="/landing/esfera-7.webp" alt="" loading="lazy" width="191" height="194" />
         </div>
       </div>
     </section>

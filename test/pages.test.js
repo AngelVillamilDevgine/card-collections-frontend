@@ -70,6 +70,17 @@ test('resume.js va PRIMERO y SIN async ni defer', () => {
   assert.equal(firstScript[0], tag[0])
 })
 
+test('los tres HTML llevan la tarjeta de vista previa (og)', () => {
+  /* Quien comparte la app copia la URL desde la barra: adentro de la app dice /collection
+     o /login, no la landing. Sin og la tarjeta de WhatsApp sale sin imagen ni texto. El
+     noindex de los cascarones gobierna indexación, no tarjetas: conviven. */
+  for (const [name, html] of [['index.html', landing], ['login.html', login], ['collection.html', collection]]) {
+    assert.ok(html.includes('property="og:title"'), name + ' sin og:title')
+    assert.ok(html.includes('content="https://cromeros.com.ar/icono-512.png"'), name + ' sin la og:image absoluta')
+    assert.ok(html.includes('name="twitter:card"'), name + ' sin twitter:card')
+  }
+})
+
 test('la landing carga early.js, que es lo que le apaga a Chrome su cartel de instalar', () => {
   /* La landing linkea el manifest —obligatorio: hay instalaciones viejas con `start_url=/`—
      y con el manifest a la vista Chrome en Android puede ofrecer instalar por su cuenta,
