@@ -706,6 +706,10 @@ body:has(.panel-page) {
   max-height: calc(100vh - 32px);
   max-height: calc(100dvh - 32px);
   overflow-y: auto;
+  /* Que el gesto no salte al panel de atrás al llegar al fondo, igual que en `.dialog`.
+     El panel además apaga su propio scroll mientras hay un modal encima
+     (`.panel-page:has(.panel-modal)`), así que son dos defensas para lo mismo. */
+  overscroll-behavior: contain;
   padding: 20px 20px 22px;
   background: var(--p-card);
   border: 1px solid var(--p-line);

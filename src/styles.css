@@ -38,6 +38,13 @@
 
 * { box-sizing: border-box; }
 
+/* El lugar de la barra de scroll se reserva SIEMPRE. Al abrir un diálogo, el documento
+   deja de scrollear (`useLockScroll`), la barra desaparece y en escritorio la página
+   entera salta unos quince píxeles a la derecha — y vuelve al cerrarlo. Reservando el
+   hueco no se mueve nada. En el teléfono la barra flota sobre el contenido y no ocupa
+   lugar, así que esto no cambia nada ahí. */
+html { scrollbar-gutter: stable; }
+
 body {
   margin: 0;
   background: var(--paper);
@@ -508,6 +515,14 @@ button { cursor: pointer; }
   max-height: calc(100vh - 40px);
   max-height: calc(100dvh - 40px);
   overflow-y: auto;
+  /* EL GESTO NO SE ENCADENA AL FONDO. Llegado al final del diálogo y siguiendo con el
+     dedo, el scroll pasaba a la grilla de atrás —medido: 1066 → 1328— y lo mismo en el
+     tope tirando hacia arriba. Es la mitad en CSS del arreglo; la otra es `useLockScroll`,
+     que apaga el scroll del documento mientras hay un diálogo. Hacen falta las dos: ésta
+     corta el encadenado también donde el bloqueo no llega (el Safari viejo de iPhone), y
+     el bloqueo cubre el dedo apoyado sobre el telón, que no scrollea nada y por eso no
+     tiene de dónde encadenar. */
+  overscroll-behavior: contain;
 }
 
 .dialog h3 {

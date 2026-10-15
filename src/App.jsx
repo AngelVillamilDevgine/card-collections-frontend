@@ -1,6 +1,6 @@
 import { lazy, memo, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { CONDITIONS, conditionLabel, conditionClass } from './conditions'
-import { trapFocus, useCloseOnEscape, useCloseOnBack } from './dialog'
+import { trapFocus, useCloseOnEscape, useCloseOnBack, useLockScroll } from './dialog'
 import Login from './Login'
 import ExportDialog from './ExportDialog'
 import Celebration from './Celebration'
@@ -782,6 +782,12 @@ export default function App() {
     setCelebration(null)
   }, [])
   useCloseOnBack(isDialogOpen, closeDialogs)
+
+  /* QUE NO SE SCROLLEE LO DE ATRÁS mientras hay algo encima. Va en un solo lugar para
+     todo lo que tapa la pantalla —los diálogos, el panel y el cambio de clave
+     obligatorio, que a propósito no cuenta como diálogo porque no se puede cerrar— y
+     por eso incluye los tres. Lo medido y el porqué del mecanismo, en `dialog.js`. */
+  useLockScroll(isDialogOpen || dashboardOpen || !!account?.mustChange)
 
   /* Atrás y adelante del navegador mueven el hash, y de ahí sale si el panel está
      abierto. Un solo oyente para los dos sentidos. */

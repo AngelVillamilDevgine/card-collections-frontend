@@ -106,3 +106,40 @@ export function useCloseOnEscape(onClose) {
     return () => window.removeEventListener('keydown', f)
   }, [])
 }
+
+/* QUE NO SE SCROLLEE LO DE ATRÁS. Lo vio Angel: *«hago scroll con el dedo y se scrollea
+   lo de atrás, ¿hay algo estructural medio raro?»*. Sí: el telón es `position: fixed`,
+   que tapa la pantalla pero NO frena un gesto — el documento de abajo sigue siendo
+   scrolleable y se lleva el dedo.
+ *
+ * Medido con eventos táctiles armados a mano, con el perfil abierto en una ventana de
+ * 412×460: llegado al fondo del diálogo y siguiendo, la grilla pasó de 1066 a 1328; en
+ * el tope y subiendo, de 1328 a 1064; y con el dedo sobre el telón, de 1064 a 1326.
+ * (Ojo al reproducirlo: `Input.synthesizeScrollGesture` NO se despacha en este headless
+ * —el diálogo no se movía un píxel— así que da «no encadena» siempre. Hay que armar el
+ * touchStart, los touchMove y el touchEnd, y verificar primero que el gesto llegue.)
+ *
+ * Va en `html` y no en `body`: con `body` el scroll del documento sigue vivo en varios
+ * navegadores. Y `overflow` en vez de `position: fixed`, que es el otro camino conocido:
+ * fijar el body obliga a guardar y restaurar la posición a mano, y acá eso es una lista
+ * de 1936 cartas — perder el lugar al cerrar un diálogo sería peor que el problema que
+ * arregla. Lo que `overflow: hidden` no cubre es el Safari viejo de iPhone; para eso
+ * está además el `overscroll-behavior: contain` del CSS, que es lo que corta el
+ * encadenado en los dos.
+ *
+ * EL CONTADOR NO ES CEREMONIA: en el panel se puede abrir un modal encima (la ficha de
+ * una cuenta), y sin contar, cerrar el de arriba le devolvía el scroll al fondo con el
+ * panel todavía abierto. */
+let scrollLocks = 0
+export function useLockScroll(active) {
+  useEffect(() => {
+    if (!active) return
+    scrollLocks++
+    const root = document.documentElement
+    if (scrollLocks === 1) root.style.overflow = 'hidden'
+    return () => {
+      scrollLocks--
+      if (scrollLocks === 0) root.style.overflow = ''
+    }
+  }, [active])
+}
