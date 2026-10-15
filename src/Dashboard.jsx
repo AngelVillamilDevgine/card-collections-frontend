@@ -824,8 +824,8 @@ function PeopleTable({ people, byCollection, onSelectUser, sort, sortBy }) {
 const USER_FACETS = [
   { id: 'cards', label: 'Cartas', yes: 'Cargaron', no: 'No cargaron', test: (g) => (g.cartas ?? 0) > 0 },
   { id: 'app', label: 'App', yes: 'Desde la app', no: 'Sin la app', test: (g) => !!g.app },
-  { id: 'phone', label: 'WhatsApp', yes: 'Dejó WhatsApp', no: 'Sin WhatsApp', test: (g) => !!g.profile?.whatsapp },
-  { id: 'name', label: 'Nombre', yes: 'Dejó su nombre', no: 'Sin nombre', test: (g) => !!(g.profile?.firstName || g.profile?.lastName) },
+  { id: 'phone', label: 'WhatsApp', yes: 'Lo dejaron', no: 'Sin WhatsApp', test: (g) => !!g.profile?.whatsapp },
+  { id: 'name', label: 'Nombre', yes: 'Lo dejaron', no: 'Sin nombre', test: (g) => !!(g.profile?.firstName || g.profile?.lastName) },
 ]
 
 /* Sin tildes y sin mayúsculas: «cordoba» tiene que encontrar a «Córdoba», que es como lo
@@ -901,7 +901,6 @@ function UsersPage({ d, collections, onSessionExpired }) {
     () => people.filter((g) => !g.profile?.province && passes(g, 'province')).length,
     [people, query, facets])
 
-  const toggle = (id, side) => setFacets((o) => ({ ...o, [id]: o[id] === side ? undefined : side }))
   /* `plain(query)` y no `query`: un espacio solo no filtra a nadie —`includes('')` es
      siempre cierto— y encendía el renglón «Quedan 48 de 48». */
   const anyFilter = !!plain(query) || !!province || USER_FACETS.some((f) => facets[f.id])
@@ -909,57 +908,76 @@ function UsersPage({ d, collections, onSessionExpired }) {
 
   return (
     <>
-      {/* LOS TOTALES SALEN DEL SERVIDOR Y NO DE CONTAR LA TABLA, que puede venir cortada:
-          es la misma lección del #97 al revés. Lo filtrado sí se cuenta acá, porque el
-          filtro corre de este lado — y por eso, cuando hay recorte, el renglón lo dice:
-          filtrar una lista cortada contesta sobre las que se listan y no sobre todas. */}
-      <p className="summary-table">
-        {u.total} cuentas · {u.conCartas} con cartas · <b>{u.conApp} entran desde la app</b>
-        {u.total > people.length && (
-          <> · <i>se listan las {people.length} con más cartas, y los filtros miran esas</i></>
-        )}
-      </p>
+      {/* LOS TRES NÚMEROS VAN EN CUADROS, los mismos de «Totales históricos» — lo pidió
+          Angel. Eran un renglón de prosa con los números entremedio, que es exactamente
+          lo que ya se había corregido en el resto del panel el 2026-09-28 («los
+          contadores son unos textos, deberían ser unos cuadros»): este renglón había
+          quedado afuera de aquella tanda.
 
+          SALEN DEL SERVIDOR Y NO DE CONTAR LA TABLA, que puede venir cortada: es la
+          misma lección del #97 al revés. Lo filtrado sí se cuenta acá, porque el filtro
+          corre de este lado — y por eso, cuando hay recorte, se dice aparte. */}
+      <div className="tiles small three">
+        <StatTile value={u.total} label="Cuentas" />
+        <StatTile value={u.conCartas} label="Con cartas" outOf={u.total} />
+        <StatTile value={u.conApp} label="Entran desde la app" outOf={u.total} />
+      </div>
+      {u.total > people.length && (
+        <p className="summary-table">
+          <i>se listan las {people.length} con más cartas, y los filtros miran esas</i>
+        </p>
+      )}
+
+      {/* EL BUSCADOR ANCHO ARRIBA Y UNA FILA DE DESPLEGABLES DEBAJO, que es como se
+          filtra una tabla y no como estaba. Fueron ocho botones en pares —«Cargaron» /
+          «No cargaron» y así—, y Angel preguntó lo que había que preguntar: *«esos chips
+          de filtros, ¿se hace así eso? generalmente en los filtros de tablas»*. No: ocho
+          controles en cuatro renglones para cinco preguntas es el doble de lo necesario,
+          y lo que se usa en cualquier panel es un control por criterio. Un desplegable
+          contesta las tres respuestas posibles —todos, sí, no— en un solo lugar, abre la
+          lista del sistema en el teléfono y se entiende sin que nadie lo explique.
+
+          LOS CONTADORES NO SE PERDIERON: se mudaron adentro de cada opción, que es donde
+          sirven igual —«Cargaron (40)»— y siguen contando con los OTROS filtros puestos,
+          así que cada número promete lo que va a pasar al elegirlo. */}
       <div className="panel-filters">
         {/* El buscador primero: cuando sabés a quién buscás es el camino más corto, y deja
-            a los demás filtros sin trabajo. */}
-        <label className="panel-search">
-          <span>Buscar</span>
-          {/* ESCAPE ACÁ LIMPIA EL CAMPO Y NADA MÁS. La pantalla escucha Escape en
-              `window` para volver a los números, así que sin este freno un Escape para
-              borrar lo escrito —que es el gesto nativo de un `type="search"`— te sacaba
-              de la lista Y te borraba los filtros, porque al volver el componente se
-              desmonta. Es exactamente lo que ya había pasado con el combobox de
-              provincia del perfil, y el arreglo es el mismo. */}
-          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)}
-                 onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); setQuery('') } }}
-                 placeholder="Mail o nombre" autoComplete="off" />
-        </label>
+            a los demás filtros sin trabajo. Sin rótulo afuera —lo pidió Angel— porque el
+            propio campo ya dice qué hace y el rótulo se comía una columna. */}
+        {/* ESCAPE ACÁ LIMPIA EL CAMPO Y NADA MÁS. La pantalla escucha Escape en `window`
+            para volver a los números, así que sin este freno un Escape para borrar lo
+            escrito —que es el gesto nativo de un `type="search"`— te sacaba de la lista Y
+            te borraba los filtros, porque al volver el componente se desmonta. Es
+            exactamente lo que ya había pasado con el combobox de provincia del perfil. */}
+        <input className="panel-search" type="search" value={query}
+               onChange={(e) => setQuery(e.target.value)}
+               onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); setQuery('') } }}
+               placeholder="Buscar por email o nombre" aria-label="Buscar por email o nombre"
+               autoComplete="off" />
 
-        {USER_FACETS.map((f) => (
-          <div className="panel-facet" key={f.id} role="group" aria-label={f.label}>
-            {['yes', 'no'].map((side) => (
-              <button key={side} type="button"
-                      aria-pressed={facets[f.id] === side}
-                      className={facets[f.id] === side ? 'active' : undefined}
-                      onClick={() => toggle(f.id, side)}>
-                {side === 'yes' ? f.yes : f.no}
-                {/* El contador al lado del rótulo, como los filtros de cartas de la app:
-                    dice de entrada si tocarlo vale la pena. */}
-                <b>{countFor(f, side)}</b>
-              </button>
-            ))}
-          </div>
-        ))}
+        <div className="panel-selects">
+          {USER_FACETS.map((f) => (
+            <label className="panel-select" key={f.id}>
+              <span>{f.label}</span>
+              <select value={facets[f.id] ?? ''} className={facets[f.id] ? 'on' : undefined}
+                      onChange={(e) => setFacets((o) => ({ ...o, [f.id]: e.target.value || undefined }))}>
+                <option value="">Todos</option>
+                <option value="yes">{f.yes} ({countFor(f, 'yes')})</option>
+                <option value="no">{f.no} ({countFor(f, 'no')})</option>
+              </select>
+            </label>
+          ))}
 
-        <label className="panel-facet-select">
-          <span>Provincia</span>
-          <select value={province} onChange={(e) => setProvince(e.target.value)}>
-            <option value="">Todas</option>
-            {provinces.map(([name, n]) => <option key={name} value={name}>{name} ({n})</option>)}
-            {withoutProvince > 0 && <option value={NO_PROVINCE}>Sin provincia ({withoutProvince})</option>}
-          </select>
-        </label>
+          <label className="panel-select">
+            <span>Provincia</span>
+            <select value={province} className={province ? 'on' : undefined}
+                    onChange={(e) => setProvince(e.target.value)}>
+              <option value="">Todas</option>
+              {provinces.map(([name, n]) => <option key={name} value={name}>{name} ({n})</option>)}
+              {withoutProvince > 0 && <option value={NO_PROVINCE}>Sin provincia ({withoutProvince})</option>}
+            </select>
+          </label>
+        </div>
       </div>
 
       {/* Cuántas quedaron, SIEMPRE que haya algún filtro puesto: sin este renglón una

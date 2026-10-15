@@ -499,25 +499,11 @@ body:has(.panel-page) {
   gap: 8px;
   margin: 0 0 14px;
 }
-.panel-search { display: flex; align-items: center; gap: 8px; }
-.panel-search > span,
-.panel-facet-select > span {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: .06em;
-  text-transform: uppercase;
-  color: var(--p-text3);
-  flex: none;
-  min-width: 74px;
-}
-/* El mismo ancho tope que el desplegable de provincia: sin esto el buscador se estiraba
-   al doble y los dos campos del bloque quedaban desalineados. En el teléfono el `flex`
-   manda igual, así que ocupa el ancho entero. */
-.panel-search input {
-  flex: 1;
-  min-width: 0;
-  max-width: 320px;
-  padding: 9px 12px;
+/* El buscador ocupa el renglón entero: es el filtro que más se usa y el único que no
+   tiene una lista de respuestas posibles. */
+.panel-search {
+  width: 100%;
+  padding: 10px 12px;
   border: 1px solid var(--p-line);
   border-radius: 10px;
   background: var(--p-rail);
@@ -525,51 +511,47 @@ body:has(.panel-page) {
   font: inherit;
   font-size: 14px;
 }
-.panel-search input::placeholder { color: var(--p-text3); }
-.panel-search input:focus-visible { outline: 2px solid var(--p-gold); outline-offset: 1px; }
+.panel-search::placeholder { color: var(--p-text3); }
+.panel-search:focus-visible { outline: 2px solid var(--p-gold); outline-offset: 1px; }
 
-.panel-facet { display: flex; gap: 6px; flex-wrap: wrap; }
-.panel-facet button {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 6px;
-  padding: 6px 12px;
-  border: 1px solid var(--p-line);
-  border-radius: 999px;
-  background: var(--p-card);
-  color: var(--p-text2);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
+/* UN DESPLEGABLE POR CRITERIO, en una fila que envuelve. `auto-fit` con un mínimo: en
+   escritorio entran los cinco en una línea y en el teléfono se acomodan solos de a dos,
+   sin una media query que haya que mantener en paralelo con el ancho de los rótulos. */
+.panel-selects {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+  gap: 8px;
 }
-.panel-facet button b { color: var(--p-text3); font-weight: 700; }
-.panel-facet button:hover { border-color: var(--p-gold); color: var(--p-gold); }
-.panel-facet button:focus-visible { outline: 2px solid var(--p-gold); outline-offset: 2px; }
-/* El elegido en dorado lleno, como la píldora de período: en esta pantalla el dorado ya
-   quiere decir «esto es lo que estás mirando». */
-.panel-facet button.active {
-  background: var(--p-gold);
-  border-color: var(--p-gold);
-  color: #1c1508;
+.panel-select { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+/* El rótulo arriba y no adentro de la lista: adentro, el criterio desaparecía apenas
+   elegías algo y el desplegable pasaba a decir «Cargaron» sin decir de qué. */
+.panel-select > span {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--p-text3);
 }
-.panel-facet button.active b { color: #1c1508; }
-
-.panel-facet-select { display: flex; align-items: center; gap: 8px; }
-.panel-facet-select select {
-  flex: 1;
-  min-width: 0;
-  max-width: 320px;
+.panel-select select {
+  width: 100%;
   padding: 8px 10px;
   border: 1px solid var(--p-line);
   border-radius: 10px;
   background: var(--p-rail);
   color: var(--p-text);
   font: inherit;
-  font-size: 14px;
+  font-size: 13.5px;
+  cursor: pointer;
 }
-.panel-facet-select select:focus-visible { outline: 2px solid var(--p-gold); outline-offset: 1px; }
+.panel-select select:hover { border-color: var(--p-gold); }
+.panel-select select:focus-visible { outline: 2px solid var(--p-gold); outline-offset: 1px; }
+/* El que TIENE algo elegido se marca con el borde dorado y el texto crema: con cinco
+   desplegables seguidos, el que está filtrando tiene que encontrarse sin leerlos todos. */
+.panel-select select.on {
+  border-color: var(--p-gold);
+  color: var(--p-text);
+  background: var(--p-card);
+}
 
 .panel-filter-count {
   display: flex;
