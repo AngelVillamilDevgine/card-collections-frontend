@@ -457,7 +457,7 @@ export default function ProfileDialog({ onClose, onSessionExpired }) {
             : 'Nada es obligatorio. Lo que completes lo ve sólo el administrador de la app, para poder contactarte.'}
         </p>
         {account && <p className="profile-account">Tu cuenta: <b>{account}</b></p>}
-        <form className="login-form" onSubmit={submit} noValidate>
+        <form className="login-form profile-form" onSubmit={submit} noValidate>
           {FIELDS.map(([key, label, autoComplete]) => key === 'whatsapp'
             ? (
               <div className="stacked-field" key={key}>
@@ -479,7 +479,9 @@ export default function ProfileDialog({ onClose, onSessionExpired }) {
                 </div>
               )
               : (
-                <label key={key}>
+                /* La clase es lo que deja que el CSS ponga «Nombre» y «Segundo nombre»
+                   en el mismo renglón sin cambiar este map ni el orden de los campos. */
+                <label key={key} className={`field-${key}`}>
                   {label}
                   <input
                     type="text"

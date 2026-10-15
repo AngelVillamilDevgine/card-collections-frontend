@@ -690,6 +690,26 @@ button { cursor: pointer; }
   color: var(--ink2);
 }
 
+/* NOMBRE Y SEGUNDO NOMBRE EN EL MISMO RENGLÓN, lo pidió Angel. Dos campos cortos uno
+   abajo del otro hacen el formulario más largo de lo que es, y en un teléfono eso son
+   dos renglones menos de los que entran antes de tener que scrollear.
+ *
+ * Es una grilla de dos columnas donde TODO ocupa las dos salvo esos dos campos: así el
+ * orden de los campos lo sigue decidiendo el `map` de `Profile.jsx` y agregar uno nuevo
+ * no pide tocar nada acá. La clase va en el `<form>` del perfil y no en `.login-form`,
+ * que la comparte la pantalla de entrada. */
+.profile-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: start;
+}
+.profile-form > * { grid-column: 1 / -1; }
+.profile-form .field-firstName { grid-column: 1; }
+.profile-form .field-middleName { grid-column: 2; }
+/* Las dos columnas comparten el `gap: 14px` del formulario, que a lo alto es el aire
+   entre campos y a lo ancho es demasiado: 10 px alcanzan y dejan los campos más anchos. */
+.profile-form { column-gap: 10px; }
+
 .login-form input {
   width: 100%;
   /* 16px y no menos: por debajo de eso, Safari en iPhone hace zoom al tocar el

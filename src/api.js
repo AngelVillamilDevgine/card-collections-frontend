@@ -108,7 +108,17 @@ async function request(path, options = {}) {
     const data = await r.json().catch(() => null)
     throw new ApiError(data?.error ?? 'No se pudo completar la operación.')
   }
-  return r.status === 204 ? null : r.json()
+  /* UN 200 QUE NO ES JSON TAMPOCO PUEDE MOSTRAR EL ERROR CRUDO. El `!r.ok` de arriba ya
+     lo contempla; acá faltaba, así que el mensaje que veía la persona era literalmente
+     «Unexpected token '<', "<!doctype "... is not valid JSON».
+
+     No es un caso de laboratorio: es lo que contesta un portal cautivo —el wifi del bar
+     que primero te pide entrar— y también lo que contestaba la API durante el blip de
+     cada deploy, que era la página HTML de error de Cloudflare. Apareció en una captura
+     del perfil y por eso se arregla. */
+  if (r.status === 204) return null
+  try { return await r.json() }
+  catch { throw new ApiError('El servidor contestó algo inesperado. Probá de nuevo en un momento.') }
 }
 
 /* ------------------------------------ sesión ----------------------------------- */

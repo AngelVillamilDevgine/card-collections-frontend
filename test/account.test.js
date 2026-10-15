@@ -31,3 +31,20 @@ test('una cuenta común no inventa salud ni marca', async () => {
   assert.equal(account.mustChange, false)
   assert.equal('health' in account, false)
 })
+
+test('un 200 que NO es JSON no le muestra a la persona el error del parser', async () => {
+  /* Lo que contesta un portal cautivo —el wifi del bar que primero te pide entrar— y lo
+     que contestaba la API durante el blip de cada deploy: la página HTML de Cloudflare.
+     Sin el arreglo, el mensaje en pantalla era literalmente
+     «Unexpected token '<', "<!doctype "... is not valid JSON». */
+  const original = globalThis.fetch
+  globalThis.fetch = async () =>
+    new Response('<!doctype html><p>wifi', { status: 200, headers: { 'content-type': 'text/html' } })
+  try {
+    await assert.rejects(fetchAccount(), (e) => {
+      assert.match(e.message, /inesperado/, `el mensaje era: ${e.message}`)
+      assert.doesNotMatch(e.message, /JSON|token|doctype/i, 'se filtró el error crudo del parser')
+      return true
+    })
+  } finally { globalThis.fetch = original }
+})
