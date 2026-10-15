@@ -38,7 +38,7 @@ import { pathFor, syncPath } from './routes'
 import { whatIsStale, staleText } from './health'
 import { ErrorBoundary } from './ErrorBoundary'
 import { whatsappTo, suggestionText } from './contact'
-import { COLLECTIONS, DEFAULT_COLLECTION, readCollection, rememberCollection, loadCatalogs, slotKey, slotsOf, variantsFor, missingVariantsOf, drawableVariants, pointsToASlot, cardLabel, cardDetail, albumPercent, slotOf, slotName, orphanName, completionBy } from './collections'
+import { COLLECTIONS, DEFAULT_COLLECTION, readCollection, rememberCollection, loadCatalogs, slotKey, slotsOf, variantsFor, missingVariantsOf, drawableVariants, pointsToASlot, cardLabel, cardDetail, albumPercent, albumTally, slotOf, slotName, orphanName, completionBy } from './collections'
 import {
   ApiError,
   downloadJson, readBackupFile, fetchAccount, logout,
@@ -865,6 +865,20 @@ export default function App() {
   const shownCollectionId = availableCollections.some((c) => c.id === collection)
     ? collection
     : availableCollections[0]?.id
+  /* Cuánto llevás en CADA álbum, para que el selector lo diga sin tener que cambiar de
+     álbum para enterarte. Son los 3033 huecos de las dos colecciones recorridos de nuevo
+     cuando cambia algo — lo mismo que ya cuesta el avance del encabezado, que recorre los
+     1936 del álbum activo en cada toque. La cuenta vive en `albumTally` y es la misma que
+     usa `summary`, así que el número de la píldora activa no puede discrepar del grande. */
+  const albumTallies = useMemo(() => {
+    const result = {}
+    for (const c of COLLECTIONS) {
+      const cat = catalogs?.[c.id]
+      if (cat) result[c.id] = albumTally(cat.expansiones, quantities)
+    }
+    return result
+  }, [catalogs, quantities])
+
   const album = shownCollectionId ? catalogs[shownCollectionId] : null
   const catalog = album?.expansiones ?? null
   /* Cuatro a la vista de cinco declarados: con condición va «Para reemplazar», sin
@@ -1404,7 +1418,17 @@ export default function App() {
         if (hasAny) owned++
       }
     }
-    return { total, owned, spares, byFilter, ...conditionCounts }
+    /* `total` y `owned` salen de `albumTally`, que es lo mismo que cuenta el selector:
+       una sola regla de «tener un hueco» para el número grande y para la píldora, que si
+       no el día que esa regla cambie —ya cambió una vez, con las variantes— uno de los
+       dos se queda viejo y los dos números se contradicen en la misma pantalla. El bucle
+       de arriba sigue para lo que es sólo de acá: sobrantes, condiciones y los filtros.
+       Hay un `assert` barato en desarrollo por si alguna vez se separan. */
+    const tally = albumTally(catalog, quantities)
+    if (import.meta.env?.DEV && (tally.total !== total || tally.owned !== owned)) {
+      console.warn('el avance y el selector cuentan distinto', { bucle: { total, owned }, tally })
+    }
+    return { ...tally, spares, byFilter, ...conditionCounts }
   }, [catalog, drawableByExpansion, conditions, quantities])
 
   /* La columna «Álbum» del panel es cuánto lleva cada uno de TODO lo que hay para
@@ -1813,19 +1837,46 @@ export default function App() {
 
                 Va en el encabezado y NO en la barra de filtros, por lo mismo que el botón
                 del panel: en teléfono esa barra son cinco lugares de ancho igual. */}
+            {/* EL SELECTOR ES UN CONTROL DE DOS POSICIONES, no dos botones sueltos, y eso
+                es lo que arregla cómo se leía — Angel: «el selector de Cromeros / Leyenda
+                está poco pulido». Eran dos píldoras con el mismo aire que «Panel» y «Mi
+                perfil», que son acciones: parecían tres cosas de la misma clase cuando
+                una es «qué estoy mirando» y las otras «llevame a otro lado». Metidas en
+                un riel se lee de una que son dos caras de lo mismo y que hay una elegida.
+
+                Y CADA UNA DICE CÓMO VAS, que es lo que hace que el selector sirva y no
+                sólo se vea mejor: con dos álbumes de 1936 y 1097 huecos, «cómo voy en el
+                otro» era una pregunta que obligaba a cambiar de álbum para contestarla. */}
             {availableCollections.length > 1 && (
               <div className="collections" role="group" aria-label="Qué colección estoy mirando">
-                {availableCollections.map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    className={`album-pill${c.id === shownCollectionId ? ' active' : ''}`}
-                    aria-pressed={c.id === shownCollectionId}
-                    onClick={() => pickCollection(c.id)}
-                  >
-                    {c.name}
-                  </button>
-                ))}
+                {availableCollections.map((c) => {
+                  const tally = albumTallies[c.id]
+                  const active = c.id === shownCollectionId
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      className={`album-pill${active ? ' active' : ''}`}
+                      aria-pressed={active}
+                      onClick={() => pickCollection(c.id)}
+                    >
+                      <span className="album-name">{c.name}</span>
+                      {tally && (
+                        /* LO QUE FALTA, no lo que tenés, y es para no decir dos veces lo
+                           mismo: el avance grande de acá al lado ya dice «0 de 1936
+                           cartas», así que repetirlo en la píldora era ruido. El
+                           complemento es dato nuevo en las dos —también en la que no
+                           estás mirando, que es de lo que se trata— y es la pregunta que
+                           se hace el que colecciona. */
+                        <span className="album-tally">
+                          {tally.owned >= tally.total
+                            ? '¡completa!'
+                            : `faltan ${(tally.total - tally.owned).toLocaleString('es-AR')}`}
+                        </span>
+                      )}
+                    </button>
+                  )
+                })}
               </div>
             )}
           </div>
@@ -2146,7 +2197,16 @@ export default function App() {
           /* El límite va ADENTRO del `{dashboardOpen && ...}` y alrededor del `Suspense`:
              así un panel que no baja se queda en su diálogo y no se lleva puesta la
              colección. `onReset` cierra el panel, que es volver a donde se estaba. */
-          <ErrorBoundary message="No se pudo abrir el panel." onReset={closeDashboard}>
+          /* LA CÁSCARA TAMBIÉN TIENE QUE SABER QUÉ VISTA ES, y eso lo encontró la
+             revisión: el fallback y el límite de error son de antes de que hubiera dos,
+             así que decían «Los números» y cerraban el panel entero estuvieras donde
+             estuvieras. Con `#panel/users` y el chunk todavía viajando —un F5, o la
+             pestaña vieja de antes de un deploy— el título mentía y el primer «Volver»
+             no cambiaba NADA en pantalla: te mandaba a los números, que mientras el
+             chunk no llega se dibujan igual que la lista. Eso es el botón Atrás preso,
+             que es justo lo que el hash existe para evitar. */
+          <ErrorBoundary message="No se pudo abrir el panel."
+                        onReset={panelView === 'users' ? backToPanelNumbers : closeDashboard}>
           {/* El fallback tiene que tener la MISMA forma que el panel — página, no diálogo —
               o al llegar el chunk la pantalla salta de una caja centrada a una página
               completa. Y dice «Buscando…», que es lo mismo que muestra el panel mientras
@@ -2154,14 +2214,14 @@ export default function App() {
           <Suspense fallback={
             <div className="panel-page">
               <header className="panel-head">
-                <button className="back" onClick={closeDashboard}>
+                <button className="back" onClick={panelView === 'users' ? backToPanelNumbers : closeDashboard}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                        strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M15 18l-6-6 6-6" />
                   </svg>
                   Volver
                 </button>
-                <h1>Los números</h1>
+                <h1>{panelView === 'users' ? 'Usuarios' : 'Los números'}</h1>
               </header>
               <div className="panel-body stats"><p className="nothing">Buscando…</p></div>
             </div>

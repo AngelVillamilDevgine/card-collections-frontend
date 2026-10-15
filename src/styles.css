@@ -73,22 +73,59 @@ button { cursor: pointer; }
    Es un control segmentado y NO usa el naranja: el naranja ya es el filtro elegido, y dos
    cosas naranjas a diez píxeles una de otra compiten. El elegido va en tinta plena, que
    ademas da 16.77 contra su texto blanco. */
-.collections { display: flex; gap: 6px; margin-top: 4px; }
-.album-pill {
-  padding: 5px 13px;
+/* EL SELECTOR DE ÁLBUM ES UN RIEL CON DOS POSICIONES, y la forma es el mensaje: dos
+   píldoras sueltas se leían igual que «Panel» y «Mi perfil», que son acciones, cuando
+   esto es «qué estoy mirando». Adentro de un riel compartido se ve de una que son dos
+   caras de lo mismo y que hay una puesta.
+
+   `inline-flex` para que el riel mida lo que miden las dos y no el ancho de la columna;
+   en el teléfono, donde el encabezado es una grilla, la celda igual lo contiene. */
+.collections {
+  display: inline-flex;
+  gap: 2px;
+  margin-top: 6px;
+  padding: 3px;
   border: 1px solid var(--line2);
+  border-radius: 999px;
+  /* El papel sobre el blanco del encabezado: el riel se hunde apenas y el elegido, que
+     va en blanco, se lee como levantado sin necesidad de más sombra. */
+  background: var(--paper);
+}
+.album-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 5px 14px;
+  border: none;
   border-radius: 999px;
   background: none;
   color: var(--ink2);
-  font-size: 13.5px;
+  /* La transición es corta y sólo de color: el riel no se mueve, así que no hay nada
+     que pueda marear — y con `prefers-reduced-motion` un cambio de color está bien. */
+  transition: background-color .12s ease, color .12s ease;
+}
+.album-name { font-size: 13.5px; font-weight: 700; line-height: 1.2; }
+/* El avance de CADA álbum, que es lo que convierte al selector en algo que informa: con
+   dos colecciones, «cómo voy en la otra» obligaba a cambiar de álbum para contestarlo.
+   `tabular-nums` para que el número no baile al ir sumando cartas. */
+.album-tally {
+  font-size: 10.5px;
   font-weight: 600;
+  line-height: 1.2;
+  color: var(--ink3);
+  font-variant-numeric: tabular-nums;
 }
-.album-pill:hover { border-color: var(--accent); color: var(--accent); }
+.album-pill:hover { color: var(--accent); }
+.album-pill:hover .album-tally { color: var(--accent); }
+/* El elegido levantado sobre el riel: papel limpio y el borde de siempre. Antes era la
+   tinta llena, que pesaba más que el logo que tiene al lado y competía con él. */
 .album-pill.active {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--white);
+  background: var(--white);
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgba(32, 29, 26, .13);
 }
+.album-pill.active .album-tally { color: var(--ink2); }
 
 /* Avance general: una sola línea, no seis tarjetas de estadísticas. */
 .tally { display: flex; align-items: baseline; gap: 10px; margin-top: 26px; }
@@ -1179,8 +1216,11 @@ button { cursor: pointer; }
   .masthead .header-actions { grid-area: 1 / 2; align-self: center; }
   /* El selector ocupa el renglón que dejó el subtítulo, así que el encabezado NO gana una
      fila. Sin `grid-area` se auto-colocaría en una fila implícita, que es exactamente lo
-     que llevó este encabezado de 162 a 266 px la primera vez. */
-  .masthead .collections { grid-area: 2 / 1 / 3 / -1; }
+     que llevó este encabezado de 162 a 266 px la primera vez.
+     Y `justify-self: start` porque desde que es un riel con fondo, estirarse a toda la
+     fila —que es lo que hace una celda de grilla por omisión— dibujaba una barra vacía
+     de borde a borde con las dos píldoras amontonadas a la izquierda. */
+  .masthead .collections { grid-area: 2 / 1 / 3 / -1; justify-self: start; }
   .masthead .progress { grid-area: 3 / 1 / 4 / -1; }
 
   /* Abajo de ~400 px el logo de 240 y el botón no entran juntos. El logo cede, que para

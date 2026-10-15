@@ -267,6 +267,30 @@ export function drawableVariants(expansions, quantities) {
   return result
 }
 
+/* CUÁNTO LLEVÁS DE UN ÁLBUM: los huecos que tiene y cuántos tienen algo.
+ *
+ * Vive acá porque la pregunta se hace en DOS lugares con la misma respuesta: el avance
+ * del encabezado, que es del álbum que estás mirando, y el selector de colecciones, que
+ * lo muestra de TODOS para que se vea cómo vas en el otro sin cambiar de pantalla. Dos
+ * cuentas separadas divergirían el día que cambie qué significa «tener» — que ya cambió
+ * una vez, cuando entraron las variantes.
+ *
+ * «Tener» es lo mismo que cuenta la banda de cada expansión: alguno de los casilleros del
+ * hueco con algo, incluidas las variantes que el catálogo no declara. Y el total son
+ * HUECOS y no casilleros: las variantes nunca son huecos, porque nadie sabe cuántas
+ * existen y entonces no puede haber denominador. */
+export function albumTally(catalog, quantities) {
+  const drawable = drawableVariants(catalog, quantities)
+  let total = 0, owned = 0
+  for (const exp of catalog ?? []) {
+    for (const n of exp.cardNumbers) {
+      total++
+      if (slotsOf(exp, n, drawable[exp.id], quantities).some((s) => (quantities[s.cardKey] ?? 0) > 0)) owned++
+    }
+  }
+  return { total, owned }
+}
+
 /* ¿ESTE TOQUE COMPLETÓ ALGO? Lo pidió Angel: «cuando completo una colección, que salten
    fuegos artificiales o algo».
 

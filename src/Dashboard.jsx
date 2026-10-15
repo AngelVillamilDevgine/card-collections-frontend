@@ -588,6 +588,27 @@ export default function Dashboard({ onClose, onSessionExpired, collections, view
      de pantalla, y sin esto un lector de pantalla no anuncia nada — el foco se queda en
      el botón que ya no existe y se cae al `body`. */
   useEffect(() => { titleRef.current?.focus() }, [view])
+
+  /* CADA VISTA SE ACUERDA DE SU SCROLL, y hace falta porque `.panel-page` —que es el que
+     scrollea— NO se desmonta al cambiar de vista: sólo se reemplaza lo de adentro. Así
+     que entrar a la lista desde el fondo del panel, que es donde está su botón, la abría
+     ya scrolleada con el buscador y los filtros arriba, fuera de pantalla — justo lo que
+     esa pantalla vino a dar. Y al volver pasaba al revés.
+
+     SE GUARDA MIENTRAS SCROLLEÁS y no en el cleanup del efecto, aunque eso último sea lo
+     que uno escribe primero: el cleanup corre DESPUÉS de que React pintó el contenido de
+     la vista nueva, y si ese contenido es más corto el navegador ya recortó el scrollTop
+     — se guardaba un cero. Medido: 316 al entrar, 0 al volver. */
+  const pageRef = useRef(null)
+  const scrollByView = useRef({})
+  useEffect(() => {
+    const el = pageRef.current
+    if (!el) return
+    const remember = () => { scrollByView.current[view] = el.scrollTop }
+    el.addEventListener('scroll', remember, { passive: true })
+    el.scrollTop = scrollByView.current[view] ?? 0
+    return () => el.removeEventListener('scroll', remember)
+  }, [view])
   /* Devolverlo al botón de donde vino es de DESMONTAR, así que va en su propio efecto:
      metido en el de arriba se dispararía en cada cambio de vista y le robaría el foco al
      título que se acaba de enfocar. */
@@ -606,7 +627,7 @@ export default function Dashboard({ onClose, onSessionExpired, collections, view
      pantalla entera y scrollea como una página, sin techo y sin ancho de diálogo. */
   const isUsers = view === 'users'
   return (
-    <div className="panel-page">
+    <div className="panel-page" ref={pageRef}>
       <header className="panel-head">
         {/* El «Volver» retrocede UN paso: de la lista a los números, y de los números a
             las cartas. Nunca saltea una vista, así que siempre lleva a donde estabas. */}

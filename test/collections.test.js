@@ -13,7 +13,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import {
   COLLECTIONS, DEFAULT_COLLECTION, readCollection, albumNames, cardLabel, cardDetail, listLabel, albumPercent,
-  withVariants, variantsFor, slotKey, slotsOf, missingVariantsOf, drawableVariants, pointsToASlot, numbersOf,
+  withVariants, variantsFor, slotKey, slotsOf, missingVariantsOf, albumTally, drawableVariants, pointsToASlot, numbersOf,
   slotOf, slotName, orphanName, completionBy,
 } from '../src/collections.js'
 
@@ -170,6 +170,33 @@ test('missingVariantsOf: tener SÓLO una variante que el catálogo ya no declara
   const drawable = drawableVariants([e], quantities)['x']
   assert.deepEqual(missingVariantsOf(e, 1, quantities, drawable).map((v) => v.id), ['dor', 'pla'],
     'le faltan las dos ofrecidas, aunque lo único tenido sea un sufijo viejo')
+})
+
+// ---------------------------------------------------------------- albumTally
+
+test('albumTally: cuenta HUECOS, no casilleros — dos variantes del mismo número son uno', () => {
+  /* Es la cuenta que muestran el avance del encabezado y el selector de álbum. Contando
+     casilleros, tener la 1 en dos fondos daría «3 de 2». */
+  const e = makeExpansion({ id: 'x', desde: 1, hasta: 2, grupos: [{ cartas: [1], variantes: [GOLD, SILVER] }] })
+  assert.deepEqual(albumTally([e], {}), { total: 2, owned: 0 })
+  assert.deepEqual(albumTally([e], { 'x-dor:1': 1, 'x-pla:1': 1 }), { total: 2, owned: 1 },
+    'dos variantes del mismo número son UN hueco')
+  assert.deepEqual(albumTally([e], { 'x:1': 3 }), { total: 2, owned: 1 }, 'tres repetidas son un hueco')
+  assert.deepEqual(albumTally([e], { 'x:1': 1, 'x:2': 1 }), { total: 2, owned: 2 })
+  assert.deepEqual(albumTally([e], { 'x:1': 0 }), { total: 2, owned: 0 }, 'una cantidad en cero no es tener')
+})
+
+test('albumTally: una variante que el catálogo ya no declara igual cuenta como tenida', () => {
+  /* Mismo criterio que la banda de la expansión y que el festejo: si no, el selector
+     diría «faltan 2» sobre un hueco que la grilla dibuja como tuyo. */
+  const e = makeExpansion({ id: 'x', desde: 1, hasta: 2, grupos: [{ cartas: [1], variantes: [GOLD] }] })
+  assert.deepEqual(albumTally([e], { 'x-hgl:1': 1 }), { total: 2, owned: 1 })
+})
+
+test('albumTally: sin catálogo no revienta', () => {
+  /* Se la llama mientras un archivo todavía no cargó. */
+  assert.deepEqual(albumTally(null, {}), { total: 0, owned: 0 })
+  assert.deepEqual(albumTally([], {}), { total: 0, owned: 0 })
 })
 
 // ---------------------------------------------------------------- drawableVariants
