@@ -80,9 +80,23 @@ button { cursor: pointer; }
 
    `inline-flex` para que el riel mida lo que miden las dos y no el ancho de la columna;
    en el teléfono, donde el encabezado es una grilla, la celda igual lo contiene. */
-.collections {
-  display: inline-flex;
-  gap: 2px;
+/* SE LLAMA `.album-switch` Y NO `.collections`, QUE ES DE LA HOJA DEL PANEL. Se llamó así
+   un rato y el bloque «Las cartas» del panel, que es `.group.collections`, apareció con
+   una pastilla blanca gigante encima de sus barras: `styles.css` la carga TODO el mundo,
+   así que una clase de acá le pega al panel aunque la regla del panel no exista.
+   Es la misma colisión que ya costó dos arreglos al revés (`.barra` y `.pie` del panel
+   pisando a la app) — sólo que en esta dirección el test no la miraba. Ahora sí. */
+.album-switch {
+  position: relative;
+  /* `inline-grid` con columnas de `1fr` y NO flex: los dos segmentos tienen que medir
+     exactamente lo mismo o la pastilla, que se corre de a 100% de su propio ancho, no
+     cae donde termina el otro. Con `flex: 1` no alcanza —el riel se ajusta al contenido,
+     así que no hay espacio sobrante que repartir y cada uno se queda con su ancho
+     natural: 89 y 84 px, medido—. En una grilla de tamaño intrínseco, `1fr` le da a
+     todas las columnas el ancho de la más ancha, que es justo lo que hace falta. */
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
   margin-top: 6px;
   padding: 3px;
   border: 1px solid var(--line2);
@@ -91,7 +105,36 @@ button { cursor: pointer; }
      va en blanco, se lee como levantado sin necesidad de más sombra. */
   background: var(--paper);
 }
+/* LA PASTILLA VIAJA, no aparece del otro lado — lo pidió Angel: «que se mueva de un lado
+   a otro al cambiar, no que se teletransporte». Es una sola pieza con `position:
+   absolute` que se corre con `transform`, así que la anima el compositor y no toca el
+   layout: en una pantalla con 1936 botones eso importa.
+ *
+ * Dónde está y cuánto mide salen de dos variables que pone el JSX: cuántos álbumes hay y
+ * cuál está elegido. Así no hay que medir nada con JavaScript —ni al cargar, ni al
+ * rotar, ni al cambiar de ancho— y el día que haya una tercera colección funciona sola.
+ * Para que la cuenta cierre, los segmentos miden todos lo mismo (`flex: 1`). */
+.album-switch::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc((100% - 6px) / var(--album-count, 2));
+  transform: translateX(calc(var(--album-index, 0) * 100%));
+  border-radius: 999px;
+  background: var(--white);
+  box-shadow: 0 1px 2px rgba(32, 29, 26, .13);
+  transition: transform .26s cubic-bezier(.33, .9, .3, 1);
+}
+/* Para algunas personas el movimiento no es un gusto: es mareo. Se queda quieta y el
+   cambio lo cuenta el color, igual que en el guiño del botón de exportar. */
+@media (prefers-reduced-motion: reduce) {
+  .album-switch::before { transition: none; }
+}
 .album-pill {
+  position: relative;   /* encima de la pastilla, que es el ::before del riel */
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -101,9 +144,10 @@ button { cursor: pointer; }
   border-radius: 999px;
   background: none;
   color: var(--ink2);
-  /* La transición es corta y sólo de color: el riel no se mueve, así que no hay nada
-     que pueda marear — y con `prefers-reduced-motion` un cambio de color está bien. */
-  transition: background-color .12s ease, color .12s ease;
+  white-space: nowrap;
+  /* El color acompaña a la pastilla: si cambiara de golpe, el texto se vería oscuro
+     medio segundo antes de que el fondo llegue. */
+  transition: color .26s ease;
 }
 .album-name { font-size: 13.5px; font-weight: 700; line-height: 1.2; }
 /* El avance de CADA álbum, que es lo que convierte al selector en algo que informa: con
@@ -116,16 +160,15 @@ button { cursor: pointer; }
   color: var(--ink3);
   font-variant-numeric: tabular-nums;
 }
-.album-pill:hover { color: var(--accent); }
-.album-pill:hover .album-tally { color: var(--accent); }
-/* El elegido levantado sobre el riel: papel limpio y el borde de siempre. Antes era la
-   tinta llena, que pesaba más que el logo que tiene al lado y competía con él. */
-.album-pill.active {
-  background: var(--white);
-  color: var(--ink);
-  box-shadow: 0 1px 2px rgba(32, 29, 26, .13);
-}
+/* El hover sólo en el que NO está elegido: sobre la pastilla blanca, teñir de naranja el
+   que ya está puesto parece que fuera a pasar algo cuando no pasa nada. */
+.album-pill:not(.active):hover { color: var(--accent); }
+.album-pill:not(.active):hover .album-tally { color: var(--accent); }
+/* El elegido NO lleva fondo propio: el fondo es la pastilla que viaja. Acá queda sólo el
+   color del texto, que es lo que distingue al que está puesto. */
+.album-pill.active { color: var(--ink); }
 .album-pill.active .album-tally { color: var(--ink2); }
+.album-tally { transition: color .26s ease; }
 
 /* Avance general: una sola línea, no seis tarjetas de estadísticas. */
 .tally { display: flex; align-items: baseline; gap: 10px; margin-top: 26px; }
@@ -1220,7 +1263,7 @@ button { cursor: pointer; }
      Y `justify-self: start` porque desde que es un riel con fondo, estirarse a toda la
      fila —que es lo que hace una celda de grilla por omisión— dibujaba una barra vacía
      de borde a borde con las dos píldoras amontonadas a la izquierda. */
-  .masthead .collections { grid-area: 2 / 1 / 3 / -1; justify-self: start; }
+  .masthead .album-switch { grid-area: 2 / 1 / 3 / -1; justify-self: start; }
   .masthead .progress { grid-area: 3 / 1 / 4 / -1; }
 
   /* Abajo de ~400 px el logo de 240 y el botón no entran juntos. El logo cede, que para

@@ -47,6 +47,28 @@ test('ninguna regla suelta de dashboard.css reusa una clase de la app', () => {
   assert.deepEqual(clashes, [], `estas reglas del panel pisan clases de la app: ${clashes.map(([s]) => s).join(' | ')}`)
 })
 
+/* Y LA MISMA COLISIÓN AL REVÉS, que es la que faltaba y pasó el 2026-10-15: el selector
+   de álbum de la app se llamó `.collections` un rato, que es la clase del bloque «Las
+   cartas» del panel (`.stats .group.collections`). `styles.css` la carga todo el mundo y
+   el panel vive en el mismo documento, así que esa regla suelta le pegó adentro: apareció
+   una pastilla blanca gigante sobre las barras de colección. La regla del panel no lo
+   impide — es más específica, pero sólo gana en las propiedades que redefine, y no
+   redefinía `display`, `background` ni `border-radius`.
+ *
+ * Así que una regla SUELTA de la app no puede llamarse como ninguna clase que el panel
+ * nombre en sus selectores. Hoy la intersección es cero, así que el test exige cero. */
+const panelClasses = new Set(
+  [...withoutComments(read('dashboard.css')).matchAll(/\.([a-zA-Z][\w-]*)/g)].map((m) => m[1])
+)
+
+test('ninguna regla suelta de styles.css pisa una clase del panel', () => {
+  const clashes = selectors(read('styles.css'))
+    .map((s) => [s, s.match(/^\.([a-zA-Z][\w-]*)/)?.[1]])
+    .filter(([, first]) => first && panelClasses.has(first))
+  assert.deepEqual(clashes, [],
+    `estas reglas de la app pisan clases del panel: ${clashes.map(([s]) => s).join(' | ')}`)
+})
+
 test('y el lector de selectores ve las reglas de verdad (si no, el test de arriba no mira nada)', () => {
   const found = selectors(read('dashboard.css'))
   assert.ok(found.includes('.devices-pie'), 'no encontró .devices-pie')

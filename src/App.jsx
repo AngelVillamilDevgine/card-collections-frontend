@@ -1848,7 +1848,14 @@ export default function App() {
                 sólo se vea mejor: con dos álbumes de 1936 y 1097 huecos, «cómo voy en el
                 otro» era una pregunta que obligaba a cambiar de álbum para contestarla. */}
             {availableCollections.length > 1 && (
-              <div className="collections" role="group" aria-label="Qué colección estoy mirando">
+              /* Las dos variables que ubican la pastilla que se desliza: cuántos
+                 segmentos hay y cuál está puesto. Van en el estilo y no en el CSS para
+                 que una tercera colección no pida tocar la hoja — ver `.album-switch`. */
+              <div className="album-switch" role="group" aria-label="Qué colección estoy mirando"
+                   style={{
+                     '--album-count': availableCollections.length,
+                     '--album-index': Math.max(0, availableCollections.findIndex((c) => c.id === shownCollectionId)),
+                   }}>
                 {availableCollections.map((c) => {
                   const tally = albumTallies[c.id]
                   const active = c.id === shownCollectionId
