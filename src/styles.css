@@ -828,9 +828,11 @@ button { cursor: pointer; }
 .filter.f-missing                  { border-color: var(--missing-ink); }
 .filter.f-dupes              { border-color: var(--accent); }   /* el del globito */
 .filter.f-replace             { border-color: var(--replace-line); }
+.filter.f-variants            { border-color: var(--owned-line); }   /* el violeta de «tengo» */
 .filter:not(.active).f-missing      { color: var(--missing-ink); }
 .filter:not(.active).f-dupes  { color: var(--accent); }
 .filter:not(.active).f-replace { color: var(--replace-ink); }
+.filter:not(.active).f-variants { color: var(--owned-ink); }
 /* Elegido gana el relleno naranja: el contorno de color es para los otros. */
 .filter.active { background: var(--accent); border-color: var(--accent); }
 
@@ -1436,6 +1438,7 @@ button { cursor: pointer; }
   .filter.active.f-missing      { color: var(--missing-ink); }
   .filter.active.f-dupes  { color: var(--accent); }
   .filter.active.f-replace { color: var(--replace-ink); }
+  .filter.active.f-variants { color: var(--owned-ink); }
   .filter.active::before {
     content: '';
     position: absolute;

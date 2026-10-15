@@ -4,7 +4,7 @@
 // qué lista, de qué expansiones (se marcan varias), y el texto con el botón de copiar.
 import { useEffect, useRef, useState } from 'react'
 import { trapFocus, useCloseOnEscape } from './dialog'
-import { slotsOf, slotKey, variantsFor, cardLabel } from './collections'
+import { slotsOf, missingVariantsOf, cardLabel } from './collections'
 import { CONDITIONS } from './conditions'
 
 const LIST_OPTIONS = [
@@ -117,16 +117,13 @@ function listDuplicates(exp, quantities, variants) {
  * que no tenés en ninguna variante va en «me faltan» y no acá.
  *
  * `total` cuenta VARIANTES y no cartas, que es lo que se está pidiendo. */
-function listMissingVariants(exp, quantities) {
+function listMissingVariants(exp, quantities, drawable) {
   const entries = []
   let total = 0
   for (const n of exp.cardNumbers) {
-    const cardVariants = variantsFor(exp, n)
-    if (!cardVariants.length) continue
-    const owns = (v) => (quantities[slotKey(exp.id, n, v?.id)] ?? 0) > 0
-    /* Si no tenés ninguno, la carta entera te falta: va en la otra lista. */
-    if (!((quantities[slotKey(exp.id, n)] ?? 0) > 0) && !cardVariants.some(owns)) continue
-    const missingVariants = cardVariants.filter((v) => !owns(v))
+    /* La cuenta vive en `missingVariantsOf`, compartida con el filtro «Faltan variantes»:
+       si el chip y esta lista contaran distinto, los números no cerrarían entre sí. */
+    const missingVariants = missingVariantsOf(exp, n, quantities, drawable)
     if (!missingVariants.length) continue
     total += missingVariants.length
     entries.push(`${printedLabel(exp, n)} · ${missingVariants.map((v) => v.nombre.toLowerCase()).join(', ')}`)

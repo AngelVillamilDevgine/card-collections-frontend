@@ -18,7 +18,7 @@ import { pathFor, syncPath } from './routes'
 import { whatIsStale, staleText } from './health'
 import { ErrorBoundary } from './ErrorBoundary'
 import { whatsappTo, suggestionText } from './contact'
-import { COLLECTIONS, DEFAULT_COLLECTION, readCollection, rememberCollection, loadCatalogs, slotKey, slotsOf, variantsFor, drawableVariants, pointsToASlot, cardLabel, cardDetail, albumPercent, slotOf, slotName, orphanName, completionBy } from './collections'
+import { COLLECTIONS, DEFAULT_COLLECTION, readCollection, rememberCollection, loadCatalogs, slotKey, slotsOf, variantsFor, missingVariantsOf, drawableVariants, pointsToASlot, cardLabel, cardDetail, albumPercent, slotOf, slotName, orphanName, completionBy } from './collections'
 import {
   ApiError,
   downloadJson, readBackupFile, fetchAccount, logout,
@@ -32,11 +32,24 @@ import {
    82 px y «Para reemplazar» no entra. Los dos textos se dibujan siempre y el CSS muestra
    el que corresponde: así el layout lo decide una media query y no un `if` sobre el
    ancho, que parpadearía al cargar y habría que volver a calcular al rotar. */
+/* Son CINCO declarados y se muestran CUATRO: «Para reemplazar» filtra por condición, y en
+   una colección sin condición (Leyenda) es un cero permanente — Angel, 2026-10-15: «los
+   filtros de Estado no me sirven, porque se coleccionan con variantes, no con estado».
+   Su lugar lo ocupa «Faltan variantes», que es la MISMA cuenta que la lista homónima del
+   exportar (`missingVariantsOf`). Es un reemplazo uno a uno y no un filtro de más ni de
+   menos a propósito: la barra de abajo del teléfono está calculada para cinco lugares de
+   ancho igual, y recortar a tres los desbalancea.
+
+   `matches` decide por CASILLERO (cantidad y condición); `matchesHole` decide por HUECO,
+   porque «te falta una variante» no es una propiedad de ningún casillero que exista — el
+   casillero que falta justamente no está. Un filtro declara una de las dos. */
 export const FILTERS = [
   { id: 'all',        label: 'Todas',           shortLabel: 'Colección',  matches: () => true, css: 'all' },
   { id: 'missing',    label: 'Me faltan',       shortLabel: 'Faltan',     matches: (quantity) => quantity === 0, css: 'missing' },
   { id: 'duplicates', label: 'Repetidas',       shortLabel: 'Repetidas',  matches: (quantity) => quantity > 1, css: 'dupes' },
   { id: 'replace',    label: 'Para reemplazar', shortLabel: 'Reemplazar', matches: (quantity, condition) => quantity > 0 && condition === 'reemplazar', css: 'replace' },
+  { id: 'variants',   label: 'Faltan variantes', shortLabel: 'Variantes',
+    matchesHole: (exp, n, quantities, drawable) => missingVariantsOf(exp, n, quantities, drawable).length > 0, css: 'variants' },
 ]
 
 /* Los íconos de esa barra. Trazo de 2, sin relleno y con `currentColor`, igual que los
@@ -56,6 +69,8 @@ const FILTER_ICONS = {
   duplicates: <><rect x="8.5" y="3.5" width="12" height="14" rx="2" /><path d="M15.5 20.5H5.5a2 2 0 0 1-2-2v-11" /></>,
   // Dos flechas que se cruzan: cambiarla por otra.
   replace: <><path d="M3.5 8.5h13l-3.5-3.5" /><path d="M20.5 15.5h-13l3.5 3.5" /></>,
+  // Una carta con el brillo cruzado: la misma carta en otro acabado.
+  variants: <><rect x="4.5" y="3.5" width="15" height="17" rx="2" /><path d="M8 15.5 15.5 8" /><path d="M11.5 18 17.5 12" /></>,
 }
 
 const LIGHT_TEXT = '#ffffff'
@@ -809,8 +824,22 @@ export default function App() {
     : availableCollections[0]?.id
   const album = shownCollectionId ? catalogs[shownCollectionId] : null
   const catalog = album?.expansiones ?? null
+  /* Cuatro a la vista de cinco declarados: con condición va «Para reemplazar», sin
+     condición va «Faltan variantes». Ver la nota de FILTERS. */
+  const visibleFilters = FILTERS.filter((f) => (album?.condicion ? f.id !== 'variants' : f.id !== 'replace'))
+  /* El invariante «el filtro activo tiene chip» se fija ACÁ y no en el click, porque el
+     álbum también cambia sin pasar por la píldora: la caída a la primera colección que
+     cargó, y un Reintentar que termina de cargar la recordada. Lo encontró la revisión:
+     con el estado crudo, un «Para reemplazar» huérfano en Leyenda filtraba la grilla con
+     un botón que ya no se dibuja — el álbum entero vacío, sin ninguna pista de por qué,
+     y sin forma de verlo presionado. La grilla, el aviso de vacío y el aria-pressed
+     miran TODOS éste, nunca `activeFilter` directo. */
+  const effectiveFilter = visibleFilters.some((f) => f.id === activeFilter) ? activeFilter : 'all'
 
   function pickCollection(id) {
+    /* El filtro activo puede no existir en el álbum al que vas («Para reemplazar» no está
+       en Leyenda ni «Faltan variantes» en Cromeros): de eso se ocupa `effectiveFilter`,
+       que vale para este camino Y para los cambios de álbum que no pasan por acá. */
     setCollection(id)
     rememberCollection(id)
   }
@@ -1324,8 +1353,10 @@ export default function App() {
             spares += quantity - 1
             conditionCounts[condition ?? 'bien']++
           }
-          for (const f of FILTERS) if (f.matches(quantity, condition)) slotMatches[f.id] = true
+          for (const f of FILTERS) if (f.matches?.(quantity, condition)) slotMatches[f.id] = true
         }
+        /* Los filtros de HUECO deciden una vez por carta, no por casillero. */
+        for (const f of FILTERS) if (f.matchesHole?.(exp, n, quantities, drawableByExpansion[exp.id])) slotMatches[f.id] = true
         for (const f of FILTERS) if (slotMatches[f.id]) byFilter[f.id]++
         if (hasAny) owned++
       }
@@ -1846,12 +1877,12 @@ export default function App() {
       <div className="toolbar">
         <div className="column">
             <div className="filters">
-              {FILTERS.map((f) => (
+              {visibleFilters.map((f) => (
                 <button
                   key={f.id}
-                  className={`filter f-${f.css}${activeFilter === f.id ? ' active' : ''}`}
+                  className={`filter f-${f.css}${effectiveFilter === f.id ? ' active' : ''}`}
                   onClick={() => setActiveFilter(f.id)}
-                  aria-pressed={activeFilter === f.id}
+                  aria-pressed={effectiveFilter === f.id}
                 >
                   <svg className="icon" width="21" height="21" viewBox="0 0 24 24" fill="none"
                        stroke="currentColor" strokeWidth="2" strokeLinecap="round"
@@ -1915,12 +1946,16 @@ export default function App() {
           </p>
 
         {catalog.map((exp) => {
-          const activeFilterDef = FILTERS.find((f) => f.id === activeFilter)
-          /* Un hueco se dibuja si ALGUNO de sus casilleros pasa el filtro. */
+          const activeFilterDef = FILTERS.find((f) => f.id === effectiveFilter)
+          /* Un hueco se dibuja si ALGUNO de sus casilleros pasa el filtro — o si el
+             filtro es de hueco, si el hueco entero pasa. La misma distinción que en
+             `summary`, para que el chip y lo dibujado cuenten lo mismo. */
           const visibleNumbers = exp.cardNumbers.filter((n) =>
-            slotsOf(exp, n, drawableByExpansion[exp.id], quantities).some((s) =>
-              activeFilterDef.matches(quantities[s.cardKey] ?? 0, conditions[s.cardKey])
-            )
+            activeFilterDef.matchesHole
+              ? activeFilterDef.matchesHole(exp, n, quantities, drawableByExpansion[exp.id])
+              : slotsOf(exp, n, drawableByExpansion[exp.id], quantities).some((s) =>
+                  activeFilterDef.matches(quantities[s.cardKey] ?? 0, conditions[s.cardKey])
+                )
           )
           if (!visibleNumbers.length) return null
 
@@ -1996,7 +2031,7 @@ export default function App() {
           )
         })}
 
-        {summary.byFilter[activeFilter] === 0 && (
+        {summary.byFilter[effectiveFilter] === 0 && (
           <p className="empty">No hay ninguna carta en este listado.</p>
         )}
 

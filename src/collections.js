@@ -116,6 +116,27 @@ export function variantsFor(exp, n) {
    acepta antes de los dos puntos. Hay un test que lo obliga (`leyenda.test.js`). */
 export const slotKey = (expId, n, variantId) => `${expId}${variantId ? `-${variantId}` : ''}:${n}`
 
+/* QUÉ VARIANTES OFRECIDAS LE FALTAN A UN HUECO. Es UNA sola pregunta con dos lectores
+   —la lista «Me faltan variantes» del exportar y el filtro «Faltan variantes» de las
+   colecciones sin condición— y por eso vive acá y no en los dos: con la cuenta copiada,
+   el chip y el diálogo divergirían solos, que es exactamente como se desincronizó
+   `numbersOf`. Una carta de la que no tenés NINGÚN casillero no cuenta: ésa te falta
+   entera y va en «Me faltan», no acá — los dos conjuntos no se pisan. */
+export function missingVariantsOf(exp, n, quantities, drawable) {
+  const cardVariants = variantsFor(exp, n)
+  if (!cardVariants.length) return []
+  /* «Tenés algo» se decide con los MISMOS casilleros que dibuja la app —las dibujables,
+     que incluyen sufijos que el catálogo ya no declara—, no con base + declaradas. Lo
+     encontró la revisión: una fila vieja con `hgl` como única tenida es un hueco que
+     `summary` pinta como tenido, y mirando sólo las declaradas acá parecía vacío, así
+     que era invisible para las DOS preguntas de intercambio a la vez — ni «me falta»
+     (algo tenés) ni «me faltan variantes». Lo que falta sí se filtra sobre las
+     DECLARADAS, que son lo que el catálogo ofrece. */
+  const slots = slotsOf(exp, n, drawable ?? exp.variantes ?? cardVariants, quantities)
+  if (!slots.some((s) => (quantities[s.cardKey] ?? 0) > 0)) return []
+  return cardVariants.filter((v) => !((quantities[slotKey(exp.id, n, v.id)] ?? 0) > 0))
+}
+
 /* CÓMO SE LLAMA UNA CARTA, y no es sólo su número.
  *
  * En Leyenda hay dos expansiones que repiten números de otra: `ley-f` va de 504 a 513 y

@@ -13,7 +13,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import {
   COLLECTIONS, DEFAULT_COLLECTION, readCollection, albumNames, cardLabel, cardDetail, listLabel, albumPercent,
-  withVariants, variantsFor, slotKey, slotsOf, drawableVariants, pointsToASlot, numbersOf,
+  withVariants, variantsFor, slotKey, slotsOf, missingVariantsOf, drawableVariants, pointsToASlot, numbersOf,
   slotOf, slotName, orphanName, completionBy,
 } from '../src/collections.js'
 
@@ -137,6 +137,39 @@ test('slotsOf: SI TENÉS LA VARIANTE Y NO LA BASE, el casillero base no se dibuj
     slotsOf(e, 1, vs, { 'x:1': 1, 'x-pla:1': 3 }),
     [{ cardKey: 'x:1', variant: null }, { cardKey: 'x-pla:1', variant: SILVER }]
   )
+})
+
+// ---------------------------------------------------------------- missingVariantsOf
+
+test('missingVariantsOf: cuenta sólo donde YA TENÉS algo — lo demás va en «Me faltan»', () => {
+  /* Es la cuenta compartida entre la lista «Me faltan variantes» del exportar y el filtro
+     «Faltan variantes»: los dos conjuntos no se pisan con «Me faltan». */
+  const e = makeExpansion({ id: 'x', desde: 1, hasta: 9, grupos: [{ cartas: [1, 2], variantes: [GOLD, SILVER] }] })
+  assert.deepEqual(missingVariantsOf(e, 1, {}), [], 'sin nada, la carta entera te falta')
+  assert.deepEqual(missingVariantsOf(e, 1, { 'x-dor:1': 0 }), [], 'una cantidad en cero es no tenerla')
+  assert.deepEqual(missingVariantsOf(e, 1, { 'x:1': 1 }).map((v) => v.id), ['dor', 'pla'],
+    'con la base sola te faltan todas las ofrecidas')
+  assert.deepEqual(missingVariantsOf(e, 1, { 'x-dor:1': 1 }).map((v) => v.id), ['pla'],
+    'tener una variante sin la base también es tener algo')
+  assert.deepEqual(missingVariantsOf(e, 1, { 'x:1': 1, 'x-dor:1': 1, 'x-pla:1': 2 }), [],
+    'con todas no falta ninguna')
+})
+
+test('missingVariantsOf: una carta sin variantes ofrecidas nunca aparece', () => {
+  const e = makeExpansion({ id: 'x', desde: 1, hasta: 9, grupos: [{ cartas: [1], variantes: [GOLD] }] })
+  assert.deepEqual(missingVariantsOf(e, 8, { 'x:8': 3 }), [], 'la 8 no está en ningún grupo')
+})
+
+test('missingVariantsOf: tener SÓLO una variante que el catálogo ya no declara es tener algo', () => {
+  /* Es lo que deja una corrección de id del catálogo (ya pasó: hgl → hol). Ese hueco se
+     dibuja y summary lo pinta como tenido; mirando sólo base + declaradas acá parecía
+     vacío, y la carta quedaba invisible para «Me faltan» Y para «Faltan variantes» a la
+     vez. Lo encontró la revisión. «Tenés algo» se decide con las DIBUJABLES. */
+  const e = makeExpansion({ id: 'x', desde: 1, hasta: 9, grupos: [{ cartas: [1], variantes: [GOLD, SILVER] }] })
+  const quantities = { 'x-hgl:1': 1 }
+  const drawable = drawableVariants([e], quantities)['x']
+  assert.deepEqual(missingVariantsOf(e, 1, quantities, drawable).map((v) => v.id), ['dor', 'pla'],
+    'le faltan las dos ofrecidas, aunque lo único tenido sea un sufijo viejo')
 })
 
 // ---------------------------------------------------------------- drawableVariants
