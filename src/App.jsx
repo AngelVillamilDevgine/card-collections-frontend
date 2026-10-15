@@ -12,6 +12,26 @@ import Celebration from './Celebration'
    panel va a crecer, y con el corte puesto puede crecer sin que nadie tenga que discutir
    cuántos kilobytes le cuesta al que sólo marca cartas. */
 const Dashboard = lazy(() => import('./Dashboard'))
+
+/* LAS VISTAS DEL PANEL VIVEN EN EL HASH, cada una con el suyo, por el mismo motivo por el
+   que el panel entero vive ahí: Atrás tiene que volver a la anterior y no sacarte de la
+   app. De paso sobreviven a un F5 y el link se puede pasar.
+ *
+ * Es un MAPA y no un `startsWith('#panel')`: así un `#panel/loquesea` no abre media
+ * pantalla con la vista en blanco — cae en `null`, que es «no hay panel», igual que
+ * `#cartas`, el hash del enlace de saltar.
+ *
+ * No son rutas de verdad (`/panel/users`) y eso está medido: Cloudflare Pages sirve el
+ * `index.html` —o sea LA LANDING— con 200 en cualquier ruta que no exista como archivo,
+ * y la landing con sesión te redirige a `/collection`. O sea que un F5 en `/panel/users`
+ * te sacaba de la pantalla. Tenerlas de verdad pide un HTML anidado nuevo, arreglar el
+ * `base: './'` de Vite —desde dos niveles `./assets/…` resuelve a `/panel/assets/…` y la
+ * app no arranca— y sumar los contratos a `pages.test.js`. */
+const PANEL_HASH = { numbers: '#panel', users: '#panel/users' }
+const VIEW_BY_HASH = Object.fromEntries(Object.entries(PANEL_HASH).map(([view, hash]) => [hash, view]))
+const panelViewFromHash = () =>
+  (typeof location === 'undefined' ? null : VIEW_BY_HASH[location.hash] ?? null)
+
 import InstallPrompt from './InstallPrompt'
 import Reinstall from './Reinstall'
 import { pathFor, syncPath } from './routes'
@@ -717,8 +737,11 @@ export default function App() {
 
      `#cartas` ya existía para el enlace de saltar, así que esto convive: cualquier hash
      que no sea `#panel` lo cierra. */
-  const [dashboardOpen, setDashboardOpen] = useState(() =>
-    typeof location !== 'undefined' && location.hash === '#panel')
+  /* Y DESDE EL 2026-10-15 EL PANEL TIENE DOS VISTAS, también en el hash: `#panel` son los
+     números y `#panel/users` es la lista de cuentas con sus filtros. Un mapa y no un
+     `startsWith`, para que un hash inventado no abra media pantalla. */
+  const [panelView, setPanelView] = useState(panelViewFromHash)
+  const dashboardOpen = panelView !== null
   /* Si la entrada la empujamos nosotros, cerrar es `history.back()`. Si en cambio llegó
      con `#panel` en la dirección, no hay a dónde volver y un `back()` se va del sitio.
 
@@ -767,7 +790,7 @@ export default function App() {
      de saltar a `#cartas`, que cierra el panel. Es idempotente, así que que disparen los
      dos no molesta. */
   useEffect(() => {
-    const syncDashboardFromHash = () => setDashboardOpen(location.hash === '#panel')
+    const syncDashboardFromHash = () => setPanelView(panelViewFromHash())
     window.addEventListener('popstate', syncDashboardFromHash)
     window.addEventListener('hashchange', syncDashboardFromHash)
     return () => {
@@ -779,13 +802,33 @@ export default function App() {
   /* `pushState` y no `location.hash = ...` porque hay que dejar la marca en el estado.
      Ojo: `pushState` NO dispara `hashchange`, así que el estado se prende acá a mano. */
   const openDashboard = () => {
-    history.pushState({ dbzPanel: true }, '', '#panel')
-    setDashboardOpen(true)
+    history.pushState({ dbzPanel: true }, '', PANEL_HASH.numbers)
+    setPanelView('numbers')
   }
   const closeDashboard = () => {
     if (isOwnHistoryEntry()) { history.back(); return }
     history.replaceState(null, '', location.pathname + location.search)
-    setDashboardOpen(false)
+    setPanelView(null)
+  }
+  /* Entrar a una vista de adentro EMPUJA, igual que abrir el panel: así Atrás vuelve a
+     los números y recién el siguiente cierra el panel, que es lo que espera cualquiera
+     que entró a la lista desde adentro. */
+  const openPanelView = (view) => {
+    const hash = PANEL_HASH[view]
+    if (!hash) return
+    history.pushState({ dbzPanel: true }, '', hash)
+    setPanelView(view)
+  }
+  /* Y VOLVER ES `back()`, NO OTRO PUSH, por lo mismo que cerrar el panel: empujando
+     `#panel` encima quedaría el historial `#panel · #panel/users · #panel` y el Atrás
+     siguiente te devolvería a la lista de la que acabás de salir — el botón Atrás preso,
+     que es justo el bug que este diseño existe para evitar. Sólo cuando la entrada NO es
+     nuestra (llegaste con `#panel/users` pegado en la dirección) no hay a dónde volver y
+     ahí se reemplaza. */
+  const backToPanelNumbers = () => {
+    if (isOwnHistoryEntry()) { history.back(); return }
+    history.replaceState(null, '', location.pathname + location.search + PANEL_HASH.numbers)
+    setPanelView('numbers')
   }
 
   useEffect(() => {
@@ -2124,7 +2167,8 @@ export default function App() {
             </div>
           }>
             <Dashboard onClose={closeDashboard} onSessionExpired={handleSessionExpired}
-                          collections={dashboardCollections} />
+                          collections={dashboardCollections}
+                          view={panelView} onOpenView={openPanelView} onBackToNumbers={backToPanelNumbers} />
           </Suspense>
           </ErrorBoundary>
         )}

@@ -461,6 +461,138 @@ body:has(.panel-page) {
   color: var(--p-text2);
 }
 .stats .summary-table b { color: var(--p-text); }
+
+/* LA PUERTA A LA PANTALLA DE CUENTAS. Un botón de verdad y no un enlace de texto: lleva a
+   otra pantalla, que es exactamente lo que un botón así promete. La flecha dice la
+   dirección sin leer, igual que la de «Volver» de la cabecera. */
+.panel-go {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 0 0 4px;
+}
+.panel-go-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border: 1px solid var(--p-line);
+  border-radius: 999px;
+  background: var(--p-card);
+  color: var(--p-text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.panel-go-btn:hover { border-color: var(--p-gold); color: var(--p-gold); }
+.panel-go-btn:focus-visible { outline: 2px solid var(--p-gold); outline-offset: 2px; }
+.panel-go i { font-style: normal; font-size: 12.5px; color: var(--p-text3); }
+
+/* LOS FILTROS DE LA PANTALLA DE CUENTAS. Una columna de filas, y cada fila es un par de
+   botones opuestos: así se lee de arriba abajo en el teléfono sin que nada se arrastre
+   de costado, que es el problema que ya tuvo la barra de filtros de la app. */
+.panel-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+.panel-search { display: flex; align-items: center; gap: 8px; }
+.panel-search > span,
+.panel-facet-select > span {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--p-text3);
+  flex: none;
+  min-width: 74px;
+}
+/* El mismo ancho tope que el desplegable de provincia: sin esto el buscador se estiraba
+   al doble y los dos campos del bloque quedaban desalineados. En el teléfono el `flex`
+   manda igual, así que ocupa el ancho entero. */
+.panel-search input {
+  flex: 1;
+  min-width: 0;
+  max-width: 320px;
+  padding: 9px 12px;
+  border: 1px solid var(--p-line);
+  border-radius: 10px;
+  background: var(--p-rail);
+  color: var(--p-text);
+  font: inherit;
+  font-size: 14px;
+}
+.panel-search input::placeholder { color: var(--p-text3); }
+.panel-search input:focus-visible { outline: 2px solid var(--p-gold); outline-offset: 1px; }
+
+.panel-facet { display: flex; gap: 6px; flex-wrap: wrap; }
+.panel-facet button {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--p-line);
+  border-radius: 999px;
+  background: var(--p-card);
+  color: var(--p-text2);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.panel-facet button b { color: var(--p-text3); font-weight: 700; }
+.panel-facet button:hover { border-color: var(--p-gold); color: var(--p-gold); }
+.panel-facet button:focus-visible { outline: 2px solid var(--p-gold); outline-offset: 2px; }
+/* El elegido en dorado lleno, como la píldora de período: en esta pantalla el dorado ya
+   quiere decir «esto es lo que estás mirando». */
+.panel-facet button.active {
+  background: var(--p-gold);
+  border-color: var(--p-gold);
+  color: #1c1508;
+}
+.panel-facet button.active b { color: #1c1508; }
+
+.panel-facet-select { display: flex; align-items: center; gap: 8px; }
+.panel-facet-select select {
+  flex: 1;
+  min-width: 0;
+  max-width: 320px;
+  padding: 8px 10px;
+  border: 1px solid var(--p-line);
+  border-radius: 10px;
+  background: var(--p-rail);
+  color: var(--p-text);
+  font: inherit;
+  font-size: 14px;
+}
+.panel-facet-select select:focus-visible { outline: 2px solid var(--p-gold); outline-offset: 1px; }
+
+.panel-filter-count {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--p-text2);
+}
+.panel-filter-count b { color: var(--p-text); }
+.panel-clear {
+  padding: 4px 10px;
+  border: 1px solid var(--p-line);
+  border-radius: 999px;
+  background: none;
+  color: var(--p-text2);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.panel-clear:hover { border-color: var(--p-gold); color: var(--p-gold); }
+.panel-clear:focus-visible { outline: 2px solid var(--p-gold); outline-offset: 2px; }
 /* La fila de quien entra desde la app: un tinte del dorado, no un verde de otra paleta. */
 .stats .people tr.with-app > td { background: rgba(230, 177, 60, 0.09); }
 .stats .people tr.with-app.dim > td { background: rgba(230, 177, 60, 0.05); }

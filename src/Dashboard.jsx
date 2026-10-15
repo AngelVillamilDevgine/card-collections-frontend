@@ -532,7 +532,7 @@ function BarRow({ label, value, max, note, thin }) {
 const PERIODS = [['hoy', 'Hoy'], ['semana', '7 días'], ['mes', 'Este mes'], ['mesPasado', 'Mes pasado']]
 const PERIOD_KEY = 'dbz-cromeros-panel-period'
 
-export default function Dashboard({ onClose, onSessionExpired, collections }) {
+export default function Dashboard({ onClose, onSessionExpired, collections, view = 'numbers', onOpenView, onBackToNumbers }) {
   const [summary, setSummary] = useState(null)
   const [error, setError] = useState(null)
   /* El período elegido se recuerda en el aparato, como las expansiones plegadas: es una
@@ -570,15 +570,28 @@ export default function Dashboard({ onClose, onSessionExpired, collections }) {
      `history.back()` seguidos. Se mira el DOM y no un estado porque el modal vive
      adentro de otro componente; este listener se registró antes, así que corre primero
      y todavía encuentra el modal en pantalla. */
-  useCloseOnEscape(() => { if (!document.querySelector('.panel-modal')) onClose() })
+  /* Y con una vista de adentro abierta, Escape vuelve A ELLA y no cierra el panel entero:
+     Escape deshace un paso, igual que Atrás. Si cerrara todo, salir de la lista te
+     devolvería a las cartas y habría que volver a abrir el panel para ver los números. */
+  useCloseOnEscape(() => {
+    if (document.querySelector('.panel-modal')) return
+    if (view !== 'numbers') { onBackToNumbers?.(); return }
+    onClose()
+  })
 
   /* UNA PÁGINA NO ATRAPA EL FOCO, un diálogo sí. Esto era un `.dialog` y usaba
      `trapFocus`, que cicla el Tab adentro — correcto para algo que flota encima de otra
      cosa, y molesto para algo que ES la pantalla. Lo que sí hace falta es mover el foco al
      título, para que un lector de pantalla anuncie que cambió de vista, y devolverlo al
      botón de donde vino al cerrar. */
+  /* El foco al título va en CADA vista y no sólo al abrir: cambiar de vista es un cambio
+     de pantalla, y sin esto un lector de pantalla no anuncia nada — el foco se queda en
+     el botón que ya no existe y se cae al `body`. */
+  useEffect(() => { titleRef.current?.focus() }, [view])
+  /* Devolverlo al botón de donde vino es de DESMONTAR, así que va en su propio efecto:
+     metido en el de arriba se dispararía en cada cambio de vista y le robaría el foco al
+     título que se acaba de enfocar. */
   useEffect(() => {
-    titleRef.current?.focus()
     const opener = prevFocusRef.current
     return () => { if (opener?.isConnected) opener.focus() }
   }, [])
@@ -591,10 +604,13 @@ export default function Dashboard({ onClose, onSessionExpired, collections }) {
      LA RUTA NO CAMBIA: sigue siendo el hash `#panel`, porque el argumento de siempre sigue
      en pie — Atás tiene que cerrarlo, y eso ya anda. Lo que cambia es que ocupa la
      pantalla entera y scrollea como una página, sin techo y sin ancho de diálogo. */
+  const isUsers = view === 'users'
   return (
     <div className="panel-page">
       <header className="panel-head">
-        <button className="back" onClick={onClose}>
+        {/* El «Volver» retrocede UN paso: de la lista a los números, y de los números a
+            las cartas. Nunca saltea una vista, así que siempre lleva a donde estabas. */}
+        <button className="back" onClick={isUsers ? onBackToNumbers : onClose}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M15 18l-6-6 6-6" />
@@ -602,13 +618,17 @@ export default function Dashboard({ onClose, onSessionExpired, collections }) {
           Volver
         </button>
         {/* `tabIndex={-1}` para poder enfocarlo al entrar sin meterlo en el orden del Tab. */}
-        <h1 tabIndex={-1} ref={titleRef}>Los números</h1>
+        <h1 tabIndex={-1} ref={titleRef}>{isUsers ? 'Usuarios' : 'Los números'}</h1>
       </header>
       <div className="panel-body stats">
         {/* EL FILTRO DE PERÍODO, PRIMERO EN EL CUERPO y NO en la cabecera — lo marcó
             Angel: un filtro no comparte estructura con un título y un botón de volver.
-            Sólo aparece si el back ya manda los períodos. */}
-        {summary?.periodos && (
+            Sólo aparece si el back ya manda los períodos.
+
+            En la lista de cuentas NO va: esa pantalla no muestra nada por período —cada
+            renglón es una cuenta con sus totales de siempre— y dejarlo ahí prometería un
+            recorte que no existe. Sus filtros son los suyos. */}
+        {summary?.periodos && !isUsers && (
           <div className="periods" role="group" aria-label="Período">
             {PERIODS.map(([id, label]) => (
               <button key={id} type="button" aria-pressed={period === id}
@@ -621,34 +641,34 @@ export default function Dashboard({ onClose, onSessionExpired, collections }) {
         )}
         {error && <p className="nothing">{error}</p>}
         {!summary && !error && <p className="nothing">Buscando…</p>}
-        {summary && <DashboardBody d={summary} collections={collections ?? []} period={period} onSessionExpired={onSessionExpired} />}
+        {summary && (isUsers
+          ? <UsersPage d={summary} collections={collections ?? []} onSessionExpired={onSessionExpired} />
+          : <DashboardBody d={summary} collections={collections ?? []} period={period}
+                           onOpenUsers={() => onOpenView?.('users')} />)}
       </div>
     </div>
   )
 }
 
-function DashboardBody({ d, collections, period, onSessionExpired }) {
-  const [selectedUser, setSelectedUser] = useState(null)
-  const { usuarios: u, cartas: cardTotals,  gente: people } = d
+/* Cada colección con lo que trajo el servidor. `porColeccion` puede venir en null si el
+   back es más viejo que el front: entonces no se dibuja nada partido, que es mejor que
+   dibujar ceros. Lo miran los dos lados —los bloques de colecciones y las columnas de la
+   tabla—, así que vive una sola vez. */
+function collectionsWithTotals(d, collections) {
+  const totals = d.porColeccion
+  if (!totals) return null
+  return collections.map((c) => ({
+    ...c,
+    ...(totals.find((t) => t.col === c.id) ?? { cartas: 0, repetidas: 0, huecos: 0, personas: 0 }),
+  }))
+}
 
-
-  /* EL PERÍODO ELEGIDO, si el back ya lo manda. Sin `periodos` (back viejo) el panel cae
-     al embudo histórico, que es lo que había. */
-  const p = d.periodos?.[period] ?? null
-
-
-  /* Cada colección con lo que trajo el servidor. `porColeccion` puede venir en null si el
-     back es más viejo que el front: entonces no se dibuja nada partido, que es mejor que
-     dibujar ceros. */
-  const collectionTotals = d.porColeccion
-  const byCollection = collectionTotals
-    ? collections.map((c) => ({
-        ...c,
-        ...(collectionTotals.find((p) => p.col === c.id) ?? { cartas: 0, repetidas: 0, huecos: 0, personas: 0 }),
-      }))
-    : null
-  const maxCollectionCards = Math.max(1, ...(byCollection ?? []).map((c) => c.cartas))
-
+/* LA TABLA DE CUENTAS, UNA POR RENGLÓN. Vivía al fondo del panel de números y desde el
+   2026-10-15 tiene su propia pantalla, porque Angel la quiso con filtros: «tengo una
+   lista de usuarios, lo cual es medio falopa; me gustaría que me redirija a otra
+   pantalla así puedo agregarle filtros». Acá queda el dibujo y el orden; QUIÉN entra en
+   la lista lo decide quien la usa, que es lo que deja filtrarla sin tocar esto. */
+function PeopleTable({ people, byCollection, onSelectUser, sort, sortBy }) {
   /* LAS COLUMNAS SE ORDENAN, y cada una sabe de qué sacar su valor. Una sola lista para el
      encabezado y para el criterio: si se separaran, agregar una columna dejaría un botón
      que ordena por otra cosa. Lo pidió Angel.
@@ -671,9 +691,11 @@ function DashboardBody({ d, collections, period, onSessionExpired }) {
     { id: 'duplicates', label: 'Repes', getValue: (g) => g.repetidas },
   ], [byCollection])
 
-  const [sort, setSort] = useState(() => ({ column: null, desc: true }))
-  const sortBy = (id) =>
-    setSort((o) => (o.column === id ? { column: id, desc: !o.desc } : { column: id, desc: true }))
+  /* EL ORDEN ELEGIDO ES DE QUIEN USA LA TABLA, no de la tabla, y por eso llega por prop.
+     Viviendo acá se perdía en el peor momento: filtrando, cualquier combinación que
+     dejara la lista en cero —escribir «ga» y que la siguiente letra no coincida con
+     nadie— desmontaba la tabla con su estado adentro, y al aflojar el filtro volvía en
+     el orden del servidor, sin flecha y sin que nada lo dijera. */
 
   const sortedPeople = useMemo(() => {
     if (!sort.column) return people
@@ -690,6 +712,276 @@ function DashboardBody({ d, collections, period, onSessionExpired }) {
       return a.usuario.localeCompare(b.usuario)
     })
   }, [people, sort, columns])
+
+  return (
+      <div className="board">
+        <table className="people large">
+          <thead>
+            <tr>
+              {columns.map((c) => (
+                <th key={c.id} title={c.hint} aria-sort={sort.column === c.id ? (sort.desc ? 'descending' : 'ascending') : undefined}>
+                  <button type="button" className="sort" onClick={() => sortBy(c.id)}>
+                    {c.label}
+                    {/* La flecha sólo en la columna por la que se está ordenando: una en
+                        cada encabezado es ruido y no dice cuál manda. */}
+                    <span aria-hidden="true">{sort.column === c.id ? (sort.desc ? ' ↓' : ' ↑') : ''}</span>
+                  </button>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {sortedPeople.map((g) => (
+              <tr key={g.usuario}
+                  className={[g.cartas ? '' : 'dim', g.app ? 'with-app' : ''].filter(Boolean).join(' ') || undefined}>
+                {/* El chip ANTES del nombre: después, un mail largo lo recortaba con el
+                    elipsis y quedaba una cajita vacía. Adelante queda entero siempre y los
+                    de la app se encuentran bajando por la columna. */}
+                {/* LA CUENTA ES EL BOTÓN DE SU FICHA (perfil y clave provisoria). Se ve
+                    como texto con subrayado punteado: un botón de verdad por renglón sería
+                    doscientos botones compitiendo con los datos. */}
+                <td className="person">
+                  <button type="button" className="who" title={g.usuario} onClick={() => onSelectUser(g)}>
+                    {g.app && <span className="chip" title="Entra desde la app instalada">app</span>}
+                    {g.usuario}
+                  </button>
+                </td>
+                <td>{formatDayMonth(g.alta)}</td>
+                <td>{formatDayMonth(g.ultima)}</td>
+                <td>{g.dias}</td>
+                {byCollection
+                  ? byCollection.map((c) => {
+                      const personStats = g.porColeccion?.[c.id]
+                      const n = personStats?.cartas ?? 0
+                      /* EL PORCENTAJE VA SOBRE LOS HUECOS, no sobre las filas. Una variante
+                         es una fila propia pero no es un hueco del álbum: contándolas, el
+                         número de arriba incluía variantes y el de abajo no, podía pasarse
+                         de 100% y el tope lo disfrazaba de álbum completo. Ahora es el
+                         mismo par que la persona ve en su propio encabezado.
+
+                         `huecos` puede no venir si el back es más viejo que el front: ahí
+                         no se dibuja el porcentaje, que es mejor que dibujar uno falso. */
+                      const h = personStats?.huecos
+                      return (
+                        <td key={c.id}>
+                          {/* `albumPercent` y NO un `Math.round` cualquiera: éste es el
+                              avance de un álbum, y ahí redondear miente en el único punto
+                              donde importa — 1096 de 1097 daría 100% y se leería
+                              «completo». Tapa a 99 hasta que estén todas.
+                              Ya no queda ningún otro porcentaje en el panel: el que había
+                              se recortaba a 100 y disfrazaba cuentas absurdas de números
+                              redondos. Si hace falta uno nuevo, que no se recorte. */}
+                          {/* EL NÚMERO Y EL PORCENTAJE NO PUEDEN IR PEGADOS. Iban, y se
+                              leían como uno solo: «1673» y «86%» salían «167386%», un
+                              número de seis cifras sin sentido. Angel: «porcentajes
+                              inentendibles». El `<i>` estaba, pero sin separación y sin
+                              suficiente diferencia no alcanza para partirlos con el ojo. */}
+                          {n ? <>{n.toLocaleString('es-AR')}{h != null && <i>{albumPercent(h, c.total)}%</i>}</> : '—'}
+                        </td>
+                      )
+                    })
+                  : <><td>{g.cartas}</td><td>—</td></>}
+                <td>{g.repetidas}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+  )
+}
+
+/* LOS FILTROS DE LA PANTALLA DE CUENTAS.
+ *
+ * Cada uno parte la lista en dos y se puede pedir cualquiera de las dos mitades, porque
+ * las dos preguntas sirven: «quiénes cargaron» mide el escalón que más pierde y «quiénes
+ * NO» es la lista de a quién escribirle. Por eso son dos botones por fila y no una
+ * casilla que se prende.
+ *
+ * Son EXCLUYENTES de a pares y se combinan con Y entre filas: pedir «cargaron» y «no
+ * cargaron» a la vez daría cero siempre, así que prender uno apaga a su opuesto. Eso no
+ * hace falta explicarlo en pantalla — se entiende tocándolo. */
+const USER_FACETS = [
+  { id: 'cards', label: 'Cartas', yes: 'Cargaron', no: 'No cargaron', test: (g) => (g.cartas ?? 0) > 0 },
+  { id: 'app', label: 'App', yes: 'Desde la app', no: 'Sin la app', test: (g) => !!g.app },
+  { id: 'phone', label: 'WhatsApp', yes: 'Dejó WhatsApp', no: 'Sin WhatsApp', test: (g) => !!g.profile?.whatsapp },
+  { id: 'name', label: 'Nombre', yes: 'Dejó su nombre', no: 'Sin nombre', test: (g) => !!(g.profile?.firstName || g.profile?.lastName) },
+]
+
+/* Sin tildes y sin mayúsculas: «cordoba» tiene que encontrar a «Córdoba», que es como lo
+   escribe medio país desde el teléfono. Va `\p{M}` con la bandera `u` y no el rango de
+   combinantes escrito a mano, por lo mismo que en el perfil: el editor lo convierte en
+   los caracteres invisibles y después nadie puede leer la expresión. */
+const plain = (v) => (v ?? '').toString().normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().trim()
+
+/* Lo que se busca de una persona: la cuenta —que es el mail— y el nombre que haya
+   cargado. El WhatsApp no entra: nadie lo tiene a mano para buscar a alguien, y los
+   dígitos sueltos darían coincidencias raras contra los mails que llevan números. */
+const haystack = (g) =>
+  plain([g.usuario, g.profile?.firstName, g.profile?.middleName, g.profile?.lastName].filter(Boolean).join(' '))
+
+/* El valor del desplegable para «no cargó ninguna». Un centinela y no la cadena vacía,
+   que ya significa «todas», ni el texto visible, que cambiaría el filtro si se reescribe. */
+const NO_PROVINCE = '\u0000sin-provincia'
+
+function UsersPage({ d, collections, onSessionExpired }) {
+  const [selectedUser, setSelectedUser] = useState(null)
+  const [query, setQuery] = useState('')
+  const [province, setProvince] = useState('')
+  const [facets, setFacets] = useState({})
+  /* El orden vive acá y no en la tabla: ver la nota de `PeopleTable`. */
+  const [sort, setSort] = useState(() => ({ column: null, desc: true }))
+  const sortBy = (id) =>
+    setSort((o) => (o.column === id ? { column: id, desc: !o.desc } : { column: id, desc: true }))
+  const { usuarios: u, gente: people } = d
+  const byCollection = collectionsWithTotals(d, collections)
+
+  /* Pasa el filtro entero, salvo la fila que se le diga. El `exceptId` es lo que hace que
+     el número de cada opción sea el de SU resultado: contándolas con su propia fila
+     puesta, el lado apagado de un par siempre diría cero. */
+  const passes = (g, exceptId) => {
+    if (query && !haystack(g).includes(plain(query))) return false
+    if (exceptId !== 'province') {
+      if (province === NO_PROVINCE && g.profile?.province) return false
+      if (province && province !== NO_PROVINCE && g.profile?.province !== province) return false
+    }
+    for (const f of USER_FACETS) {
+      if (f.id === exceptId) continue
+      const want = facets[f.id]
+      if (want === 'yes' && !f.test(g)) return false
+      if (want === 'no' && f.test(g)) return false
+    }
+    return true
+  }
+  const shown = useMemo(() => people.filter((g) => passes(g)), [people, query, province, facets])
+  const countFor = (f, side) =>
+    people.filter((g) => passes(g, f.id) && (side === 'yes' ? f.test(g) : !f.test(g))).length
+
+  /* Las provincias que DE VERDAD aparecen, con cuántos hay en cada una. Las 24 completas
+     serían una lista donde veinte opciones dan cero: el desplegable dice qué hay, no qué
+     podría haber. Ordenadas por cantidad, que es lo que se está yendo a buscar.
+     Y SE CUENTAN CON LOS DEMÁS FILTROS PUESTOS, igual que los botones: contándolas sobre
+     la lista entera, con «Sin la app» prendido la opción podía decir «Buenos Aires (12)»
+     y al elegirla quedaban tres — o ninguna. Era el único número de esta fila que no
+     prometía lo que iba a pasar, a diez píxeles de ocho que sí. */
+  const provinces = useMemo(() => {
+    const count = new Map()
+    /* La elegida arranca en la lista aunque los otros filtros la dejen en cero: si
+       desapareciera, el `value` del desplegable no tendría opción y mostraría «Todas»
+       mientras el filtro sigue puesto y la lista vacía — imposible de deshacer sin
+       adivinar. En cero se ve «Córdoba (0)», que dice exactamente lo que pasa. */
+    if (province && province !== NO_PROVINCE) count.set(province, 0)
+    for (const g of people) {
+      const p = g.profile?.province
+      if (p && passes(g, 'province')) count.set(p, (count.get(p) ?? 0) + 1)
+    }
+    return [...count.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+  }, [people, query, facets, province])
+  const withoutProvince = useMemo(
+    () => people.filter((g) => !g.profile?.province && passes(g, 'province')).length,
+    [people, query, facets])
+
+  const toggle = (id, side) => setFacets((o) => ({ ...o, [id]: o[id] === side ? undefined : side }))
+  /* `plain(query)` y no `query`: un espacio solo no filtra a nadie —`includes('')` es
+     siempre cierto— y encendía el renglón «Quedan 48 de 48». */
+  const anyFilter = !!plain(query) || !!province || USER_FACETS.some((f) => facets[f.id])
+  const clear = () => { setQuery(''); setProvince(''); setFacets({}) }
+
+  return (
+    <>
+      {/* LOS TOTALES SALEN DEL SERVIDOR Y NO DE CONTAR LA TABLA, que puede venir cortada:
+          es la misma lección del #97 al revés. Lo filtrado sí se cuenta acá, porque el
+          filtro corre de este lado — y por eso, cuando hay recorte, el renglón lo dice:
+          filtrar una lista cortada contesta sobre las que se listan y no sobre todas. */}
+      <p className="summary-table">
+        {u.total} cuentas · {u.conCartas} con cartas · <b>{u.conApp} entran desde la app</b>
+        {u.total > people.length && (
+          <> · <i>se listan las {people.length} con más cartas, y los filtros miran esas</i></>
+        )}
+      </p>
+
+      <div className="panel-filters">
+        {/* El buscador primero: cuando sabés a quién buscás es el camino más corto, y deja
+            a los demás filtros sin trabajo. */}
+        <label className="panel-search">
+          <span>Buscar</span>
+          {/* ESCAPE ACÁ LIMPIA EL CAMPO Y NADA MÁS. La pantalla escucha Escape en
+              `window` para volver a los números, así que sin este freno un Escape para
+              borrar lo escrito —que es el gesto nativo de un `type="search"`— te sacaba
+              de la lista Y te borraba los filtros, porque al volver el componente se
+              desmonta. Es exactamente lo que ya había pasado con el combobox de
+              provincia del perfil, y el arreglo es el mismo. */}
+          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)}
+                 onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); setQuery('') } }}
+                 placeholder="Mail o nombre" autoComplete="off" />
+        </label>
+
+        {USER_FACETS.map((f) => (
+          <div className="panel-facet" key={f.id} role="group" aria-label={f.label}>
+            {['yes', 'no'].map((side) => (
+              <button key={side} type="button"
+                      aria-pressed={facets[f.id] === side}
+                      className={facets[f.id] === side ? 'active' : undefined}
+                      onClick={() => toggle(f.id, side)}>
+                {side === 'yes' ? f.yes : f.no}
+                {/* El contador al lado del rótulo, como los filtros de cartas de la app:
+                    dice de entrada si tocarlo vale la pena. */}
+                <b>{countFor(f, side)}</b>
+              </button>
+            ))}
+          </div>
+        ))}
+
+        <label className="panel-facet-select">
+          <span>Provincia</span>
+          <select value={province} onChange={(e) => setProvince(e.target.value)}>
+            <option value="">Todas</option>
+            {provinces.map(([name, n]) => <option key={name} value={name}>{name} ({n})</option>)}
+            {withoutProvince > 0 && <option value={NO_PROVINCE}>Sin provincia ({withoutProvince})</option>}
+          </select>
+        </label>
+      </div>
+
+      {/* Cuántas quedaron, SIEMPRE que haya algún filtro puesto: sin este renglón una
+          lista de tres cuentas parece la lista entera, y nadie se acuerda de que dejó un
+          filtro prendido. El botón de apagarlos va pegado al número que lo explica. */}
+      {/* EL `aria-live` VA EN EL ENVOLTORIO, QUE SIEMPRE ESTÁ, y no en el renglón: una
+          región viva se anuncia cuando CAMBIA lo de adentro, así que un nodo que aparece
+          con el rol y el texto ya puestos muchas veces no se lee — y justo la primera vez
+          que filtrás es cuando más importa saber que la lista se recortó. Es la regla que
+          el pie de la app ya tenía bien. El div vacío no ocupa nada: va fuera del flex de
+          `.panel-filters`, que tiene `gap` y dejaría un hueco visible. */}
+      <div aria-live="polite">
+        {anyFilter && (
+          <p className="panel-filter-count">
+            {shown.length === 0
+              ? 'Ninguna cuenta queda con estos filtros'
+              : <>Quedan <b>{shown.length}</b> de {people.length}</>}
+            <button type="button" className="panel-clear" onClick={clear}>Ver todas</button>
+          </p>
+        )}
+      </div>
+
+      {shown.length > 0 && (
+        <PeopleTable people={shown} byCollection={byCollection} onSelectUser={setSelectedUser}
+                     sort={sort} sortBy={sortBy} />
+      )}
+
+      {selectedUser && (
+        <UserModal user={selectedUser} onClose={() => setSelectedUser(null)} onSessionExpired={onSessionExpired} />
+      )}
+    </>
+  )
+}
+
+function DashboardBody({ d, collections, period, onOpenUsers }) {
+  const { usuarios: u, cartas: cardTotals } = d
+
+  /* EL PERÍODO ELEGIDO, si el back ya lo manda. Sin `periodos` (back viejo) el panel cae
+     al embudo histórico, que es lo que había. */
+  const p = d.periodos?.[period] ?? null
+
+  const byCollection = collectionsWithTotals(d, collections)
+  const maxCollectionCards = Math.max(1, ...(byCollection ?? []).map((c) => c.cartas))
 
   /* Tramos que no son de ninguna colección: claves guardadas de un catálogo que ya no
      existe. Es el único lugar donde aparecen, y si alguna vez hay una conviene verla.
@@ -781,99 +1073,28 @@ function DashboardBody({ d, collections, period, onSessionExpired }) {
         )}
       </p>
 
-      <h4>Uno por uno</h4>
-      {/* La tabla va ordenada por cantidad de cartas, que es lo que sirve para decidir.
-          Pero eso hunde al fondo a quien instaló la app y no cargó nada: con cuatro
-          instalaciones, tres caían en las filas 2, 5 y 6 y la cuarta en la 25 de 28, así
-          que mirando la tabla parecían tres y el embudo decía cuatro. Los números del
-          embudo estaban bien —se comprobaron contra la base—; lo que engañaba era el
-          orden. Este renglón dice de entrada cuántos son, así que la tabla ya no puede
-          contradecir al embudo, y las filas de los que la instalaron van marcadas para
-          poder encontrarlas sin recorrer las veintiocho. */}
-      {/* Los tres números salen de los totales del servidor, NO de contar las filas de
-          la tabla: la tabla puede venir cortada y entonces contarla mentiría. Es la
-          misma lección del #97 al revés — una tabla que muestra una parte no puede ser
-          la fuente de un total. */}
-      <p className="summary-table">
-        {u.total} cuentas · {u.conCartas} con cartas ·{' '}
-        <b>{u.conApp} entran desde la app</b>, marcadas abajo
-        {u.total > people.length && (
-          <> · <i>se listan las {people.length} con más cartas</i></>
-        )}
-      </p>
-      <div className="board">
-        <table className="people large">
-          <thead>
-            <tr>
-              {columns.map((c) => (
-                <th key={c.id} title={c.hint} aria-sort={sort.column === c.id ? (sort.desc ? 'descending' : 'ascending') : undefined}>
-                  <button type="button" className="sort" onClick={() => sortBy(c.id)}>
-                    {c.label}
-                    {/* La flecha sólo en la columna por la que se está ordenando: una en
-                        cada encabezado es ruido y no dice cuál manda. */}
-                    <span aria-hidden="true">{sort.column === c.id ? (sort.desc ? ' ↓' : ' ↑') : ''}</span>
-                  </button>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {sortedPeople.map((g) => (
-              <tr key={g.usuario}
-                  className={[g.cartas ? '' : 'dim', g.app ? 'with-app' : ''].filter(Boolean).join(' ') || undefined}>
-                {/* El chip ANTES del nombre: después, un mail largo lo recortaba con el
-                    elipsis y quedaba una cajita vacía. Adelante queda entero siempre y los
-                    de la app se encuentran bajando por la columna. */}
-                {/* LA CUENTA ES EL BOTÓN DE SU FICHA (perfil y clave provisoria). Se ve
-                    como texto con subrayado punteado: un botón de verdad por renglón sería
-                    doscientos botones compitiendo con los datos. */}
-                <td className="person">
-                  <button type="button" className="who" title={g.usuario} onClick={() => setSelectedUser(g)}>
-                    {g.app && <span className="chip" title="Entra desde la app instalada">app</span>}
-                    {g.usuario}
-                  </button>
-                </td>
-                <td>{formatDayMonth(g.alta)}</td>
-                <td>{formatDayMonth(g.ultima)}</td>
-                <td>{g.dias}</td>
-                {byCollection
-                  ? byCollection.map((c) => {
-                      const personStats = g.porColeccion?.[c.id]
-                      const n = personStats?.cartas ?? 0
-                      /* EL PORCENTAJE VA SOBRE LOS HUECOS, no sobre las filas. Una variante
-                         es una fila propia pero no es un hueco del álbum: contándolas, el
-                         número de arriba incluía variantes y el de abajo no, podía pasarse
-                         de 100% y el tope lo disfrazaba de álbum completo. Ahora es el
-                         mismo par que la persona ve en su propio encabezado.
+      {/* LA LISTA UNA POR UNA SE FUE A SU PROPIA PANTALLA y acá queda la puerta. Angel:
+          «tengo una lista de usuarios, lo cual es medio falopa; me gustaría que me
+          redirija a otra pantalla, así puedo agregarle filtros».
 
-                         `huecos` puede no venir si el back es más viejo que el front: ahí
-                         no se dibuja el porcentaje, que es mejor que dibujar uno falso. */
-                      const h = personStats?.huecos
-                      return (
-                        <td key={c.id}>
-                          {/* `albumPercent` y NO un `Math.round` cualquiera: éste es el
-                              avance de un álbum, y ahí redondear miente en el único punto
-                              donde importa — 1096 de 1097 daría 100% y se leería
-                              «completo». Tapa a 99 hasta que estén todas.
-                              Ya no queda ningún otro porcentaje en el panel: el que había
-                              se recortaba a 100 y disfrazaba cuentas absurdas de números
-                              redondos. Si hace falta uno nuevo, que no se recorte. */}
-                          {/* EL NÚMERO Y EL PORCENTAJE NO PUEDEN IR PEGADOS. Iban, y se
-                              leían como uno solo: «1673» y «86%» salían «167386%», un
-                              número de seis cifras sin sentido. Angel: «porcentajes
-                              inentendibles». El `<i>` estaba, pero sin separación y sin
-                              suficiente diferencia no alcanza para partirlos con el ojo. */}
-                          {n ? <>{n.toLocaleString('es-AR')}{h != null && <i>{albumPercent(h, c.total)}%</i>}</> : '—'}
-                        </td>
-                      )
-                    })
-                  : <><td>{g.cartas}</td><td>—</td></>}
-                <td>{g.repetidas}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          Lo que queda es el resumen —que es dato, y el que está mirando los números lo
+          necesita— con el botón al lado. Los tres números salen de los TOTALES del
+          servidor y no de contar las filas: la tabla puede venir cortada y entonces
+          contarla mentiría. Es el #97 al revés. */}
+      <h4>Uno por uno</h4>
+      <p className="summary-table">
+        {u.total} cuentas · {u.conCartas} con cartas · <b>{u.conApp} entran desde la app</b>
+      </p>
+      <p className="panel-go">
+        <button type="button" className="panel-go-btn" onClick={onOpenUsers}>
+          Ver las cuentas una por una
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M9 6l6 6-6 6" />
+          </svg>
+        </button>
+        <i>con filtros por provincia, cartas, WhatsApp y nombre</i>
+      </p>
 
       {/* LA SALUD DEL FIERRO, AL FONDO — Angel: «ese cuadro con datos de la vm no va
           ahí». Es información de operación, no del producto, así que cierra el panel en
@@ -883,9 +1104,6 @@ function DashboardBody({ d, collections, period, onSessionExpired }) {
       <h4>Infra</h4>
       <HealthStatus health={d.salud} />
 
-      {selectedUser && (
-        <UserModal user={selectedUser} onClose={() => setSelectedUser(null)} onSessionExpired={onSessionExpired} />
-      )}
     </>
   )
 }
