@@ -291,6 +291,38 @@ export function albumTally(catalog, quantities) {
   return { total, owned }
 }
 
+/* QUÉ EXPANSIÓN TENÉS MÁS CERCA DE COMPLETAR, si te falta poco.
+ *
+ * Es la otra mitad del festejo: hasta ahora la app sólo decía algo cuando YA habías
+ * completado, que es cuando el empujón ya no sirve. Medido en la base el 16-10-2026:
+ * cinco personas están **a una sola carta** de completar una expansión y veinticuatro a
+ * cinco o menos, y la app lo sabía sin decirlo en ningún lado.
+ *
+ * Mira sólo las EMPEZADAS: una expansión en cero no está «cerca» de nada, y sin esa
+ * guarda la de seis cartas (Cartas Ocultas) saldría elegida apenas entrás, antes de
+ * marcar la primera. Y «tener» es lo mismo que cuenta la banda —alguno de los casilleros
+ * del hueco con algo, variantes no declaradas incluidas—, porque si fuera otra cuenta el
+ * aviso podría decir «te falta 1» con la banda en «136 de 136».
+ *
+ * Devuelve null, o { exp, faltan } de la que menos le falta. Empata por la más chica,
+ * que es la que se termina antes. */
+export function closestToComplete(catalog, quantities, limit = 5) {
+  const drawable = drawableVariants(catalog, quantities)
+  let best = null
+  for (const exp of catalog ?? []) {
+    let owned = 0
+    for (const n of exp.cardNumbers) {
+      if (slotsOf(exp, n, drawable[exp.id], quantities).some((s) => (quantities[s.cardKey] ?? 0) > 0)) owned++
+    }
+    const faltan = exp.cardNumbers.length - owned
+    if (owned === 0 || faltan === 0 || faltan > limit) continue
+    if (!best || faltan < best.faltan || (faltan === best.faltan && exp.cardNumbers.length < best.exp.cardNumbers.length)) {
+      best = { exp, faltan }
+    }
+  }
+  return best
+}
+
 /* ¿ESTE TOQUE COMPLETÓ ALGO? Lo pidió Angel: «cuando completo una colección, que salten
    fuegos artificiales o algo».
 

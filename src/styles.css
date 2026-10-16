@@ -447,6 +447,29 @@ button { cursor: pointer; }
   font-weight: 600;
 }
 
+/* «Te falta 1 para completar Cartas Ocultas». Debajo de la barra de avance, que es de lo
+   que habla. No es un cartel de colores: es la misma tinta de siempre con el número en
+   naranja, porque lo que tiene que resaltar es el número y no el aviso. */
+.almost {
+  display: block;
+  margin-top: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13.5px;
+  color: var(--ink2);
+  text-align: left;
+  cursor: pointer;
+  /* El subrayado punteado dice que lleva a algún lado sin gritar, igual que el alias del
+     pie y la cuenta en la tabla del panel. */
+  text-decoration: underline dotted var(--line2);
+  text-underline-offset: 3px;
+}
+.almost b { color: var(--accent); font-weight: 700; }
+.almost:hover { color: var(--accent); text-decoration-color: var(--accent); }
+.almost:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
 .card { position: relative; }
 
 /* El rótulo corto de la variante, abajo a la izquierda — la esquina contraria al contador

@@ -13,7 +13,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import {
   COLLECTIONS, DEFAULT_COLLECTION, readCollection, albumNames, cardLabel, cardDetail, listLabel, albumPercent,
-  withVariants, variantsFor, slotKey, slotsOf, missingVariantsOf, albumTally, drawableVariants, pointsToASlot, numbersOf,
+  withVariants, variantsFor, slotKey, slotsOf, missingVariantsOf, albumTally, closestToComplete, drawableVariants, pointsToASlot, numbersOf,
   slotOf, slotName, orphanName, completionBy,
 } from '../src/collections.js'
 
@@ -197,6 +197,62 @@ test('albumTally: sin catálogo no revienta', () => {
   /* Se la llama mientras un archivo todavía no cargó. */
   assert.deepEqual(albumTally(null, {}), { total: 0, owned: 0 })
   assert.deepEqual(albumTally([], {}), { total: 0, owned: 0 })
+})
+
+// ---------------------------------------------------------------- closestToComplete
+
+test('closestToComplete: la que menos le falta, y sólo si está EMPEZADA', () => {
+  /* Una expansión en cero no está «cerca» de nada: sin esa guarda, la más chica del
+     álbum saldría elegida apenas entrás, antes de marcar la primera carta. */
+  const chica = makeExpansion({ id: 'chica', desde: 1, hasta: 3 })
+  const grande = makeExpansion({ id: 'grande', desde: 1, hasta: 20 })
+  assert.equal(closestToComplete([chica, grande], {}), null, 'sin nada cargado no dice nada')
+  assert.equal(closestToComplete([chica, grande], { 'grande:1': 1 }), null,
+    'con una sola de veinte no está cerca')
+  const casi = { 'grande:1': 1 }
+  for (let n = 2; n <= 18; n++) casi[`grande:${n}`] = 1
+  assert.deepEqual(closestToComplete([chica, grande], casi), { exp: grande, faltan: 2 })
+})
+
+test('closestToComplete: con dos candidatas elige la que MENOS le falta', () => {
+  /* El caso que de verdad ejercita la comparación: dos expansiones empezadas y las dos
+     dentro del límite. Sin este test, invertir el `<` por un `>` pasaba en verde. */
+  const cerca = makeExpansion({ id: 'cerca', desde: 1, hasta: 10 })
+  const lejos = makeExpansion({ id: 'lejos', desde: 1, hasta: 10 })
+  const q = {}
+  for (let n = 1; n <= 9; n++) q[`cerca:${n}`] = 1   // le falta 1
+  for (let n = 1; n <= 6; n++) q[`lejos:${n}`] = 1   // le faltan 4
+  assert.deepEqual(closestToComplete([lejos, cerca], q), { exp: cerca, faltan: 1 },
+    'aunque la otra venga primera en el catálogo')
+})
+
+test('closestToComplete: una completa no cuenta, y empata por la más chica', () => {
+  const a = makeExpansion({ id: 'a', desde: 1, hasta: 3 })
+  const b = makeExpansion({ id: 'b', desde: 1, hasta: 8 })
+  /* `a` completa y `b` a una: tiene que elegir `b`, que es la que falta. */
+  const q = { 'a:1': 1, 'a:2': 1, 'a:3': 1 }
+  for (let n = 1; n <= 7; n++) q[`b:${n}`] = 1
+  assert.deepEqual(closestToComplete([a, b], q), { exp: b, faltan: 1 })
+  /* Las dos a una: gana la más chica, que es la que se termina antes. */
+  const empate = { 'a:1': 1, 'a:2': 1 }
+  for (let n = 1; n <= 7; n++) empate[`b:${n}`] = 1
+  assert.equal(closestToComplete([a, b], empate).exp, a)
+})
+
+test('closestToComplete: «tener» es lo mismo que cuenta la banda', () => {
+  /* Con la variante y sin la base, el hueco está tenido: si acá contara distinto, el
+     aviso podría decir «te falta 1» con la banda diciendo «3 de 3». */
+  const e = makeExpansion({ id: 'x', desde: 1, hasta: 3, grupos: [{ cartas: [1], variantes: [GOLD] }] })
+  assert.deepEqual(closestToComplete([e], { 'x-dor:1': 1, 'x:2': 1 }), { exp: e, faltan: 1 })
+  assert.equal(closestToComplete([e], { 'x-dor:1': 1, 'x:2': 1, 'x:3': 1 }), null, 'completa no avisa')
+})
+
+test('closestToComplete: el tope decide hasta dónde es «cerca»', () => {
+  const e = makeExpansion({ id: 'x', desde: 1, hasta: 20 })
+  const q = {}
+  for (let n = 1; n <= 12; n++) q[`x:${n}`] = 1   // le faltan 8
+  assert.equal(closestToComplete([e], q), null, 'con el tope de 5 no avisa')
+  assert.deepEqual(closestToComplete([e], q, 10), { exp: e, faltan: 8 })
 })
 
 // ---------------------------------------------------------------- drawableVariants

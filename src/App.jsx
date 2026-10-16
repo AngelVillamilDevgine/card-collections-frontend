@@ -38,7 +38,7 @@ import { pathFor, syncPath } from './routes'
 import { whatIsStale, staleText } from './health'
 import { ErrorBoundary } from './ErrorBoundary'
 import { whatsappTo, suggestionText } from './contact'
-import { COLLECTIONS, DEFAULT_COLLECTION, readCollection, rememberCollection, loadCatalogs, slotKey, slotsOf, variantsFor, missingVariantsOf, drawableVariants, pointsToASlot, cardLabel, cardDetail, albumPercent, albumTally, slotOf, slotName, orphanName, completionBy } from './collections'
+import { COLLECTIONS, DEFAULT_COLLECTION, readCollection, rememberCollection, loadCatalogs, slotKey, slotsOf, variantsFor, missingVariantsOf, drawableVariants, pointsToASlot, cardLabel, cardDetail, albumPercent, albumTally, closestToComplete, slotOf, slotName, orphanName, completionBy } from './collections'
 import {
   ApiError,
   downloadJson, readBackupFile, fetchAccount, logout,
@@ -680,6 +680,13 @@ function readCollapsed() {
   catch { return new Set() }
 }
 
+/* ¿ESTE APARATO YA ELIGIÓ QUÉ DEJAR PLEGADO? Se pregunta ANTES de que corra el efecto que
+   guarda, porque ese efecto escribe `[]` en el primer render y entonces la clave existe
+   siempre — preguntar después diría que sí desde el primer segundo. */
+function hadCollapsedPreference() {
+  try { return localStorage.getItem(COLLAPSED_STORAGE_KEY) !== null } catch { return false }
+}
+
 export default function App() {
   /* Todos los catálogos, por id. Un `null` adentro es «no cargó», que NO es lo mismo que
      «cargó vacío»: de esa distinción depende que el pie no ofrezca borrar 1936 cartas. */
@@ -841,6 +848,7 @@ export default function App() {
     try { localStorage.setItem(COLLAPSED_STORAGE_KEY, JSON.stringify([...collapsed])) }
     catch { /* modo privado o sin lugar: se pierde al recargar, nada más */ }
   }, [collapsed])
+
   const fileInputRef = useRef(null)
   /* El reloj del aviso del alias, para poder apagarlo al desmontar y no dejar un
      setState apuntando a un componente que ya no está. */
@@ -887,6 +895,32 @@ export default function App() {
 
   const album = shownCollectionId ? catalogs[shownCollectionId] : null
   const catalog = album?.expansiones ?? null
+
+  /* LA PRIMERA VEZ, CON LA COLECCIÓN VACÍA, TODO ARRANCA PLEGADO. Lo que veía alguien
+     recién anotado eran las 16 expansiones abiertas —1936 casilleros vacíos de una— con
+     un «0 de 1936 · 0%» arriba. Plegado son 16 renglones con su nombre, su rango y su
+     cuenta: se entiende de qué tamaño es la cosa y por dónde entrar.
+   *
+   * No es una corazonada, es donde está el agujero. Medido en la base el 16-10-2026:
+   * de los 30 que se anotaron y nunca marcaron una carta, **21 entraron un solo día**;
+   * y de los 32 que sí marcaron, **17 lo hicieron en los primeros diez minutos**. Nadie
+   * se desencanta después — los 40 que cargaron siguen activos —, así que lo único que
+   * sigue roto es el primer rato.
+   *
+   * Las tres guardas son para no pisarle la vista a nadie: sólo si este aparato NUNCA
+   * eligió qué plegar, sólo cuando ya se sabe qué hay (si no, se pliega y al llegar la
+   * colección habría que desplegar, que es un salto), y sólo si la colección está
+   * VACÍA — al que vuelve con 1464 cartas en una compu nueva no se le cambia nada. Y se
+   * pliegan las de los dos álbumes, porque la situación es la misma en los dos. */
+  const hadPreference = useRef(hadCollapsedPreference())
+  const foldedFirstTime = useRef(false)
+  useEffect(() => {
+    if (hadPreference.current || foldedFirstTime.current) return
+    if (!catalogs || !collectionLoaded) return
+    if (Object.keys(quantities).length > 0) return
+    foldedFirstTime.current = true
+    setCollapsed(new Set(Object.values(catalogs).flatMap((c) => c?.expansiones?.map((e) => e.id) ?? [])))
+  }, [catalogs, collectionLoaded, quantities])
   /* Cuatro a la vista de cinco declarados: con condición va «Para reemplazar», sin
      condición va «Faltan variantes». Ver la nota de FILTERS. */
   const visibleFilters = FILTERS.filter((f) => (album?.condicion ? f.id !== 'variants' : f.id !== 'replace'))
@@ -1460,6 +1494,26 @@ export default function App() {
     return result
   }, [catalogs])
 
+  /* La expansión que tenés más cerca de terminar, si te falta poco. */
+  const almostDone = useMemo(
+    () => (catalog ? closestToComplete(catalog, quantities) : null),
+    [catalog, quantities])
+
+  /* Llevar a una expansión: si estaba plegada se abre, y recién después se baja hasta
+     ella — con la banda cerrada el anclaje caería en el renglón de arriba. El `0` del
+     timeout es para que React ya haya dibujado la expansión abierta. */
+  const goToExpansion = (exp) => {
+    setCollapsed((old) => {
+      if (!old.has(exp.id)) return old
+      const next = new Set(old)
+      next.delete(exp.id)
+      return next
+    })
+    setTimeout(() => {
+      document.getElementById(`exp-${exp.id}`)?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+    }, 0)
+  }
+
   const hasOwnedCards = (summary?.owned ?? 0) > 0
 
   /* Los números de las cartas que no se pudieron guardar. La clave es «expansión:número»,
@@ -1976,6 +2030,17 @@ export default function App() {
                   <span className="s-only" style={{ width: `${pct(summary.owned)}%` }} />
                 )}
               </div>
+              {/* «TE FALTA 1 PARA COMPLETAR …», la otra mitad del festejo: hasta ahora la
+                  app sólo decía algo cuando ya habías completado, que es cuando el
+                  empujón ya no sirve. Es un BOTÓN y no un cartel porque lo que sigue
+                  después de leerlo es ir a esa expansión — así que te lleva, abriéndola
+                  si estaba plegada. Ver `closestToComplete`. */}
+              {almostDone && (
+                <button type="button" className="almost" onClick={() => goToExpansion(almostDone.exp)}>
+                  Te falta{almostDone.faltan > 1 ? 'n' : ''} <b>{almostDone.faltan}</b> para completar{' '}
+                  {almostDone.exp.nombre}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -2044,12 +2109,21 @@ export default function App() {
               una sola que sea verdad en los dos es mejor que dos que haya que mantener, y
               además en Leyenda sólo 271 de 1097 cartas preguntan, así que ninguna versión
               condicional sería cierta para toda la colección tampoco. */}
+          {/* CON TODO PLEGADO LA AYUDA DICE OTRA COSA, porque la de siempre habla de
+              tocar cartas y no hay ninguna a la vista: la primera visita arranca con las
+              expansiones cerradas, así que el primer paso no es marcar, es abrir la
+              tuya. Se mira si hay alguna desplegada y no si la colección está vacía —
+              quien plegó todo a mano está en la misma situación. */}
           <p className="help">
-            Tocá para marcar · de nuevo si tenés otra · mantené apretado para restar
-            {/* Con el teclado no hay «mantener apretado», así que si el atajo no se dice
-                acá no se entera nadie. Se muestra sólo cuando hay teclado de verdad: en
-                un teléfono es ruido. */}
-            <span className="keyboard-only"> · con el teclado, Backspace</span>
+            {catalog.every((e) => collapsed.has(e.id))
+              ? <>Abrí la expansión que estás juntando y tocá las cartas que tenés</>
+              : <>
+                  Tocá para marcar · de nuevo si tenés otra · mantené apretado para restar
+                  {/* Con el teclado no hay «mantener apretado», así que si el atajo no se
+                      dice acá no se entera nadie. Se muestra sólo cuando hay teclado de
+                      verdad: en un teléfono es ruido. */}
+                  <span className="keyboard-only"> · con el teclado, Backspace</span>
+                </>}
           </p>
 
         {catalog.map((exp) => {
@@ -2072,8 +2146,10 @@ export default function App() {
             slotsOf(exp, n, drawableByExpansion[exp.id], quantities).some((s) => (quantities[s.cardKey] ?? 0) > 0)
           ).length
           const isCollapsed = collapsed.has(exp.id)
+          /* El `id` es el blanco del «te falta 1 para completar»: sin él no hay a dónde
+             llevar. Va con prefijo para no chocar con `#panel` ni `#cartas`. */
           return (
-            <section className={`expansion${isCollapsed ? ' folded' : ''}`} key={exp.id}>
+            <section className={`expansion${isCollapsed ? ' folded' : ''}`} key={exp.id} id={`exp-${exp.id}`}>
               <div className="band" style={{ background: exp.color, color: textColorOn(exp.color) }}>
                 <button
                   className={`fold${isCollapsed ? ' closed' : ''}`}
