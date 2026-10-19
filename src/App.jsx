@@ -2043,27 +2043,33 @@ export default function App() {
                   sigue después de leerlo es ir a esa expansión: te lleva, abriéndola si
                   estaba plegada. Ver `closestToComplete`. */}
               {almostDone && (
-                /* EL NOMBRE DE LA EXPANSIÓN VA EN SU PROPIO COLOR, el mismo de su banda.
-                   Era un renglón de texto gris y Angel lo quiso «más fachero»: la banda
-                   de color es el lenguaje de este álbum —es cómo se reconoce una
-                   expansión de un vistazo— así que el aviso la usa en chico y queda
-                   atado a donde te lleva. El color del texto sale de `textColorOn`, la
-                   misma que pinta la banda grande, así que el contraste está garantizado
-                   para los 24 colores del catálogo sin medir uno por uno. */
-                <button type="button" className="almost" onClick={() => goToExpansion(almostDone.exp)}
+                /* EL AVISO ES UNA MINI-BANDA DE ESA EXPANSIÓN: su color de fondo, su
+                   tipografía de banda para el nombre, su radio y su sombra. Fue una caja
+                   blanca con el nombre en una pastilla adentro y Angel la enterró («está
+                   feaza en mobile; integrado pero no genérico») — y tenía razón dos
+                   veces: una card con chip y chevron es el genérico de cualquier app, y
+                   en pantallas angostas la fila envolvía y la flecha quedaba huérfana en
+                   su propio renglón. La banda, en cambio, es LA pieza visual de este
+                   álbum: el aviso se ve como una banda que se adelantó hasta el
+                   encabezado, y tocarla te lleva a la banda grande del mismo color.
+
+                   Es UNA sola línea que no puede envolver —el nombre se recorta antes
+                   que empujar— así que la flecha no se descuelga en ningún ancho. El
+                   color del texto sale de `textColorOn`, la misma que pinta la banda
+                   grande: contraste garantizado para los 24 colores del catálogo. */
+                <button type="button" className="almost"
+                        style={{ background: almostDone.exp.color, color: textColorOn(almostDone.exp.color) }}
+                        onClick={() => goToExpansion(almostDone.exp)}
                         aria-label={`Te falta${almostDone.faltan > 1 ? 'n' : ''} ${almostDone.faltan} para completar ${almostDone.exp.nombre}. Ir a esa expansión.`}>
-                  {/* La frase va partida en piezas para poder darle peso sólo al número,
-                      pero el `aria-label` de arriba la dice entera y de corrido: suelta,
-                      un lector la leería a los saltos y con la pastilla en el medio. */}
-                  <span className="almost-text">Te falta{almostDone.faltan > 1 ? 'n' : ''}</span>
-                  <b>{almostDone.faltan}</b>
-                  <span className="almost-text">para completar</span>
-                  <span className="almost-exp"
-                        style={{ background: almostDone.exp.color, color: textColorOn(almostDone.exp.color) }}>
-                    {almostDone.exp.nombre}
+                  <span className="almost-name">{almostDone.exp.nombre}</span>
+                  {/* En el lugar donde una banda dice «5 de 6», ésta dice lo suyo. La
+                      minúscula contra el nombre en mayúscula itálica es lo que la
+                      distingue de una banda real: es una banda que te habla. */}
+                  <span className="almost-count">
+                    te falta{almostDone.faltan > 1 ? 'n' : ''} <b>{almostDone.faltan}</b>
                   </span>
-                  <svg className="almost-go" width="15" height="15" viewBox="0 0 24 24" fill="none"
-                       stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"
+                  <svg className="almost-go" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                       stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
                        aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
                 </button>
               )}
