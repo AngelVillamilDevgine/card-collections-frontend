@@ -1321,7 +1321,13 @@ button { cursor: pointer; }
      Y `justify-self: start` porque desde que es un riel con fondo, estirarse a toda la
      fila —que es lo que hace una celda de grilla por omisión— dibujaba una barra vacía
      de borde a borde con las dos píldoras amontonadas a la izquierda. */
-  .masthead .album-switch { grid-area: 2 / 1 / 3 / -1; justify-self: start; }
+  /* EN EL TELÉFONO VA AL ANCHO ENTERO y no al de su contenido, que es lo que hace una
+     celda de grilla por omisión. Dos razones: es el control con el que se cambia de
+     álbum, o sea lo más parecido a una pestaña que tiene la app, y estirado queda
+     alineado con la barra de avance que está justo abajo y con el borde del encabezado
+     — antes flotaba a la izquierda, más angosto que todo lo demás. De paso cada mitad
+     pasa a ser un blanco de toque del doble de ancho. */
+  .masthead .album-switch { grid-area: 2 / 1 / 3 / -1; }
   .masthead .progress { grid-area: 3 / 1 / 4 / -1; }
 
   /* Abajo de ~400 px el logo de 240 y el botón no entran juntos. El logo cede, que para
