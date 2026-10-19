@@ -454,28 +454,16 @@ button { cursor: pointer; }
 
 /* ------------------------------- repetidas -------------------------------- */
 
-/* La banda de abajo: las repetidas y el «te falta N», que son del mismo rango. Envuelve
-   a dos renglones cuando no entran, con el mismo aire entre los dos. */
-.under-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px 14px;
-  margin-top: 8px;
-}
-.under-bar .spares {
-  font-size: 13px;
-  color: var(--accent);
-  font-weight: 600;
-  white-space: nowrap;
-}
+/* Acá vivía `.under-bar`, el renglón de abajo de la barra con las repetidas y el «te
+   falta N». Las repetidas se fueron el 2026-10-19 y con un solo hijo el contenedor no
+   hacía nada: el aviso se pone su propio margen. */
 
 /* «Te falta 1 para completar Cartas Ocultas». Debajo de la barra de avance, que es de lo
    que habla. No es un cartel de colores: es la misma tinta de siempre con el número en
    naranja, porque lo que tiene que resaltar es el número y no el aviso. */
 .almost {
-  /* El margen de arriba lo pone el `gap` de `.under-bar`: puesto acá también, la banda
-     quedaba despegada de la barra cuando el aviso iba solo. */
+  display: block;
+  margin-top: 8px;
   padding: 0;
   border: 0;
   background: none;

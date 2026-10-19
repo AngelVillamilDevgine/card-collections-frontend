@@ -1420,18 +1420,18 @@ export default function App() {
 
   const summary = useMemo(() => {
     if (!catalog) return null
-    let total = 0, owned = 0, spares = 0
+    let total = 0, owned = 0
     const conditionCounts = { bien: 0, perfecta: 0, reemplazar: 0 }
     const byFilter = Object.fromEntries(FILTERS.map((f) => [f.id, 0]))
 
     /* `total` son los HUECOS del álbum: las variantes nunca son huecos, porque nadie sabe
        cuántas existen. `owned` es cuántos huecos tienen algo — si no, tener la 551 en dos
-       fondos daría «1079 de 1078». Y `spares` se cuenta POR CASILLERO: la 551 mate una
-       y la 551 estrellada una son cero sobrantes, que es la verdad — no te sobra nada,
-       tenés las dos.
+       fondos daría «1079 de 1078».
 
-       Con un solo casillero por hueco (o sea, todo Cromeros para siempre) las tres
-       fórmulas dan exactamente el número de antes, sin ninguna rama especial. */
+       Acá se contaban también los sobrantes, para el «N repetidas» del encabezado que se
+       fue el 2026-10-19: el filtro «Repetidas» ya lleva su contador y eran dos números
+       distintos para lo mismo. El exportar cuenta los suyos aparte, por carta, que es lo
+       que necesita para armar la lista. */
     for (const exp of catalog) {
       for (const n of exp.cardNumbers) {
         total++
@@ -1447,7 +1447,6 @@ export default function App() {
           const condition = conditions[cardKey]
           if (quantity > 0) {
             hasAny = true
-            spares += quantity - 1
             conditionCounts[condition ?? 'bien']++
           }
           for (const f of FILTERS) if (f.matches?.(quantity, condition)) slotMatches[f.id] = true
@@ -1468,7 +1467,7 @@ export default function App() {
     if (import.meta.env?.DEV && (tally.total !== total || tally.owned !== owned)) {
       console.warn('el avance y el selector cuentan distinto', { bucle: { total, owned }, tally })
     }
-    return { ...tally, spares, byFilter, ...conditionCounts }
+    return { ...tally, byFilter, ...conditionCounts }
   }, [catalog, drawableByExpansion, conditions, quantities])
 
   /* La columna «Álbum» del panel es cuánto lleva cada uno de TODO lo que hay para
@@ -2033,28 +2032,21 @@ export default function App() {
                   <span className="s-only" style={{ width: `${pct(summary.owned)}%` }} />
                 )}
               </div>
-              {/* LA BANDA DE ABAJO: lo que no es el avance en sí. Las repetidas y el
-                  «te falta N» son dos datos del mismo rango —cosas que podés hacer algo
-                  con ellas— así que comparten renglón y se parten en dos cuando no
-                  entran, en vez de amontonarse arriba con el número grande.
+              {/* ACÁ VIVÍA TAMBIÉN «N repetidas» Y SE FUE el 2026-10-19 — Angel: «sacá
+                  ese indicador de repetidas, no tiene sentido». El filtro «Repetidas» de
+                  la barra ya lleva su contador, así que el mismo dato estaba dos veces en
+                  la pantalla y encima con números distintos: el filtro cuenta HUECOS con
+                  más de una y éste contaba UNIDADES sobrantes, o sea «14» arriba y «20»
+                  abajo para lo mismo.
 
-                  El «te falta N» es un BOTÓN y no un cartel porque lo que sigue después
-                  de leerlo es ir a esa expansión: te lleva, abriéndola si estaba
-                  plegada. Ver `closestToComplete`. */}
-              {(summary.spares > 0 || almostDone) && (
-                <div className="under-bar">
-                  {summary.spares > 0 && (
-                    <span className="spares">
-                      {summary.spares} repetida{summary.spares > 1 ? 's' : ''}
-                    </span>
-                  )}
-                  {almostDone && (
-                    <button type="button" className="almost" onClick={() => goToExpansion(almostDone.exp)}>
-                      Te falta{almostDone.faltan > 1 ? 'n' : ''} <b>{almostDone.faltan}</b> para completar{' '}
-                      {almostDone.exp.nombre}
-                    </button>
-                  )}
-                </div>
+                  Queda el «te falta N», que es un BOTÓN y no un cartel porque lo que
+                  sigue después de leerlo es ir a esa expansión: te lleva, abriéndola si
+                  estaba plegada. Ver `closestToComplete`. */}
+              {almostDone && (
+                <button type="button" className="almost" onClick={() => goToExpansion(almostDone.exp)}>
+                  Te falta{almostDone.faltan > 1 ? 'n' : ''} <b>{almostDone.faltan}</b> para completar{' '}
+                  {almostDone.exp.nombre}
+                </button>
               )}
             </div>
           </div>
