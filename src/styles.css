@@ -461,52 +461,50 @@ button { cursor: pointer; }
 /* «Te falta 1 para completar Cartas Ocultas». Debajo de la barra de avance, que es de lo
    que habla. No es un cartel de colores: es la misma tinta de siempre con el número en
    naranja, porque lo que tiene que resaltar es el número y no el aviso. */
-/* «TE FALTA 1», COMO UNA MINI-BANDA DE LA EXPANSIÓN. El fondo y el color del texto los
- * pone el JSX (el color real del catálogo y `textColorOn`, igual que la banda grande);
- * acá va la forma, que es LA RECETA DE `.band` en chico: mismo radio, misma sombra de
- * 1 px, el nombre en la misma Arial Black itálica. Si `.band` cambia, esto acompaña.
+/* «TE FALTA 1», UN VIDRIO TEÑIDO DEL COLOR DE SU EXPANSIÓN. Los tres colores —el tinte
+ * del fondo, el borde y la tinta del texto— los calcula el JSX a partir del color real
+ * del catálogo (`tintOf` e `inkOn`); acá va sólo la forma. La banda maciza con la
+ * tipografía de banda quedó atrás: «muy tosco, el bold molesta», y pegada a la barra.
  *
- * Y es UNA LÍNEA SIN WRAP a propósito: la versión anterior envolvía en pantallas
- * angostas y la flecha quedaba huérfana abajo, sola en su renglón — fue lo primero que
- * vio Angel. El nombre es lo único que cede: se recorta con puntos suspensivos. */
+ * Sigue siendo UNA LÍNEA SIN WRAP a propósito: cuando envolvía, la flecha quedaba
+ * huérfana abajo en su propio renglón. El nombre es lo único que cede, con puntos
+ * suspensivos. */
 .almost {
   display: flex;
   align-items: center;
   gap: 10px;
   width: 100%;
-  margin-top: 10px;
-  padding: 8px 12px 8px 14px;
-  border: 0;
-  border-radius: 5px;
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.12);
+  /* El aire contra la barra de avance: pegado «a lo de arriba» era parte de lo tosco. */
+  margin-top: 18px;
+  padding: 9px 12px 9px 14px;
+  border: 1px solid;
+  border-radius: 8px;
+  background: none;
   font: inherit;
   text-align: left;
   cursor: pointer;
 }
+/* El nombre, en el color de su expansión pero con la letra de siempre: la tipografía de
+   banda acá gritaba. Semibold alcanza para que sea el protagonista del renglón. */
 .almost-name {
   flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-family: "Arial Black", "Arial Bold", Impact, sans-serif;
-  font-style: italic;
-  text-transform: uppercase;
-  font-size: 14px;
-  letter-spacing: 0.01em;
+  font-weight: 600;
+  font-size: 13.5px;
 }
-/* Donde una banda dice «5 de 6», ésta dice lo suyo: minúscula y liviana contra el nombre
-   en mayúscula itálica, que es lo que la distingue de una banda real. */
 .almost-count { flex: none; font-size: 13px; }
-.almost-count b { font-size: 17px; font-weight: 900; font-variant-numeric: tabular-nums; }
+.almost-count b { font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }
+/* La flecha SIN opacity: la tinta ya está calculada para pasar contraste, y atenuarla
+   encima deshace ese cálculo — es la regla de siempre contra el opacity sobre lo que
+   informa. Que pese menos lo logra el trazo más fino que el del texto. */
 .almost-go { flex: none; }
-/* El estado de toque no puede ser un color —el fondo es el de la expansión, cualquiera
-   de 24— así que es la sombra que se hunde, como apretar la banda de verdad. */
-.almost:active { box-shadow: none; transform: translateY(1px); }
+/* El toque intensifica el vidrio apenas: el fondo viene por estilo en línea, así que se
+   oscurece con un filtro y no con otro color. */
+.almost:active { filter: brightness(0.96); }
 .almost:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-@media (prefers-reduced-motion: reduce) {
-  .almost:active { transform: none; }
-}
 
 .card { position: relative; }
 

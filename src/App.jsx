@@ -117,6 +117,35 @@ function textColorOn(background) {
   return contrastRatio(background, LIGHT_TEXT) >= contrastRatio(background, DARK_TEXT) ? LIGHT_TEXT : DARK_TEXT
 }
 
+/* Un color del catálogo mezclado con blanco: el tinte «vidrioso» del aviso de completar.
+   Se mezcla EN JS y no con el color-mix() del CSS, que un Android viejo no entiende — y
+   los colores vienen del catálogo en caliente, así que una variable por color tampoco
+   alcanzaba. `strength` es cuánto color queda: 0.13 es un vidrio apenas teñido. */
+function tintOf(hex, strength) {
+  const n = parseInt(hex.slice(1), 16)
+  return '#' + [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+    .map((v) => Math.round(255 - (255 - v) * strength).toString(16).padStart(2, '0'))
+    .join('')
+}
+
+/* El color de la expansión vuelto TINTA: oscurecido lo justo hasta leerse sobre el tinte.
+   Los colores del catálogo son fondos de banda, no textos — el turquesa de Cartas
+   Ocultas sobre casi blanco da alrededor de 2:1 — así que usarlos crudos como texto es
+   exactamente el error que la auditoría de contraste ya pagó una vez. Se baja de a 8%
+   hasta pasar 4.5, que contra un fondo tan claro siempre llega: el tope del bucle es por
+   prolijidad, no porque haga falta. */
+function inkOn(hex, background) {
+  const n = parseInt(hex.slice(1), 16)
+  let rgb = [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+  const toHex = (c) => '#' + c.map((v) => Math.round(v).toString(16).padStart(2, '0')).join('')
+  let out = toHex(rgb)
+  for (let i = 0; i < 40 && contrastRatio(out, background) < 4.5; i++) {
+    rgb = rgb.map((v) => v * 0.92)
+    out = toHex(rgb)
+  }
+  return out
+}
+
 /* ---------------------------------- carta --------------------------------- */
 
 const HOLD_MS = 420 // ms a partir de los cuales deja de ser un toque
@@ -2043,33 +2072,32 @@ export default function App() {
                   sigue después de leerlo es ir a esa expansión: te lleva, abriéndola si
                   estaba plegada. Ver `closestToComplete`. */}
               {almostDone && (
-                /* EL AVISO ES UNA MINI-BANDA DE ESA EXPANSIÓN: su color de fondo, su
-                   tipografía de banda para el nombre, su radio y su sombra. Fue una caja
-                   blanca con el nombre en una pastilla adentro y Angel la enterró («está
-                   feaza en mobile; integrado pero no genérico») — y tenía razón dos
-                   veces: una card con chip y chevron es el genérico de cualquier app, y
-                   en pantallas angostas la fila envolvía y la flecha quedaba huérfana en
-                   su propio renglón. La banda, en cambio, es LA pieza visual de este
-                   álbum: el aviso se ve como una banda que se adelantó hasta el
-                   encabezado, y tocarla te lleva a la banda grande del mismo color.
+                /* EL AVISO ES UN VIDRIO TEÑIDO DEL COLOR DE ESA EXPANSIÓN. Tercera
+                   forma, y las dos anteriores las enterró Angel, así que quedan
+                   anotadas para no desandar: texto gris (quedaba como nota al pie),
+                   card blanca con pastilla y chevron («feaza: el genérico de cualquier
+                   app», y la fila envolvía dejando la flecha huérfana abajo), y la
+                   banda maciza con tipografía de banda («muy tosco, el bold molesta,
+                   mejor transparente/vidrioso»).
 
-                   Es UNA sola línea que no puede envolver —el nombre se recorta antes
-                   que empujar— así que la flecha no se descuelga en ningún ancho. El
-                   color del texto sale de `textColorOn`, la misma que pinta la banda
-                   grande: contraste garantizado para los 24 colores del catálogo. */
+                   Lo que quedó: el tinte del color al 13% con su borde al 45%, y el
+                   TEXTO en el mismo color oscurecido hasta leerse (`inkOn`) — porque
+                   los colores del catálogo son fondos, no tintas, y crudos sobre claro
+                   no llegan ni a 2.5:1. Todo monocromo del color de la expansión: eso
+                   es lo que lo ata a su banda sin pesar como ella. */
                 <button type="button" className="almost"
-                        style={{ background: almostDone.exp.color, color: textColorOn(almostDone.exp.color) }}
+                        style={(() => {
+                          const tint = tintOf(almostDone.exp.color, 0.13)
+                          return { background: tint, borderColor: tintOf(almostDone.exp.color, 0.45), color: inkOn(almostDone.exp.color, tint) }
+                        })()}
                         onClick={() => goToExpansion(almostDone.exp)}
                         aria-label={`Te falta${almostDone.faltan > 1 ? 'n' : ''} ${almostDone.faltan} para completar ${almostDone.exp.nombre}. Ir a esa expansión.`}>
                   <span className="almost-name">{almostDone.exp.nombre}</span>
-                  {/* En el lugar donde una banda dice «5 de 6», ésta dice lo suyo. La
-                      minúscula contra el nombre en mayúscula itálica es lo que la
-                      distingue de una banda real: es una banda que te habla. */}
                   <span className="almost-count">
                     te falta{almostDone.faltan > 1 ? 'n' : ''} <b>{almostDone.faltan}</b>
                   </span>
                   <svg className="almost-go" width="14" height="14" viewBox="0 0 24 24" fill="none"
-                       stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
+                       stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"
                        aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
                 </button>
               )}
