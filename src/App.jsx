@@ -2003,18 +2003,21 @@ export default function App() {
               </button>
             </div>
             <div className="progress">
+              {/* TRES BANDAS Y NO UN MONTÓN: el avance arriba, la barra, y debajo lo
+                  secundario. Eran cuatro datos en una sola línea que además se partía
+                  —«de 1936 / cartas», «20 / repetidas»— y Angel lo dijo tal cual: «parece
+                  un conjunto de cosas agrupadas simplemente».
+
+                  El porcentaje se va al EXTREMO DERECHO, alineado con el final de la
+                  barra que tiene abajo: así deja de ser un cuarto dato suelto y pasa a
+                  decir cuánto de esa barra está lleno. */}
               <div className="tally">
                 <span className="large">{summary.owned}</span>
-                <span className="of">de {summary.total} cartas</span>
                 {/* El porcentaje sale de los mismos dos números que están al lado, así que
                     no puede contradecirlos — y vale igual en los dos álbumes porque los dos
                     cuentan huecos. Ver `albumPercent`. */}
+                <span className="of">de {summary.total} cartas</span>
                 <span className="pct">{albumPercent(summary.owned, summary.total)}%</span>
-                {summary.spares > 0 && (
-                  <span className="spares">
-                    {summary.spares} repetida{summary.spares > 1 ? 's' : ''}
-                  </span>
-                )}
               </div>
               {/* Con condición, los tres tramos. Sin condición —Leyenda— uno solo y
                   neutro: `conditionCounts[condition ?? 'bien']++` mete TODO en `bien`, así que las tres
@@ -2030,16 +2033,28 @@ export default function App() {
                   <span className="s-only" style={{ width: `${pct(summary.owned)}%` }} />
                 )}
               </div>
-              {/* «TE FALTA 1 PARA COMPLETAR …», la otra mitad del festejo: hasta ahora la
-                  app sólo decía algo cuando ya habías completado, que es cuando el
-                  empujón ya no sirve. Es un BOTÓN y no un cartel porque lo que sigue
-                  después de leerlo es ir a esa expansión — así que te lleva, abriéndola
-                  si estaba plegada. Ver `closestToComplete`. */}
-              {almostDone && (
-                <button type="button" className="almost" onClick={() => goToExpansion(almostDone.exp)}>
-                  Te falta{almostDone.faltan > 1 ? 'n' : ''} <b>{almostDone.faltan}</b> para completar{' '}
-                  {almostDone.exp.nombre}
-                </button>
+              {/* LA BANDA DE ABAJO: lo que no es el avance en sí. Las repetidas y el
+                  «te falta N» son dos datos del mismo rango —cosas que podés hacer algo
+                  con ellas— así que comparten renglón y se parten en dos cuando no
+                  entran, en vez de amontonarse arriba con el número grande.
+
+                  El «te falta N» es un BOTÓN y no un cartel porque lo que sigue después
+                  de leerlo es ir a esa expansión: te lleva, abriéndola si estaba
+                  plegada. Ver `closestToComplete`. */}
+              {(summary.spares > 0 || almostDone) && (
+                <div className="under-bar">
+                  {summary.spares > 0 && (
+                    <span className="spares">
+                      {summary.spares} repetida{summary.spares > 1 ? 's' : ''}
+                    </span>
+                  )}
+                  {almostDone && (
+                    <button type="button" className="almost" onClick={() => goToExpansion(almostDone.exp)}>
+                      Te falta{almostDone.faltan > 1 ? 'n' : ''} <b>{almostDone.faltan}</b> para completar{' '}
+                      {almostDone.exp.nombre}
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           </div>

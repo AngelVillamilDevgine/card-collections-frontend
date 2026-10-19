@@ -178,7 +178,21 @@ button { cursor: pointer; }
 .album-tally { transition: color .26s ease; }
 
 /* Avance general: una sola línea, no seis tarjetas de estadísticas. */
+/* EL AVANCE, EN TRES BANDAS. Era una sola línea con cuatro datos —número, total,
+   porcentaje y repetidas— que en el teléfono se partía por el medio de las frases («de
+   1936 / cartas», «20 / repetidas») y se leía como un amontonamiento. Angel: «parece un
+   conjunto de cosas agrupadas simplemente».
+
+   Arriba el avance y nada más, con el porcentaje empujado al extremo derecho: alineado
+   con el final de la barra que viene abajo, deja de ser un cuarto dato suelto y pasa a
+   decir cuánto de esa barra está lleno. Después la barra, al ancho entero. Y abajo lo
+   secundario, que es lo único que se parte en dos renglones cuando no entra. */
 .tally { display: flex; align-items: baseline; gap: 10px; margin-top: 26px; }
+/* NADA DE ESTO SE PARTE POR EL MEDIO. Sin el `nowrap`, «de 1936 cartas» se cortaba
+   después del número y quedaba «cartas» solo en el renglón de abajo, que es la mitad de
+   lo que hacía ver desordenado el bloque. Lo que no entra, envuelve entero. */
+.tally > * { white-space: nowrap; }
+.tally .pct { margin-left: auto; }
 .tally .large {
   font-family: "Arial Black", "Arial Bold", Impact, sans-serif;
   font-style: italic;
@@ -440,19 +454,28 @@ button { cursor: pointer; }
 
 /* ------------------------------- repetidas -------------------------------- */
 
-.tally .spares {
-  margin-left: 14px;
+/* La banda de abajo: las repetidas y el «te falta N», que son del mismo rango. Envuelve
+   a dos renglones cuando no entran, con el mismo aire entre los dos. */
+.under-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+  margin-top: 8px;
+}
+.under-bar .spares {
   font-size: 13px;
   color: var(--accent);
   font-weight: 600;
+  white-space: nowrap;
 }
 
 /* «Te falta 1 para completar Cartas Ocultas». Debajo de la barra de avance, que es de lo
    que habla. No es un cartel de colores: es la misma tinta de siempre con el número en
    naranja, porque lo que tiene que resaltar es el número y no el aviso. */
 .almost {
-  display: block;
-  margin-top: 8px;
+  /* El margen de arriba lo pone el `gap` de `.under-bar`: puesto acá también, la banda
+     quedaba despegada de la barra cuando el aviso iba solo. */
   padding: 0;
   border: 0;
   background: none;
