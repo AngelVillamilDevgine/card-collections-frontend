@@ -368,6 +368,110 @@ button { cursor: pointer; }
   font-variant-numeric: tabular-nums;
 }
 
+/* La foto de la caja, sólo con la expansión plegada (el JSX no la monta abierta): la
+   banda cerrada es lo único que queda de la expansión, y la caja es como se la reconoce
+   en la mano. El alto lo pone la foto; width auto respeta la proporción de cada caja. */
+/* El marco blanco no es adorno: la caja de una expansión puede ser del color de su
+   propia banda (la de la 1 es naranja sobre naranja) y el marco la despega de los 16
+   colores posibles — como foto pegada en un álbum, que es el tema de la app.
+   El ancho va FIJO y con cover: las 15 fotos tienen proporciones parecidas pero no
+   iguales, y con width auto la columna del texto arrancaba en una x distinta por
+   banda — quince renglones con el margen serrucho. Las cajas son todas verticales
+   (~0.7), así que el recorte del cover es de unos pocos píxeles de borde. */
+.band .band-thumb {
+  height: 88px;
+  width: 62px;
+  object-fit: cover;
+  border: 2px solid #fff;
+  border-radius: 5px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Con foto la banda se acomoda como ficha: la caja a la izquierda ocupando el alto
+   entero, y a su derecha el bloque. El alto lo manda la caja. La cuenta pierde su
+   margin-left auto: acá es parte del bloque de texto, no un dato del extremo. */
+.band.boxed {
+  display: grid;
+  grid-template-columns: auto auto auto 1fr;
+  grid-template-rows: auto auto 1fr;
+  column-gap: 12px;
+  row-gap: 2px;
+  align-items: center;
+}
+/* La jerarquía del bloque son DOS GRUPOS, no tres renglones parejos: la identidad (el
+   nombre con su rango pegado abajo, título y subtítulo) y el progreso (la dona y el
+   «3 de 129» juntos: son dos caras del mismo hecho y separados competían). El corte lo
+   hace el AIRE entre grupos — la fila 1fr se come el sobrante del alto de la caja — y
+   el peso lo hace el tamaño, no la opacity, que acá está prohibida sobre texto. */
+.band.boxed .fold { grid-row: 1 / 4; grid-column: 1; }
+.band.boxed .band-thumb { grid-row: 1 / 4; grid-column: 2; }
+.band.boxed h2 { grid-row: 1; grid-column: 3 / 5; }
+.band.boxed .range { grid-row: 2; grid-column: 3 / 5; font-size: 12px; }
+.band.boxed .count {
+  grid-row: 3;
+  grid-column: 4;
+  align-self: center;
+  justify-self: start;
+  margin-left: 0;
+  font-size: 14px;
+}
+
+/* El arco informa y va en currentColor pleno (ya elegido por contraste contra la
+   banda); el riel es contexto, no dato, y por eso puede ir tenue. */
+.band.boxed .band-donut {
+  grid-row: 3;
+  grid-column: 3;
+  align-self: center;
+  justify-self: start;
+  width: 34px;
+  height: 34px;
+}
+.band-donut circle { fill: none; stroke: currentColor; stroke-width: 4; }
+.band-donut .rail { opacity: 0.25; }
+.band-donut .arc { stroke-linecap: round; }
+/* El número de adentro informa y va pleno, como el arco: currentColor ya pasó contraste.
+   El tamaño está en unidades del viewBox (36 sobre 34 px dibujados). */
+.band-donut text {
+  fill: currentColor;
+  font-size: 9.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* La apertura de una expansión entra desplegándose: la fila del grid va de 0fr a 1fr,
+   que es la única forma CSS de animar hacia una altura que no se conoce, y la grilla
+   recién se monta al abrir (con la expansión plegada las cartas NO existen, y eso no se
+   toca). Sólo anima la que se abrió por toque (.opening); un navegador viejo que no
+   interpola 0fr salta al final, que es lo que ya hacía. El cierre queda seco a
+   propósito: animarlo pediría mantener montadas las 136 cartas hasta que termine. */
+.unfold { display: grid; }
+.unfold > .unfold-inner { min-height: 0; overflow: hidden; }
+.unfold.opening { animation: unfold 0.26s ease; }
+@keyframes unfold {
+  from { grid-template-rows: 0fr; opacity: 0; }
+  to { grid-template-rows: 1fr; opacity: 1; }
+}
+/* El cierre es la misma animación al revés, con forwards para quedarse en 0fr el frame
+   que tarda React en desmontar. Y los MÁRGENES acompañan (la banda pierde sus 12 y la
+   sección baja de 40 a 10): sin transición saltaban secos 42 px mientras la grilla
+   animaba — el repliegue se veía en dos tiempos. */
+.unfold.closing { animation: refold 0.22s ease forwards; }
+@keyframes refold {
+  from { grid-template-rows: 1fr; opacity: 1; }
+  to { grid-template-rows: 0fr; opacity: 0; }
+}
+.expansion,
+.expansion .band { transition: margin-bottom 0.22s ease; }
+@media (prefers-reduced-motion: reduce) {
+  .unfold.opening { animation: none; }
+  /* El cierre NO va con animation none: sin animationend la grilla quedaría montada
+     hasta el timeout de respaldo, visible y «plegada» a la vez. Durar un frame es el
+     mismo cierre seco de siempre, pero el desmontaje llega solo. */
+  .unfold.closing { animation-duration: 0.01s; }
+  .expansion,
+  .expansion .band { transition: none; }
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(54px, 1fr));
@@ -1164,7 +1268,15 @@ button { cursor: pointer; }
   background: none;
   color: inherit;
 }
-.band .fold:hover { background: rgba(0, 0, 0, 0.09); }
+/* El aro tras el toque eran dos cosas y se van las dos: el anillo de foco que algunos
+   navegadores dejan tras el CLICK (el de teclado NO se toca: focus-visible sigue con el
+   del navegador), y el hover que en un táctil queda pegado después del toque — por eso
+   va detrás de (hover: hover), que un dedo no cumple. */
+.band .fold { -webkit-tap-highlight-color: transparent; }
+.band .fold:focus:not(:focus-visible) { outline: none; }
+@media (hover: hover) {
+  .band .fold:hover { background: rgba(0, 0, 0, 0.09); }
+}
 .band .fold svg { transition: transform 0.15s ease; }
 .band .fold.closed svg { transform: rotate(-90deg); }
 

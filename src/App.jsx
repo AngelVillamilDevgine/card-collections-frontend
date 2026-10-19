@@ -793,6 +793,12 @@ export default function App() {
      programados. Guardándolo sólo en localStorage seguía guiñando después de usarlo. */
   const [lastExportAt, setLastExportAt] = useState(readLastExport)
   const [collapsed, setCollapsed] = useState(readCollapsed)
+  /* La última expansión abierta POR TOQUE: es la única cuya grilla entra animada. */
+  const [justOpened, setJustOpened] = useState(null)
+  /* Y la que se está CERRANDO: su grilla queda montada sólo lo que dura el repliegue
+     (el fin de la animación la desmonta). `collapsed` ya dice plegada desde el toque,
+     así que lo persistido no espera a nadie. */
+  const [closingId, setClosingId] = useState(null)
   const [aliasNotice, setAliasNotice] = useState(null)
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
@@ -1531,6 +1537,7 @@ export default function App() {
      ella — con la banda cerrada el anclaje caería en el renglón de arriba. El `0` del
      timeout es para que React ya haya dibujado la expansión abierta. */
   const goToExpansion = (exp) => {
+    if (collapsed.has(exp.id)) setJustOpened(exp.id)
     setCollapsed((old) => {
       if (!old.has(exp.id)) return old
       const next = new Set(old)
@@ -1614,6 +1621,19 @@ export default function App() {
   /* Contraer una expansión: deja de dibujarse su grilla y queda sólo la banda. Queda
      guardado: lo que dejaste cerrado sigue cerrado cuando volvés. */
   function toggleCollapsed(id) {
+    if (collapsed.has(id)) {
+      /* Se está abriendo: la que anima es ésta y sólo ésta. Al cargar la página las
+         grillas abiertas se montan sin animar — dieciséis a la vez es ruido. */
+      setJustOpened(id)
+      if (closingId === id) setClosingId(null)
+    } else {
+      /* Se está cerrando: la grilla se queda hasta que el repliegue termine. El timeout
+         es el respaldo por si el animationend no llega (un ancestro oculto, un navegador
+         raro): un estado de cierre que no muere deja la grilla montada para siempre. */
+      if (justOpened === id) setJustOpened(null)
+      setClosingId(id)
+      setTimeout(() => setClosingId((c) => (c === id ? null : c)), 400)
+    }
     setCollapsed((prev) => {
       const next = new Set(prev)
       if (next.has(id)) next.delete(id)
@@ -2206,11 +2226,20 @@ export default function App() {
             slotsOf(exp, n, drawableByExpansion[exp.id], quantities).some((s) => (quantities[s.cardKey] ?? 0) > 0)
           ).length
           const isCollapsed = collapsed.has(exp.id)
+          const donutPct = (ownedInExpansion / exp.cardNumbers.length) * 100
+          /* Con piso y tapado a 99, como albumPercent: 128 de 129 es 99,2% y no puede
+             leerse «100%». El 100 es sólo para la completa de verdad. */
+          const donutLabel = ownedInExpansion === exp.cardNumbers.length
+            ? '100%'
+            : `${Math.min(99, Math.floor(donutPct))}%`
           /* El `id` es el blanco del «te falta 1 para completar»: sin él no hay a dónde
              llevar. Va con prefijo para no chocar con `#panel` ni `#cartas`. */
           return (
             <section className={`expansion${isCollapsed ? ' folded' : ''}`} key={exp.id} id={`exp-${exp.id}`}>
-              <div className="band" style={{ background: exp.color, color: textColorOn(exp.color) }}>
+              <div
+                className={`band${exp.imagen ? ' boxed' : ''}`}
+                style={{ background: exp.color, color: textColorOn(exp.color) }}
+              >
                 <button
                   className={`fold${isCollapsed ? ' closed' : ''}`}
                   onClick={() => toggleCollapsed(exp.id)}
@@ -2222,6 +2251,12 @@ export default function App() {
                     <path d="M6 9l6 6 6-6" />
                   </svg>
                 </button>
+                {/* Con caja en el catálogo la banda es ficha, plegada o abierta: que
+                    abrir no la cambie de forma es la mitad de que no sea brusco.
+                    Decorativa (alt vacío): el nombre está al lado. */}
+                {exp.imagen && (
+                  <img className="band-thumb" src={exp.imagen} alt="" loading="lazy" />
+                )}
                 <h2>{exp.nombre}</h2>
                 {/* EL RANGO VA SIN PREFIJO, y se probó con prefijo. El prefijo existe para
                     cuando el número se lee FUERA de contexto —la etiqueta hablada, el
@@ -2244,12 +2279,49 @@ export default function App() {
                 ) : (
                   <span className="count">{ownedInExpansion} de {exp.cardNumbers.length}</span>
                 )}
+                {/* La dona de avance de la ficha: el mismo truco que el DonutChart del
+                    panel (r = 15.9155 da circunferencia 100, así el dasharray es el
+                    porcentaje directo). Decorativa: el «3 de 129» de al lado ya lo dice.
+                    El arco va en currentColor, que textColorOn ya eligió por contraste. */}
+                {exp.imagen && (
+                  <svg className="band-donut" viewBox="0 0 36 36" aria-hidden="true">
+                    <circle className="rail" cx="18" cy="18" r="15.9155" />
+                    {/* Con cero no se monta: un dasharray de 0 con punta redonda pinta
+                        un puntito igual, y una expansión sin empezar no tiene arco. */}
+                    {/* El patrón tiene que sumar 100 justo (la circunferencia), o no
+                        cierra la vuelta y el anillo queda con un hueco corrido. */}
+                    {ownedInExpansion > 0 && (
+                      <circle
+                        className="arc"
+                        cx="18"
+                        cy="18"
+                        r="15.9155"
+                        strokeDasharray={`${donutPct} ${100 - donutPct}`}
+                        strokeDashoffset="25"
+                      />
+                    )}
+                    <text x="18" y="18" textAnchor="middle" dominantBaseline="central">
+                      {donutLabel}
+                    </text>
+                  </svg>
+                )}
               </div>
-              {!isCollapsed && (
-              /* Si el catálogo trae `detalle` para esta expansión, sus casilleros dejan de
-                 ser cuadraditos de 54 px y pasan a fichas anchas: adentro entran el
-                 personaje y la tirada. Lo decide el DATO, no una lista de expansiones
-                 especiales escrita en el código. */
+              {(!isCollapsed || closingId === exp.id) && (
+              /* El envoltorio .unfold anima la apertura (0fr → 1fr) SÓLO cuando la
+                 abrió un toque —al montar la página no anima nadie— y el cierre al
+                 revés: plegada pero con closingId, la grilla sigue montada con
+                 .closing hasta que el animationend la desmonta. Si el catálogo trae
+                 `detalle` para esta expansión, sus casilleros dejan de ser cuadraditos
+                 de 54 px y pasan a fichas anchas: adentro entran el personaje y la
+                 tirada. Lo decide el DATO, no una lista de expansiones especiales
+                 escrita en el código. */
+              <div
+                className={`unfold${justOpened === exp.id && !isCollapsed ? ' opening' : ''}${isCollapsed ? ' closing' : ''}`}
+                onAnimationEnd={(e) => {
+                  if (e.target === e.currentTarget && isCollapsed) setClosingId(null)
+                }}
+              >
+              <div className="unfold-inner">
               <div className={`grid${exp.detalle ? ' detailed' : ''}`}>
                 {visibleNumbers.flatMap((n) =>
                   slotsOf(exp, n, drawableByExpansion[exp.id], quantities).map(({ cardKey, variant }) => (
@@ -2268,6 +2340,8 @@ export default function App() {
                     />
                   ))
                 )}
+              </div>
+              </div>
               </div>
               )}
             </section>
