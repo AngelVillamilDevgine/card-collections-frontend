@@ -461,25 +461,62 @@ button { cursor: pointer; }
 /* «Te falta 1 para completar Cartas Ocultas». Debajo de la barra de avance, que es de lo
    que habla. No es un cartel de colores: es la misma tinta de siempre con el número en
    naranja, porque lo que tiene que resaltar es el número y no el aviso. */
+/* «TE FALTA 1 PARA COMPLETAR ⟨CARTAS OCULTAS⟩». Era un renglón de texto gris con el
+   número en naranja; Angel lo quiso «más fachero, al menos en mobile».
+ *
+ * Lo que lo levanta no es un color inventado: es el de la BANDA de esa expansión, que es
+ * cómo se reconoce una expansión en esta app. El nombre va en una pastilla con su color
+ * de verdad, así que el aviso queda atado a donde te lleva y de paso se ve de lejos cuál
+ * es. El resto se queda callado —texto chico y gris— para que lo que resalte sea el
+ * número y la pastilla, y no el aviso entero gritando.
+ *
+ * Y es una FILA con fondo propio, no texto suelto: debajo de la barra de avance, que va
+ * al ancho entero, un renglón de texto flotando se leía como una nota al pie. */
 .almost {
-  display: block;
-  margin-top: 8px;
-  padding: 0;
-  border: 0;
-  background: none;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px 7px;
+  width: 100%;
+  margin-top: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--white);
   font: inherit;
-  font-size: 13.5px;
+  font-size: 13px;
   color: var(--ink2);
   text-align: left;
   cursor: pointer;
-  /* El subrayado punteado dice que lleva a algún lado sin gritar, igual que el alias del
-     pie y la cuenta en la tabla del panel. */
-  text-decoration: underline dotted var(--line2);
-  text-underline-offset: 3px;
 }
-.almost b { color: var(--accent); font-weight: 700; }
-.almost:hover { color: var(--accent); text-decoration-color: var(--accent); }
-.almost:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.almost-text { white-space: nowrap; }
+/* El número, que es el dato: el mismo naranja de texto del avance grande. */
+.almost b {
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+/* La pastilla con el color real de la expansión. `textColorOn` elige el color del texto
+   igual que en la banda grande, así que los 24 colores del catálogo pasan contraste sin
+   que haya que mirarlos de a uno. */
+.almost-exp {
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: .02em;
+  /* Un nombre largo —«Guerreros Legendarios 1»— se recorta antes que empujar la fila. */
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* La flecha, pegada al borde derecho: dice que esto lleva a algún lado. */
+.almost-go { margin-left: auto; flex: none; color: var(--ink3); }
+.almost:hover { border-color: var(--line2); }
+.almost:hover .almost-go { color: var(--accent); }
+.almost:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .card { position: relative; }
 

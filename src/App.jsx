@@ -2043,9 +2043,28 @@ export default function App() {
                   sigue después de leerlo es ir a esa expansión: te lleva, abriéndola si
                   estaba plegada. Ver `closestToComplete`. */}
               {almostDone && (
-                <button type="button" className="almost" onClick={() => goToExpansion(almostDone.exp)}>
-                  Te falta{almostDone.faltan > 1 ? 'n' : ''} <b>{almostDone.faltan}</b> para completar{' '}
-                  {almostDone.exp.nombre}
+                /* EL NOMBRE DE LA EXPANSIÓN VA EN SU PROPIO COLOR, el mismo de su banda.
+                   Era un renglón de texto gris y Angel lo quiso «más fachero»: la banda
+                   de color es el lenguaje de este álbum —es cómo se reconoce una
+                   expansión de un vistazo— así que el aviso la usa en chico y queda
+                   atado a donde te lleva. El color del texto sale de `textColorOn`, la
+                   misma que pinta la banda grande, así que el contraste está garantizado
+                   para los 24 colores del catálogo sin medir uno por uno. */
+                <button type="button" className="almost" onClick={() => goToExpansion(almostDone.exp)}
+                        aria-label={`Te falta${almostDone.faltan > 1 ? 'n' : ''} ${almostDone.faltan} para completar ${almostDone.exp.nombre}. Ir a esa expansión.`}>
+                  {/* La frase va partida en piezas para poder darle peso sólo al número,
+                      pero el `aria-label` de arriba la dice entera y de corrido: suelta,
+                      un lector la leería a los saltos y con la pastilla en el medio. */}
+                  <span className="almost-text">Te falta{almostDone.faltan > 1 ? 'n' : ''}</span>
+                  <b>{almostDone.faltan}</b>
+                  <span className="almost-text">para completar</span>
+                  <span className="almost-exp"
+                        style={{ background: almostDone.exp.color, color: textColorOn(almostDone.exp.color) }}>
+                    {almostDone.exp.nombre}
+                  </span>
+                  <svg className="almost-go" width="15" height="15" viewBox="0 0 24 24" fill="none"
+                       stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"
+                       aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
                 </button>
               )}
             </div>
