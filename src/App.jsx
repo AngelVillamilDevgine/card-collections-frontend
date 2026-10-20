@@ -957,8 +957,16 @@ export default function App() {
     setCollapsed(new Set(Object.values(catalogs).flatMap((c) => c?.expansiones?.map((e) => e.id) ?? [])))
   }, [catalogs, collectionLoaded, quantities])
   /* Cuatro a la vista de cinco declarados: con condición va «Para reemplazar», sin
-     condición va «Faltan variantes». Ver la nota de FILTERS. */
-  const visibleFilters = FILTERS.filter((f) => (album?.condicion ? f.id !== 'variants' : f.id !== 'replace'))
+     condición va «Faltan variantes». Ver la nota de FILTERS. Y «Repetidas» sólo si HAY
+     alguna: un filtro que siempre da vacío es un botón que no hace nada. Se mira
+     `quantities` directo y no `summary.byFilter`, que se declara más abajo (la trampa
+     TDZ de siempre); para «¿hay alguna?» dan lo mismo. Si el filtro está puesto y la
+     última repetida se va, el chip desaparece y `effectiveFilter` cae a «Todas». */
+  const visibleFilters = FILTERS.filter((f) => {
+    if (album?.condicion ? f.id === 'variants' : f.id === 'replace') return false
+    if (f.id === 'duplicates') return Object.values(quantities).some((n) => n > 1)
+    return true
+  })
   /* El invariante «el filtro activo tiene chip» se fija ACÁ y no en el click, porque el
      álbum también cambia sin pasar por la píldora: la caída a la primera colección que
      cargó, y un Reintentar que termina de cargar la recordada. Lo encontró la revisión:
@@ -1545,7 +1553,10 @@ export default function App() {
       return next
     })
     setTimeout(() => {
-      document.getElementById(`exp-${exp.id}`)?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+      /* La sección va con display: contents (no tiene caja): lo que se scrollea es su
+         primer hijo, la banda, que es la que lleva el scroll-margin-top. */
+      const target = document.getElementById(`exp-${exp.id}`)
+      ;(target?.firstElementChild ?? target)?.scrollIntoView({ block: 'start', behavior: 'smooth' })
     }, 0)
   }
 
@@ -2206,6 +2217,11 @@ export default function App() {
                 </>}
           </p>
 
+        {/* El listado vive en una grilla que en anchos grandes acomoda las fichas en
+            dos o tres columnas (auto-fill decide solo). La sección va con display:
+            contents, así la BANDA es una celda más —abrir no la estira— y sólo el
+            despliegue de cartas ocupa la fila entera. */}
+        <div className="expansions">
         {catalog.map((exp) => {
           const activeFilterDef = FILTERS.find((f) => f.id === effectiveFilter)
           /* Un hueco se dibuja si ALGUNO de sus casilleros pasa el filtro — o si el
@@ -2238,7 +2254,14 @@ export default function App() {
             <section className={`expansion${isCollapsed ? ' folded' : ''}`} key={exp.id} id={`exp-${exp.id}`}>
               <div
                 className={`band${exp.imagen ? ' boxed' : ''}`}
-                style={{ background: exp.color, color: textColorOn(exp.color) }}
+                /* El mismo vidrio del aviso «te falta N»: el fondo es el tinte claro del
+                   color de la expansión y el texto es ese color oscurecido hasta pasar
+                   4.5:1. Así TODA banda lleva texto oscuro — con el color pleno de
+                   fondo, la mitad pedía texto blanco y la otra mitad negro. */
+                style={(() => {
+                  const tint = tintOf(exp.color, 0.16)
+                  return { background: tint, borderColor: tintOf(exp.color, 0.5), color: inkOn(exp.color, tint) }
+                })()}
               >
                 <button
                   className={`fold${isCollapsed ? ' closed' : ''}`}
@@ -2347,6 +2370,7 @@ export default function App() {
             </section>
           )
         })}
+        </div>
 
         {summary.byFilter[effectiveFilter] === 0 && (
           <p className="empty">No hay ninguna carta en este listado.</p>

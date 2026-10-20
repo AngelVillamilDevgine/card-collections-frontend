@@ -35,14 +35,6 @@
       "imagen": "cajas/exp-3.jpg"
     },
     {
-      "id": "ocultas",
-      "nombre": "Cartas Ocultas",
-      "corto": "OC",
-      "color": "#4bc5d4",
-      "desde": 402,
-      "hasta": 407
-    },
-    {
       "id": "exp-4",
       "nombre": "Expansión 4",
       "corto": "E4",
@@ -149,6 +141,14 @@
       "desde": 1849,
       "hasta": 1936,
       "imagen": "cajas/bf-2.jpg"
+    },
+    {
+      "id": "ocultas",
+      "nombre": "Cartas Ocultas",
+      "corto": "OC",
+      "color": "#4bc5d4",
+      "desde": 402,
+      "hasta": 407
     }
   ]
 }

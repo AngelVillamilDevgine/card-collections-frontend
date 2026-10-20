@@ -314,15 +314,45 @@ button { cursor: pointer; }
 
 /* -------------------------------- expansión ------------------------------- */
 
-/* scroll-margin-top tiene que ser al menos lo que mide la barra pegajosa, o el anclaje
-   deja la banda tapada abajo de ella. Ver la nota de --sticky-bar más arriba. */
-.expansion { margin-bottom: 40px; scroll-margin-top: var(--sticky-bar); }
+/* Las fichas se acomodan en columnas cuando el ancho da: auto-fill decide solo (1 en el
+   teléfono, 2 en anchos medios, 3 en el ancho entero de la app), sin breakpoints a mano.
+
+   LA SECCIÓN VA CON display: contents Y NO ES CAPRICHO: así los ítems de la grilla son
+   LA BANDA y EL DESPLIEGUE por separado — la banda es una celda más, del mismo tamaño
+   abierta o plegada (abrir no la estira a lo ancho de la página), y sólo el despliegue
+   de cartas ocupa la fila entera, que es el único que necesita el ancho. El costo es
+   que los márgenes de la sección dejan de existir: el ritmo vertical pasa a los gaps, y
+   el aire grande de abajo de una grilla abierta vive en el margin del .unfold (que las
+   animaciones acompañan, o saltaba seco al desmontar). Queda un hueco en la fila al
+   lado de una ficha abierta — su despliegue empuja a las que siguen — y es a propósito:
+   rellenarlo con `dense` reordena la lectura. */
+.expansions {
+  display: grid;
+  /* El min(340px, 100%) no es adorno: con 340 a secas, en una pantalla de 320 la
+     columna no puede achicarse y la página entera desborda 44 px de costado. */
+  grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr));
+  gap: 10px 12px;
+}
+.expansion { display: contents; }
+/* El scroll-margin vive en la banda porque con display: contents la sección no tiene
+   caja: el anclaje del «te falta 1» aterriza en la banda. Tiene que ser al menos lo que
+   mide la barra pegajosa, o queda tapada abajo de ella (ver --sticky-bar). */
+.expansions .band {
+  min-width: 0;
+  margin-bottom: 0;
+  scroll-margin-top: var(--sticky-bar);
+}
+.expansions .unfold { grid-column: 1 / -1; margin-bottom: 30px; }
 
 .band {
   display: flex;
   align-items: baseline;
   gap: 12px;
   padding: 7px 14px;
+  /* El color lo pone el JSX: fondo en tinte y borde en tinte más fuerte (ver la nota
+     del vidrio en la banda). El borde necesita el ancho acá para que el borderColor
+     en línea tenga sobre qué actuar. */
+  border: 1px solid transparent;
   border-radius: 5px;
   margin-bottom: 12px;
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.12);
@@ -447,29 +477,25 @@ button { cursor: pointer; }
 .unfold { display: grid; }
 .unfold > .unfold-inner { min-height: 0; overflow: hidden; }
 .unfold.opening { animation: unfold 0.26s ease; }
+/* El margin-bottom (el aire grande debajo de una grilla abierta, que antes era de la
+   sección) viaja DENTRO de los keyframes: si no, al desmontar saltaban 30 px secos. */
 @keyframes unfold {
-  from { grid-template-rows: 0fr; opacity: 0; }
-  to { grid-template-rows: 1fr; opacity: 1; }
+  from { grid-template-rows: 0fr; opacity: 0; margin-bottom: 0; }
+  to { grid-template-rows: 1fr; opacity: 1; margin-bottom: 30px; }
 }
-/* El cierre es la misma animación al revés, con forwards para quedarse en 0fr el frame
-   que tarda React en desmontar. Y los MÁRGENES acompañan (la banda pierde sus 12 y la
-   sección baja de 40 a 10): sin transición saltaban secos 42 px mientras la grilla
-   animaba — el repliegue se veía en dos tiempos. */
+/* El cierre es la misma animación al revés, con forwards para quedarse en el estado
+   final el frame que tarda React en desmontar. */
 .unfold.closing { animation: refold 0.22s ease forwards; }
 @keyframes refold {
-  from { grid-template-rows: 1fr; opacity: 1; }
-  to { grid-template-rows: 0fr; opacity: 0; }
+  from { grid-template-rows: 1fr; opacity: 1; margin-bottom: 30px; }
+  to { grid-template-rows: 0fr; opacity: 0; margin-bottom: 0; }
 }
-.expansion,
-.expansion .band { transition: margin-bottom 0.22s ease; }
 @media (prefers-reduced-motion: reduce) {
   .unfold.opening { animation: none; }
   /* El cierre NO va con animation none: sin animationend la grilla quedaría montada
      hasta el timeout de respaldo, visible y «plegada» a la vez. Durar un frame es el
      mismo cierre seco de siempre, pero el desmontaje llega solo. */
   .unfold.closing { animation-duration: 0.01s; }
-  .expansion,
-  .expansion .band { transition: none; }
 }
 
 .grid {
@@ -1280,11 +1306,9 @@ button { cursor: pointer; }
 .band .fold svg { transition: transform 0.15s ease; }
 .band .fold.closed svg { transform: rotate(-90deg); }
 
-/* Los 40px de margen están para separar grillas enteras. Con la expansión cerrada sólo
-   queda la banda, y ese hueco se come justo el lugar que se quería ahorrar al cerrarla:
-   las cerradas se apilan juntas. */
-.expansion.folded { margin-bottom: 10px; }
-.expansion.folded .band { margin-bottom: 0; }
+/* Los márgenes de plegado que vivían acá murieron con el display: contents de la
+   sección: el ritmo vertical del listado lo ponen los gaps de .expansions y el margin
+   del .unfold. */
 
 /* Una expansión completa cambia "129 de 129" por un tilde. Se lee de un vistazo, que es
    cuando se miran las bandas: cerradas y scrolleando rápido. Toma el color del texto de
