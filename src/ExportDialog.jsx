@@ -3,8 +3,9 @@
 // Tres pasos, con el mismo diálogo que ya pregunta la condición de la carta:
 // qué lista, de qué expansiones (se marcan varias), y el texto con el botón de copiar.
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { trapFocus, useCloseOnEscape } from './dialog'
-import { slotsOf, missingVariantsOf, cardLabel } from './collections'
+import { slotsOf, missingVariantsOf, cardLabel, variantsFor, slotKey } from './collections'
 import { CONDITIONS } from './conditions'
 
 const LIST_OPTIONS = [
@@ -244,6 +245,94 @@ function buildText(mode, selectedExpansions, catalog, quantities, heading, varia
   return `${withHeading}\n\n${FOOTER_URL}`
 }
 
+/* LA PLANILLA DE VARIANTES: la tabla de la verdad de cada carta con variantes — qué
+   fondos existen para ella, cuáles tenés y cuáles te faltan — como las planillas de
+   papel que se marcan con cruces, pero armada con TUS datos. Se imprime con el
+   «Guardar como PDF» del navegador: cero librerías, y anda también en el teléfono.
+
+   Filas: sólo las cartas que tienen variantes ofrecidas (el resto no tiene nada que
+   decir acá). Columnas: las variantes DECLARADAS de la expansión, en su orden. Celda:
+   tildada si tenés ese fondo, vacía si existe y te falta, gris si esa carta no sale en
+   ese fondo — que es un dato, no un hueco. El nombre de la carta va sólo donde el
+   catálogo lo sabe (`detalle`, hoy las nueve únicas); para las demás, el número con su
+   prefijo, que es como se piden.
+
+   Va por PORTAL a body y no adentro del diálogo: el @media print esconde #root entero
+   y deja sólo esto — con la planilla anidada en la app, esconder la app la escondía. */
+function VariantsSheet({ catalog, quantities, heading, onClose }) {
+  useEffect(() => {
+    document.body.classList.add('print-sheet-open')
+    return () => document.body.classList.remove('print-sheet-open')
+  }, [])
+
+  const tables = []
+  for (const exp of catalog) {
+    const cols = exp.variantes ?? []
+    if (!cols.length) continue
+    const rows = []
+    let offeredCells = 0
+    let ownedCells = 0
+    for (const n of exp.cardNumbers) {
+      const offered = variantsFor(exp, n)
+      if (!offered.length) continue
+      const offeredIds = new Set(offered.map((v) => v.id))
+      const cells = cols.map((v) => {
+        if (!offeredIds.has(v.id)) return null
+        offeredCells++
+        const owned = (quantities[slotKey(exp.id, n, v.id)] ?? 0) > 0
+        if (owned) ownedCells++
+        return { owned }
+      })
+      rows.push({ n, name: exp.detalle?.[n]?.nombre ?? null, cells })
+    }
+    if (rows.length) tables.push({ exp, cols, rows, offeredCells, ownedCells })
+  }
+
+  return createPortal(
+    /* El stopPropagation no es opcional: un portal burbujea por el árbol de REACT, así
+       que un click acá adentro llegaba al onClick={onClose} del telón del diálogo. */
+    <div className="print-sheet" onClick={(e) => e.stopPropagation()}>
+      <div className="print-sheet-bar">
+        <button className="secondary" onClick={onClose}>Volver</button>
+        <button className="primary" onClick={() => window.print()}>Imprimir o guardar PDF</button>
+      </div>
+      <div className="print-sheet-body">
+        <h1>{heading ? `${heading} · ` : ''}Planilla de variantes</h1>
+        <p className="print-sheet-legend">
+          ✓ la tenés · vacía: te falta · gris: no existe en ese fondo
+          · {new Date().toLocaleDateString('es-AR')}
+        </p>
+        {tables.map(({ exp, cols, rows, offeredCells, ownedCells }) => (
+          <section key={exp.id} className="print-table">
+            <h2>{exp.nombre} <span>{ownedCells} de {offeredCells} variantes</span></h2>
+            <table>
+              <thead>
+                <tr>
+                  <th className="card-col">Carta</th>
+                  {cols.map((v) => <th key={v.id}><span>{v.nombre}</span></th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map(({ n, name, cells }) => (
+                  <tr key={n}>
+                    <td className="card-col">{cardLabel(exp, n)}{name ? ` · ${name}` : ''}</td>
+                    {cells.map((c, i) => (
+                      <td key={cols[i].id} className={c ? (c.owned ? 'owned' : '') : 'absent'}>
+                        {c?.owned ? '✓' : ''}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+        ))}
+      </div>
+    </div>,
+    document.body
+  )
+}
+
 const Checkmark = ({ checked }) => (
   <span className={`check${checked ? ' on' : ''}`} aria-hidden="true">
     {checked && (
@@ -263,6 +352,12 @@ export default function ExportDialog({ catalog, collectionData, variantsByExpans
   const [pickingConditions, setPickingConditions] = useState(false)
   const [selectedExpansions, setSelectedExpansions] = useState(new Set())
   const [showingText, setShowingText] = useState(false)
+  /* La planilla hace elegir expansiones SÍ O SÍ (pedido de Angel): arranca sin ninguna
+     marcada — al revés que las listas, donde lo común es querer todo. Lo común acá es
+     imprimir UNA planilla, como las de papel. */
+  const [sheetPicking, setSheetPicking] = useState(false)
+  const [sheetExpansions, setSheetExpansions] = useState(new Set())
+  const [showingSheet, setShowingSheet] = useState(false)
   const [copyStatus, setCopyStatus] = useState(null)
   const areaRef = useRef(null)
   /* El reloj del aviso de Copiar. Este diálogo se cierra con Escape, con el botón y
@@ -387,7 +482,7 @@ export default function ExportDialog({ catalog, collectionData, variantsByExpans
       >
         <h3>Exportar</h3>
 
-        {!mode && (
+        {!mode && !sheetPicking && (
           <>
             <p>¿Qué lista querés?</p>
             {/* «Me faltan variantes» sólo aparece donde hay variantes. En Cromeros sería un
@@ -397,7 +492,60 @@ export default function ExportDialog({ catalog, collectionData, variantsByExpans
                 {o.label}
               </button>
             ))}
+            {/* La planilla no es una lista de texto: es la tabla para imprimir o guardar
+                en PDF. Sólo donde hay variantes, que es lo único que cuenta. */}
+            {hasVariants && (
+              <button
+                className="option simple"
+                onClick={() => {
+                  setSheetExpansions(new Set())
+                  setSheetPicking(true)
+                }}
+              >
+                La planilla de variantes
+                <b>para imprimir o guardar en PDF</b>
+              </button>
+            )}
             <button className="cancel" onClick={onClose}>Cancelar</button>
+          </>
+        )}
+
+        {sheetPicking && (
+          <>
+            <p>¿De qué expansiones? Tocá para marcar y desmarcar.</p>
+            <div className="options">
+              {catalog
+                .map((exp) => ({ exp, count: exp.cardNumbers.filter((n) => variantsFor(exp, n).length > 0).length }))
+                .filter(({ count }) => count > 0)
+                .map(({ exp, count }, i) => {
+                  const checked = sheetExpansions.has(exp.id)
+                  return (
+                    <button
+                      key={exp.id}
+                      className={`option simple selectable${checked ? ' checked' : ''}`}
+                      onClick={() => setSheetExpansions((prev) => {
+                        const next = new Set(prev)
+                        if (next.has(exp.id)) next.delete(exp.id)
+                        else next.add(exp.id)
+                        return next
+                      })}
+                      aria-pressed={checked}
+                      autoFocus={i === 0}
+                    >
+                      <Checkmark checked={checked} />
+                      {exp.nombre}
+                      <b>{count}</b>
+                    </button>
+                  )
+                })}
+            </div>
+            <button className="show" onClick={() => setShowingSheet(true)} disabled={!sheetExpansions.size}>
+              {sheetExpansions.size ? 'Ver la planilla' : 'Marcá al menos una'}
+            </button>
+            <div className="exits">
+              <button className="cancel" onClick={() => setSheetPicking(false)}>Elegir otra lista</button>
+              <button className="cancel" onClick={onClose}>Cerrar</button>
+            </div>
           </>
         )}
 
@@ -504,6 +652,14 @@ export default function ExportDialog({ catalog, collectionData, variantsByExpans
           </>
         )}
       </div>
+      {showingSheet && (
+        <VariantsSheet
+          catalog={catalog.filter((exp) => sheetExpansions.has(exp.id))}
+          quantities={quantities}
+          heading={heading}
+          onClose={() => setShowingSheet(false)}
+        />
+      )}
     </div>
   )
 }

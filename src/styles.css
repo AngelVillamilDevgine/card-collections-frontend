@@ -1953,3 +1953,64 @@ body.with-install-bar { padding-bottom: var(--install-height, 150px); }
   color: var(--ink3);
 }
 .install-no:hover { color: var(--ink); border-color: var(--line2); }
+
+/* ---------------------------- planilla de variantes ---------------------------- */
+
+/* La tabla de la verdad de las variantes, para imprimir o guardar como PDF con el
+   diálogo del navegador. En pantalla es una página blanca encima de todo (es la vista
+   previa de lo que sale impreso); al imprimir, el @media print de abajo esconde la app
+   entera y queda sólo esto. Va por portal a body — ver la nota en ExportDialog. */
+.print-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: #fff;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.print-sheet-bar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  background: #fff;
+  border-bottom: 1px solid #ddd;
+}
+.print-sheet-body { max-width: 900px; margin: 0 auto; padding: 18px 16px 40px; }
+.print-sheet-body h1 { font-size: 20px; margin: 0 0 4px; }
+.print-sheet-legend { color: #555; font-size: 13px; margin: 0 0 18px; }
+.print-table { margin-bottom: 26px; break-inside: avoid-page; }
+.print-table h2 { font-size: 15px; margin: 0 0 6px; }
+.print-table h2 span { font-weight: 400; color: #555; font-size: 13px; }
+.print-table table { border-collapse: collapse; width: 100%; }
+.print-table th,
+.print-table td {
+  border: 1px solid #bbb;
+  padding: 3px 6px;
+  font-size: 12px;
+  text-align: center;
+  height: 22px;
+}
+/* Los nombres de los fondos van parados, como en las planillas de papel: con trece
+   columnas en Personajes, horizontales no entran ni abreviados. */
+.print-table th span {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.print-table .card-col { text-align: left; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.print-table td.absent { background: #d9d9d9; }
+.print-table td.owned { font-weight: 700; }
+/* Que una fila no se parta entre dos hojas, y que el encabezado se repita en cada una
+   (table-header-group es el que lo hace; los navegadores lo traen de fábrica en thead). */
+.print-table tr { break-inside: avoid; }
+
+@media print {
+  body.print-sheet-open #root { display: none; }
+  .print-sheet { position: static; overflow: visible; }
+  .print-sheet-bar { display: none; }
+  .print-sheet-body { max-width: none; padding: 0; }
+}
