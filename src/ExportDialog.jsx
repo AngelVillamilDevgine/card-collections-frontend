@@ -262,8 +262,31 @@ function buildText(mode, selectedExpansions, catalog, quantities, heading, varia
 function VariantsSheet({ catalog, quantities, heading, onClose }) {
   useEffect(() => {
     document.body.classList.add('print-sheet-open')
-    return () => document.body.classList.remove('print-sheet-open')
+    return () => {
+      document.body.classList.remove('print-sheet-open')
+      document.getElementById('print-page-size')?.remove()
+    }
   }, [])
+
+  /* EL PDF SALE EN UNA SOLA HOJA LARGA, no en páginas A4 (pedido de Angel: la primera
+     página salía casi vacía — el título solo, porque una tabla más alta que una hoja no
+     puede «no partirse» y arrancaba en la siguiente). Chrome respeta `@page { size }`,
+     así que al tocar Imprimir se mide el alto real del contenido y se fabrica UNA página
+     de ese tamaño. El margen de 20 mm de sobra es a propósito: medido en pantalla
+     angosta el título envuelve distinto que impreso, y quedarse corto parte en dos — el
+     error caro; sobrar deja blanco abajo, que no molesta. */
+  function printSheet() {
+    const body = document.querySelector('.print-sheet-body')
+    const mm = Math.ceil((body.scrollHeight * 25.4) / 96) + 20
+    let style = document.getElementById('print-page-size')
+    if (!style) {
+      style = document.createElement('style')
+      style.id = 'print-page-size'
+      document.head.appendChild(style)
+    }
+    style.textContent = `@page { size: 210mm ${mm}mm; margin: 8mm; }`
+    window.print()
+  }
 
   const tables = []
   for (const exp of catalog) {
@@ -294,7 +317,7 @@ function VariantsSheet({ catalog, quantities, heading, onClose }) {
     <div className="print-sheet" onClick={(e) => e.stopPropagation()}>
       <div className="print-sheet-bar">
         <button className="secondary" onClick={onClose}>Volver</button>
-        <button className="primary" onClick={() => window.print()}>Imprimir o guardar PDF</button>
+        <button className="primary" onClick={printSheet}>Imprimir o guardar PDF</button>
       </div>
       <div className="print-sheet-body">
         <h1>{heading ? `${heading} · ` : ''}Planilla de variantes</h1>
@@ -305,6 +328,10 @@ function VariantsSheet({ catalog, quantities, heading, onClose }) {
         {tables.map(({ exp, cols, rows, offeredCells, ownedCells }) => (
           <section key={exp.id} className="print-table">
             <h2>{exp.nombre} <span>{ownedCells} de {offeredCells} variantes</span></h2>
+            {/* El scroll horizontal vive ACÁ y no en la página: con la página entera
+                scrolleando de costado, la barra pegajosa de arriba —que sólo se fija en
+                vertical— quedaba corrida, con el botón flotando sobre los encabezados. */}
+            <div className="print-table-scroll">
             <table>
               <thead>
                 <tr>
@@ -325,6 +352,7 @@ function VariantsSheet({ catalog, quantities, heading, onClose }) {
                 ))}
               </tbody>
             </table>
+            </div>
           </section>
         ))}
       </div>
@@ -352,11 +380,12 @@ export default function ExportDialog({ catalog, collectionData, variantsByExpans
   const [pickingConditions, setPickingConditions] = useState(false)
   const [selectedExpansions, setSelectedExpansions] = useState(new Set())
   const [showingText, setShowingText] = useState(false)
-  /* La planilla hace elegir expansiones SÍ O SÍ (pedido de Angel): arranca sin ninguna
-     marcada — al revés que las listas, donde lo común es querer todo. Lo común acá es
-     imprimir UNA planilla, como las de papel. */
+  /* La planilla hace elegir expansión SÍ O SÍ, y UNA como máximo (pedido de Angel):
+     arranca sin ninguna y elegir otra reemplaza. Una por hoja, como las planillas de
+     papel — y además la hoja del PDF es UNA página larga a medida del contenido, que
+     con varias expansiones se iría a cualquier largo. */
   const [sheetPicking, setSheetPicking] = useState(false)
-  const [sheetExpansions, setSheetExpansions] = useState(new Set())
+  const [sheetExpansion, setSheetExpansion] = useState(null)
   const [showingSheet, setShowingSheet] = useState(false)
   const [copyStatus, setCopyStatus] = useState(null)
   const areaRef = useRef(null)
@@ -498,7 +527,7 @@ export default function ExportDialog({ catalog, collectionData, variantsByExpans
               <button
                 className="option simple"
                 onClick={() => {
-                  setSheetExpansions(new Set())
+                  setSheetExpansion(null)
                   setSheetPicking(true)
                 }}
               >
@@ -512,23 +541,18 @@ export default function ExportDialog({ catalog, collectionData, variantsByExpans
 
         {sheetPicking && (
           <>
-            <p>¿De qué expansiones? Tocá para marcar y desmarcar.</p>
+            <p>¿De qué expansión? Es una por planilla, como las de papel.</p>
             <div className="options">
               {catalog
                 .map((exp) => ({ exp, count: exp.cardNumbers.filter((n) => variantsFor(exp, n).length > 0).length }))
                 .filter(({ count }) => count > 0)
                 .map(({ exp, count }, i) => {
-                  const checked = sheetExpansions.has(exp.id)
+                  const checked = sheetExpansion === exp.id
                   return (
                     <button
                       key={exp.id}
                       className={`option simple selectable${checked ? ' checked' : ''}`}
-                      onClick={() => setSheetExpansions((prev) => {
-                        const next = new Set(prev)
-                        if (next.has(exp.id)) next.delete(exp.id)
-                        else next.add(exp.id)
-                        return next
-                      })}
+                      onClick={() => setSheetExpansion(exp.id)}
                       aria-pressed={checked}
                       autoFocus={i === 0}
                     >
@@ -539,8 +563,8 @@ export default function ExportDialog({ catalog, collectionData, variantsByExpans
                   )
                 })}
             </div>
-            <button className="show" onClick={() => setShowingSheet(true)} disabled={!sheetExpansions.size}>
-              {sheetExpansions.size ? 'Ver la planilla' : 'Marcá al menos una'}
+            <button className="show" onClick={() => setShowingSheet(true)} disabled={!sheetExpansion}>
+              {sheetExpansion ? 'Ver la planilla' : 'Marcá una'}
             </button>
             <div className="exits">
               <button className="cancel" onClick={() => setSheetPicking(false)}>Elegir otra lista</button>
@@ -654,7 +678,7 @@ export default function ExportDialog({ catalog, collectionData, variantsByExpans
       </div>
       {showingSheet && (
         <VariantsSheet
-          catalog={catalog.filter((exp) => sheetExpansions.has(exp.id))}
+          catalog={catalog.filter((exp) => exp.id === sheetExpansion)}
           quantities={quantities}
           heading={heading}
           onClose={() => setShowingSheet(false)}

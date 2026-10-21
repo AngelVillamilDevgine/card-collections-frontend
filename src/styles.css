@@ -1971,6 +1971,8 @@ body.with-install-bar { padding-bottom: var(--install-height, 150px); }
 .print-sheet-bar {
   position: sticky;
   top: 0;
+  /* Encima de las tablas: sin esto, los encabezados se dibujaban a través de la barra. */
+  z-index: 1;
   display: flex;
   justify-content: space-between;
   gap: 12px;
@@ -1978,10 +1980,19 @@ body.with-install-bar { padding-bottom: var(--install-height, 150px); }
   background: #fff;
   border-bottom: 1px solid #ddd;
 }
+/* El scroll de costado es POR TABLA, nunca de la página: una página que scrollea de
+   costado se lleva el fondo de la barra pegajosa (sticky sólo fija en vertical) y el
+   botón quedaba flotando pelado sobre los encabezados — pasó en el teléfono, donde las
+   17 columnas de Personajes no entran. */
+.print-table-scroll { overflow-x: auto; }
 .print-sheet-body { max-width: 900px; margin: 0 auto; padding: 18px 16px 40px; }
 .print-sheet-body h1 { font-size: 20px; margin: 0 0 4px; }
 .print-sheet-legend { color: #555; font-size: 13px; margin: 0 0 18px; }
-.print-table { margin-bottom: 26px; break-inside: avoid-page; }
+/* SIN break-inside: avoid-page: una tabla más alta que una hoja no puede «no partirse»,
+   así que arrancaba entera en la página siguiente y la primera quedaba casi vacía — el
+   PDF de Angel salía con una página de título solo. Además la página es una sola y a
+   medida (ver printSheet), así que no hay dónde partir. */
+.print-table { margin-bottom: 26px; }
 .print-table h2 { font-size: 15px; margin: 0 0 6px; }
 .print-table h2 span { font-weight: 400; color: #555; font-size: 13px; }
 .print-table table { border-collapse: collapse; width: 100%; }
@@ -2001,7 +2012,17 @@ body.with-install-bar { padding-bottom: var(--install-height, 150px); }
   font-weight: 600;
   white-space: nowrap;
 }
-.print-table .card-col { text-align: left; white-space: nowrap; font-variant-numeric: tabular-nums; }
+/* La columna de la carta queda FIJA al scrollear la tabla de costado: sin saber en qué
+   fila estás, las tildes no dicen nada. El fondo es obligatorio — sticky no tapa solo. */
+.print-table .card-col {
+  text-align: left;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: #fff;
+}
 .print-table td.absent { background: #d9d9d9; }
 .print-table td.owned { font-weight: 700; }
 /* Que una fila no se parta entre dos hojas, y que el encabezado se repita en cada una
@@ -2013,4 +2034,7 @@ body.with-install-bar { padding-bottom: var(--install-height, 150px); }
   .print-sheet { position: static; overflow: visible; }
   .print-sheet-bar { display: none; }
   .print-sheet-body { max-width: none; padding: 0; }
+  /* Impresa, la tabla va entera: un overflow con scroll cortaría las columnas que en
+     pantalla se deslizan. */
+  .print-table-scroll { overflow: visible; }
 }
