@@ -1985,6 +1985,11 @@ body.with-install-bar { padding-bottom: var(--install-height, 150px); }
    botón quedaba flotando pelado sobre los encabezados — pasó en el teléfono, donde las
    17 columnas de Personajes no entran. */
 .print-table-scroll { overflow-x: auto; }
+/* Los dos botones de la derecha van juntos y la barra puede envolver: a 320 los tres
+   («Volver», imagen y PDF) no entran en un renglón. */
+.print-sheet-bar { flex-wrap: wrap; }
+.print-sheet-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
 .print-sheet-body { max-width: 900px; margin: 0 auto; padding: 18px 16px 40px; }
 .print-sheet-body h1 { font-size: 20px; margin: 0 0 4px; }
 .print-sheet-legend { color: #555; font-size: 13px; margin: 0 0 18px; }

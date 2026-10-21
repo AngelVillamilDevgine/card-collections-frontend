@@ -207,8 +207,7 @@ export const replaceCollection = (collection) =>
 
 /* ------------------------------- copias en disco ------------------------------- */
 
-export function downloadJson(data, filename = 'mi-coleccion-dbz.json') {
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+export function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
@@ -231,6 +230,10 @@ export function downloadJson(data, filename = 'mi-coleccion-dbz.json') {
     a.remove()
     URL.revokeObjectURL(url)
   }, 60000)
+}
+
+export function downloadJson(data, filename = 'mi-coleccion-dbz.json') {
+  downloadBlob(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }), filename)
 }
 
 /* Qué cuenta como una copia de la colección, y qué no.

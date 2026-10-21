@@ -7,6 +7,7 @@ import { createPortal } from 'react-dom'
 import { trapFocus, useCloseOnEscape } from './dialog'
 import { slotsOf, missingVariantsOf, cardLabel, variantsFor, slotKey } from './collections'
 import { CONDITIONS } from './conditions'
+import { downloadBlob } from './api'
 
 const LIST_OPTIONS = [
   { id: 'missing',         label: 'Las que me faltan' },
@@ -245,6 +246,104 @@ function buildText(mode, selectedExpansions, catalog, quantities, heading, varia
   return `${withHeading}\n\n${FOOTER_URL}`
 }
 
+/* LA PLANILLA COMO IMAGEN: la misma tabla dibujada a mano en un canvas y bajada como
+   PNG — en WhatsApp una imagen se previsualiza en el chat, cosa que el PDF no hace.
+   Sin librerías, como los fuegos del festejo: la planilla es una grilla perfectamente
+   regular y dibujarla son cuatro bucles. Se dibuja a 2× para que no salga borrosa en
+   pantallas densas, y los textos van como texto del canvas, que no depende de ningún
+   «gráficos de fondo» — la misma lección del PDF. */
+function sheetImageCanvas(table, legendDate) {
+  const { exp, cols, rows, offeredCells, ownedCells } = table
+
+  /* Medición en un contexto descartable: el ancho de la columna de la carta lo manda el
+     rótulo más largo (las únicas llevan nombre), y el alto del encabezado, el nombre de
+     fondo más largo, que va parado. */
+  const probe = document.createElement('canvas').getContext('2d')
+  probe.font = '12px system-ui, sans-serif'
+  const cardW = Math.ceil(Math.max(60, ...rows.map((r) => probe.measureText(r.label).width + 16)))
+  probe.font = '600 11px system-ui, sans-serif'
+  const headH = Math.ceil(Math.max(...cols.map((v) => probe.measureText(v.nombre).width)) + 18)
+  const colW = 26
+  const rowH = 22
+  const pad = 14
+  const titleH = 48
+  const w = pad * 2 + cardW + cols.length * colW
+  const h = titleH + headH + rows.length * rowH + pad
+
+  const SCALE = 2
+  const canvas = document.createElement('canvas')
+  canvas.width = w * SCALE
+  canvas.height = h * SCALE
+  const ctx = canvas.getContext('2d')
+  ctx.scale(SCALE, SCALE)
+
+  ctx.fillStyle = '#fff'
+  ctx.fillRect(0, 0, w, h)
+  ctx.fillStyle = '#1a1a1a'
+  ctx.font = '700 15px system-ui, sans-serif'
+  ctx.fillText(`${exp.nombre} · ${ownedCells} de ${offeredCells} variantes`, pad, 21)
+  ctx.fillStyle = '#555'
+  ctx.font = '11px system-ui, sans-serif'
+  ctx.fillText(`✓ la tenés · vacía: te falta · — no existe en ese fondo · ${legendDate}`, pad, 38)
+
+  const left = pad
+  const top = titleH
+  ctx.textBaseline = 'middle'
+
+  /* Los nombres de los fondos, parados como en la hoja. */
+  ctx.fillStyle = '#1a1a1a'
+  ctx.font = '600 11px system-ui, sans-serif'
+  cols.forEach((v, i) => {
+    ctx.save()
+    ctx.translate(left + cardW + i * colW + colW / 2, top + headH - 8)
+    ctx.rotate(-Math.PI / 2)
+    ctx.fillText(v.nombre, 0, 0)
+    ctx.restore()
+  })
+
+  rows.forEach((r, ri) => {
+    const y = top + headH + ri * rowH
+    ctx.fillStyle = '#1a1a1a'
+    ctx.font = '12px system-ui, sans-serif'
+    ctx.textAlign = 'left'
+    ctx.fillText(r.label, left + 6, y + rowH / 2 + 1)
+    ctx.textAlign = 'center'
+    r.cells.forEach((cell, ci) => {
+      const x = left + cardW + ci * colW
+      if (!cell) {
+        ctx.fillStyle = '#d9d9d9'
+        ctx.fillRect(x, y, colW, rowH)
+        ctx.fillStyle = '#8a8a8a'
+        ctx.font = '12px system-ui, sans-serif'
+        ctx.fillText('—', x + colW / 2, y + rowH / 2 + 1)
+      } else if (cell.owned) {
+        ctx.fillStyle = '#1a1a1a'
+        ctx.font = '700 13px system-ui, sans-serif'
+        ctx.fillText('✓', x + colW / 2, y + rowH / 2 + 1)
+      }
+    })
+    ctx.textAlign = 'left'
+  })
+
+  /* La grilla de líneas, al final para que pase por encima de los fondos grises. */
+  ctx.strokeStyle = '#bbb'
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  const gridBottom = top + headH + rows.length * rowH
+  for (let i = 0; i <= cols.length + 1; i++) {
+    const x = left + (i === 0 ? 0 : cardW + (i - 1) * colW)
+    ctx.moveTo(x, top)
+    ctx.lineTo(x, gridBottom)
+  }
+  for (let i = 0; i <= rows.length + 1; i++) {
+    const y = top + (i === 0 ? 0 : headH + (i - 1) * rowH)
+    ctx.moveTo(left, y)
+    ctx.lineTo(left + cardW + cols.length * colW, y)
+  }
+  ctx.stroke()
+  return canvas
+}
+
 /* LA PLANILLA DE VARIANTES: la tabla de la verdad de cada carta con variantes — qué
    fondos existen para ella, cuáles tenés y cuáles te faltan — como las planillas de
    papel que se marcan con cruces, pero armada con TUS datos. Se imprime con el
@@ -288,6 +387,13 @@ function VariantsSheet({ catalog, quantities, heading, onClose }) {
     window.print()
   }
 
+  function downloadImage() {
+    if (!tables.length) return
+    sheetImageCanvas(tables[0], legendDate).toBlob((blob) => {
+      if (blob) downloadBlob(blob, `planilla-${tables[0].exp.id}.png`)
+    }, 'image/png')
+  }
+
   const tables = []
   for (const exp of catalog) {
     const cols = exp.variantes ?? []
@@ -306,10 +412,12 @@ function VariantsSheet({ catalog, quantities, heading, onClose }) {
         if (owned) ownedCells++
         return { owned }
       })
-      rows.push({ n, name: exp.detalle?.[n]?.nombre ?? null, cells })
+      const name = exp.detalle?.[n]?.nombre ?? null
+      rows.push({ n, label: cardLabel(exp, n) + (name ? ` · ${name}` : ''), cells })
     }
     if (rows.length) tables.push({ exp, cols, rows, offeredCells, ownedCells })
   }
+  const legendDate = new Date().toLocaleDateString('es-AR')
 
   return createPortal(
     /* El stopPropagation no es opcional: un portal burbujea por el árbol de REACT, así
@@ -317,13 +425,16 @@ function VariantsSheet({ catalog, quantities, heading, onClose }) {
     <div className="print-sheet" onClick={(e) => e.stopPropagation()}>
       <div className="print-sheet-bar">
         <button className="secondary" onClick={onClose}>Volver</button>
-        <button className="primary" onClick={printSheet}>Imprimir o guardar PDF</button>
+        <div className="print-sheet-actions">
+          <button className="secondary" onClick={downloadImage}>Descargar imagen</button>
+          <button className="primary" onClick={printSheet}>Imprimir o guardar PDF</button>
+        </div>
       </div>
       <div className="print-sheet-body">
         <h1>{heading ? `${heading} · ` : ''}Planilla de variantes</h1>
         <p className="print-sheet-legend">
           ✓ la tenés · vacía: te falta · — no existe en ese fondo
-          · {new Date().toLocaleDateString('es-AR')}
+          · {legendDate}
         </p>
         {tables.map(({ exp, cols, rows, offeredCells, ownedCells }) => (
           <section key={exp.id} className="print-table">
@@ -340,9 +451,9 @@ function VariantsSheet({ catalog, quantities, heading, onClose }) {
                 </tr>
               </thead>
               <tbody>
-                {rows.map(({ n, name, cells }) => (
+                {rows.map(({ n, label, cells }) => (
                   <tr key={n}>
-                    <td className="card-col">{cardLabel(exp, n)}{name ? ` · ${name}` : ''}</td>
+                    <td className="card-col">{label}</td>
                     {/* La celda ausente lleva un «—» DE TEXTO además del fondo gris: el
                         diálogo de imprimir trae «gráficos de fondo» apagado por omisión
                         y el gris desaparecía del PDF — el texto se imprime siempre. */}
