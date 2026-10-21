@@ -2023,7 +2023,16 @@ body.with-install-bar { padding-bottom: var(--install-height, 150px); }
   z-index: 1;
   background: #fff;
 }
-.print-table td.absent { background: #d9d9d9; }
+/* El gris se fuerza a imprimirse (print-color-adjust): el diálogo de imprimir trae
+   «gráficos de fondo» apagado por omisión y las celdas de «no existe» desaparecían del
+   PDF. El «—» de texto que llevan además es el cinturón: el texto se imprime siempre,
+   en cualquier navegador e impresora. */
+.print-table td.absent {
+  background: #d9d9d9;
+  color: #8a8a8a;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
 .print-table td.owned { font-weight: 700; }
 /* Que una fila no se parta entre dos hojas, y que el encabezado se repita en cada una
    (table-header-group es el que lo hace; los navegadores lo traen de fábrica en thead). */

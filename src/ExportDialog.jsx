@@ -322,7 +322,7 @@ function VariantsSheet({ catalog, quantities, heading, onClose }) {
       <div className="print-sheet-body">
         <h1>{heading ? `${heading} · ` : ''}Planilla de variantes</h1>
         <p className="print-sheet-legend">
-          ✓ la tenés · vacía: te falta · gris: no existe en ese fondo
+          ✓ la tenés · vacía: te falta · — no existe en ese fondo
           · {new Date().toLocaleDateString('es-AR')}
         </p>
         {tables.map(({ exp, cols, rows, offeredCells, ownedCells }) => (
@@ -343,9 +343,12 @@ function VariantsSheet({ catalog, quantities, heading, onClose }) {
                 {rows.map(({ n, name, cells }) => (
                   <tr key={n}>
                     <td className="card-col">{cardLabel(exp, n)}{name ? ` · ${name}` : ''}</td>
+                    {/* La celda ausente lleva un «—» DE TEXTO además del fondo gris: el
+                        diálogo de imprimir trae «gráficos de fondo» apagado por omisión
+                        y el gris desaparecía del PDF — el texto se imprime siempre. */}
                     {cells.map((c, i) => (
                       <td key={cols[i].id} className={c ? (c.owned ? 'owned' : '') : 'absent'}>
-                        {c?.owned ? '✓' : ''}
+                        {c ? (c.owned ? '✓' : '') : '—'}
                       </td>
                     ))}
                   </tr>
