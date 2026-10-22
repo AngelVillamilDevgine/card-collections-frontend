@@ -361,12 +361,15 @@ function sheetImageCanvas(table, legendDate) {
 function VariantsSheet({ catalog, quantities, heading, onClose }) {
   const [imageStatus, setImageStatus] = useState(null)
   const imageTimerRef = useRef(null)
+  const [copyStatus, setCopyStatus] = useState(null)
+  const copyTimerRef = useRef(null)
   useEffect(() => {
     document.body.classList.add('print-sheet-open')
     return () => {
       document.body.classList.remove('print-sheet-open')
       document.getElementById('print-page-size')?.remove()
       clearTimeout(imageTimerRef.current)
+      clearTimeout(copyTimerRef.current)
     }
   }, [])
 
@@ -405,6 +408,26 @@ function VariantsSheet({ catalog, quantities, heading, onClose }) {
     }, 'image/png')
   }
 
+  /* Copiar la imagen al portapapeles, para pegarla directo en el chat sin pasar por
+     Descargas. EL BLOB VA COMO PROMESA ADENTRO DEL ClipboardItem, no esperado antes:
+     toBlob es asíncrono y en Safari el permiso de escribir el portapapeles caduca con
+     el gesto — esperar primero y escribir después falla justo ahí. El botón existe
+     sólo donde la API existe (canCopyImage): uno que falla es peor que ninguno. */
+  function copyImage() {
+    if (!tables.length) return
+    const blob = new Promise((resolve, reject) =>
+      sheetImageCanvas(tables[0], legendDate).toBlob((b) => (b ? resolve(b) : reject(new Error('sin blob'))), 'image/png')
+    )
+    const note = (text) => {
+      setCopyStatus(text)
+      clearTimeout(copyTimerRef.current)
+      copyTimerRef.current = setTimeout(() => setCopyStatus(null), 4000)
+    }
+    navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+      .then(() => note('Copiada ✓'))
+      .catch(() => note('No se pudo copiar'))
+  }
+
   const tables = []
   for (const exp of catalog) {
     const cols = exp.variantes ?? []
@@ -437,6 +460,9 @@ function VariantsSheet({ catalog, quantities, heading, onClose }) {
       <div className="print-sheet-bar">
         <button className="secondary" onClick={onClose}>Volver</button>
         <div className="print-sheet-actions">
+          {typeof ClipboardItem !== 'undefined' && !!navigator.clipboard?.write && (
+            <button className="secondary" onClick={copyImage}>{copyStatus ?? 'Copiar imagen'}</button>
+          )}
           <button className="secondary" onClick={downloadImage}>{imageStatus ?? 'Descargar imagen'}</button>
           <button className="primary" onClick={printSheet}>Imprimir o guardar PDF</button>
         </div>
