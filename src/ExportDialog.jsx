@@ -359,11 +359,14 @@ function sheetImageCanvas(table, legendDate) {
    Va por PORTAL a body y no adentro del diálogo: el @media print esconde #root entero
    y deja sólo esto — con la planilla anidada en la app, esconder la app la escondía. */
 function VariantsSheet({ catalog, quantities, heading, onClose }) {
+  const [imageStatus, setImageStatus] = useState(null)
+  const imageTimerRef = useRef(null)
   useEffect(() => {
     document.body.classList.add('print-sheet-open')
     return () => {
       document.body.classList.remove('print-sheet-open')
       document.getElementById('print-page-size')?.remove()
+      clearTimeout(imageTimerRef.current)
     }
   }, [])
 
@@ -387,10 +390,18 @@ function VariantsSheet({ catalog, quantities, heading, onClose }) {
     window.print()
   }
 
+  /* El botón DICE que descargó, como el «Copiar» de las listas: en el teléfono la
+     descarga es una notificación silenciosa, y sin señal el paso siguiente natural es
+     tocar el OTRO botón — que abre el diálogo de imprimir, y parece que «descargar
+     imagen» creó un PDF. Pasó de verdad. */
   function downloadImage() {
     if (!tables.length) return
     sheetImageCanvas(tables[0], legendDate).toBlob((blob) => {
-      if (blob) downloadBlob(blob, `planilla-${tables[0].exp.id}.png`)
+      if (!blob) return
+      downloadBlob(blob, `planilla-${tables[0].exp.id}.png`)
+      setImageStatus('Descargada ✓')
+      clearTimeout(imageTimerRef.current)
+      imageTimerRef.current = setTimeout(() => setImageStatus(null), 4000)
     }, 'image/png')
   }
 
@@ -426,7 +437,7 @@ function VariantsSheet({ catalog, quantities, heading, onClose }) {
       <div className="print-sheet-bar">
         <button className="secondary" onClick={onClose}>Volver</button>
         <div className="print-sheet-actions">
-          <button className="secondary" onClick={downloadImage}>Descargar imagen</button>
+          <button className="secondary" onClick={downloadImage}>{imageStatus ?? 'Descargar imagen'}</button>
           <button className="primary" onClick={printSheet}>Imprimir o guardar PDF</button>
         </div>
       </div>

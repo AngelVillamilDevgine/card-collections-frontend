@@ -1968,14 +1968,19 @@ body.with-install-bar { padding-bottom: var(--install-height, 150px); }
   overflow-y: auto;
   overscroll-behavior: contain;
 }
+/* LAS CAPAS DE LA HOJA SON UN CONTRATO, porque acá ya hubo tres bugs de pisado: la
+   barra va en z 2 (encima de TODO lo que scrollea), la columna fija «Carta» en z 1
+   (encima de las celdas de su fila mientras la tabla se desliza), y el resto en auto.
+   A IGUAL z-index gana el que viene después en el DOM — con la barra y la columna las
+   dos en 1, los números pisaban a la barra al scrollear. Si se agrega otra cosa
+   pegajosa, entra en esta escalera, no con un z inventado. */
 .print-sheet-bar {
   position: sticky;
   top: 0;
-  /* Encima de las tablas: sin esto, los encabezados se dibujaban a través de la barra. */
-  z-index: 1;
+  z-index: 2;
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  gap: 14px;
   padding: 10px 16px;
   background: #fff;
   border-bottom: 1px solid #ddd;
@@ -1988,7 +1993,10 @@ body.with-install-bar { padding-bottom: var(--install-height, 150px); }
 /* Los dos botones de la derecha van juntos y la barra puede envolver: a 320 los tres
    («Volver», imagen y PDF) no entran en un renglón. */
 .print-sheet-bar { flex-wrap: wrap; }
-.print-sheet-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+/* 14 de aire entre «Descargar imagen» e «Imprimir»: con 10, en el teléfono un pulgar
+   que caía apenas a la derecha tocaba el de al lado — y «descargar imagen» parecía
+   abrir el diálogo de PDF. */
+.print-sheet-actions { display: flex; gap: 14px; flex-wrap: wrap; }
 
 .print-sheet-body { max-width: 900px; margin: 0 auto; padding: 18px 16px 40px; }
 .print-sheet-body h1 { font-size: 20px; margin: 0 0 4px; }
@@ -2018,7 +2026,9 @@ body.with-install-bar { padding-bottom: var(--install-height, 150px); }
   white-space: nowrap;
 }
 /* La columna de la carta queda FIJA al scrollear la tabla de costado: sin saber en qué
-   fila estás, las tildes no dicen nada. El fondo es obligatorio — sticky no tapa solo. */
+   fila estás, las tildes no dicen nada. El fondo es obligatorio — sticky no tapa solo —
+   y el box-shadow repone el borde derecho: con border-collapse, el borde de una celda
+   pegajosa es compartido y se va scrolleando con la vecina. */
 .print-table .card-col {
   text-align: left;
   white-space: nowrap;
@@ -2027,6 +2037,7 @@ body.with-install-bar { padding-bottom: var(--install-height, 150px); }
   left: 0;
   z-index: 1;
   background: #fff;
+  box-shadow: 1px 0 0 #bbb;
 }
 /* El gris se fuerza a imprimirse (print-color-adjust): el diálogo de imprimir trae
    «gráficos de fondo» apagado por omisión y las celdas de «no existe» desaparecían del
