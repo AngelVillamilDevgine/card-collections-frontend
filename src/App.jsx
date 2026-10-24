@@ -39,6 +39,7 @@ import { whatIsStale, staleText } from './health'
 import { ErrorBoundary } from './ErrorBoundary'
 import { whatsappTo, suggestionText } from './contact'
 import { COLLECTIONS, DEFAULT_COLLECTION, readCollection, rememberCollection, loadCatalogs, slotKey, slotsOf, variantsFor, missingVariantsOf, drawableVariants, pointsToASlot, cardLabel, cardDetail, albumPercent, albumTally, closestToComplete, slotOf, slotName, orphanName, completionBy } from './collections'
+import ConnectionTrouble, { AUTO_RETRY_SECONDS } from './ConnectionTrouble'
 import {
   ApiError,
   downloadJson, readBackupFile, fetchAccount, logout,
@@ -649,6 +650,12 @@ function ChangePasswordDialog({ onClose, onSessionExpired, forced = false }) {
 
 const EMPTY_COLLECTION = { estados: {}, cantidades: {} }
 
+/* Lo técnico de un error de carga, para el WhatsApp de la pantalla de «no hay conexión»:
+   el mensaje y, si hubo respuesta, el código HTTP — que es lo que dice dónde se cortó
+   (521: Cloudflare no llega al servidor; 500: la app). */
+const loadErrorDetail = (e) =>
+  (e?.status ? `${e.message} (HTTP ${e.status})` : e?.message) || 'Sin respuesta del servidor.'
+
 /* Para el pie: de dónde es la app y cómo apoyar al que la hizo. */
 const SITE_URL = 'www.cromeros.com.ar'
 const ALIAS = 'angel.villamil'
@@ -765,6 +772,12 @@ export default function App() {
      sin salida— pero nunca en el otro: si dice que no, no hay red. Alcanza para no
      mandar a mirar la conexión cuando la conexión ya volvió. */
   const [isOnline, setIsOnline] = useState(() => navigator.onLine !== false)
+  /* La pantalla de «no hay conexión» (ConnectionTrouble) vive en su propio estado y no
+     se apaga al tocar Reintentar: `startupError` y `error` se limpian para volver a
+     pedir, pero `trouble` sigue hasta que la carga sale BIEN. `at` es la hora del último
+     intento fallido y `detail`, lo técnico que viaja en el WhatsApp. */
+  const [trouble, setTrouble] = useState(null)
+  const [retrying, setRetrying] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
   /* El panel vive en el hash `#panel`, y no en un booleano suelto, por una razón muy
      concreta de teléfono: ATRÁS TIENE QUE CERRARLO. Con un booleano, el primer botón que
@@ -1033,10 +1046,10 @@ export default function App() {
     setStartupError(null)
     fetchAccount()
       .then((c) => setAccount(c))
-      /* Texto propio y no el del error: acá el mensaje de la API es genérico («No se
-         pudo completar la operación») y no dice lo único que el usuario necesita saber,
-         que es que el problema no es suyo y que su sesión sigue abierta. */
-      .catch(() => setStartupError('No se pudo conectar con el servidor. Tu sesión sigue abierta: probá de nuevo en un momento.'))
+      /* Lo que se guarda es el DETALLE técnico y no un texto para mostrar: lo que lee la
+         persona lo escribe ConnectionTrouble —que su sesión sigue abierta y que no tiene
+         que hacer nada—, y esto viaja adentro del WhatsApp. */
+      .catch((e) => setStartupError(loadErrorDetail(e)))
   }, [reloadCount])
 
   /* La colección es la del usuario: se pide al entrar y se olvida al salir.
@@ -1074,7 +1087,7 @@ export default function App() {
       .then((d) => { lastReadAt.current = Date.now(); setCollectionData(d); setCollectionLoaded(true) })
       // Si el token ya no sirve, a la pantalla de entrada: un cartel de error con un
       // solo botón de Salir no le sirve a nadie.
-      .catch((e) => (e?.sessionExpired ? handleSessionExpired() : setError(e.message)))
+      .catch((e) => (e?.sessionExpired ? handleSessionExpired() : setError(loadErrorDetail(e))))
   }, [account, reloadCount])
 
   /* Se mira la red para dos cosas: no mandar a revisar la conexión cuando ya volvió, y
@@ -1088,6 +1101,47 @@ export default function App() {
     addEventListener('offline', updateOnline)
     return () => { removeEventListener('online', updateOnline); removeEventListener('offline', updateOnline) }
   }, [])
+
+  /* Cuándo se prende y cuándo se apaga la pantalla de «no hay conexión».
+     El error de la colección o del catálogo sólo cuenta con sesión: sin cuenta va la
+     pantalla de entrada, igual que antes. */
+  const loadError = startupError ?? (account ? error : null)
+  useEffect(() => {
+    if (!loadError) return
+    setTrouble({ at: new Date(), detail: loadError })
+    setRetrying(false)
+  }, [loadError])
+
+  /* Se apaga recién cuando hay con qué dibujar: la cuenta (o la certeza de que no hay
+     sesión) y, con sesión, el catálogo y la colección. Apagarla apenas se toca Reintentar
+     era el «Cargando…» de medio segundo que hacía parecer muerto al botón. */
+  const loadedEnough = account === null || Boolean(account && catalog && collectionLoaded)
+  useEffect(() => {
+    if (trouble && !loadError && loadedEnough) {
+      setTrouble(null)
+      setRetrying(false)
+    }
+  }, [trouble, loadError, loadedEnough])
+
+  function retryNow() {
+    setRetrying(true)
+    setStartupError(null)
+    setError(null)
+    setReloadCount((n) => n + 1)
+  }
+
+  /* Reintenta sola mientras la pantalla esté puesta. `trouble` cambia en cada intento
+     fallido (trae la hora nueva), así que el reloj se vuelve a armar solo. */
+  useEffect(() => {
+    if (!trouble || retrying) return
+    const timer = setTimeout(retryNow, AUTO_RETRY_SECONDS * 1000)
+    return () => clearTimeout(timer)
+  }, [trouble, retrying])
+
+  /* Y apenas vuelve internet, sin esperar los treinta segundos. */
+  useEffect(() => {
+    if (isOnline && trouble && !retrying) retryNow()
+  }, [isOnline])
 
   useEffect(() => {
     if (!isOnline) return
@@ -1886,32 +1940,22 @@ export default function App() {
 
   /* Va ANTES del formulario de entrada a propósito: si el servidor no contesta, mandar
      a alguien a escribir usuario y clave es mentirle sobre lo que pasó y encima no le
-     sirve de nada, porque tampoco va a poder entrar. */
-  if (startupError) return (
-    <div className="sheet">
-      <p className="loading">{startupError}</p>
-      <p className="error-actions">
-        <button className="retry" onClick={() => setReloadCount((n) => n + 1)}>Reintentar</button>
-      </p>
-    </div>
+     sirve de nada, porque tampoco va a poder entrar. Y con sesión, un corte de dos
+     segundos al abrir o un deploy a medio terminar no puede dejar como única salida
+     desloguearse: se reintenta sin perder la sesión, y «Salir» queda callado abajo. */
+  if (trouble) return (
+    <ConnectionTrouble
+      offline={!isOnline}
+      retrying={retrying}
+      lastAttemptAt={trouble.at}
+      detail={trouble.detail}
+      username={account?.username}
+      onRetry={retryNow}
+      onLogout={account ? handleLogout : null}
+    />
   )
   if (account === undefined) return <div className="sheet"><p className="loading">Cargando…</p></div>
   if (!account) return <Login notice={sessionNotice} onLogin={(c) => { setSessionNotice(null); setAccount(c) }} />
-
-  /* Un corte de dos segundos al abrir, o el servidor reiniciándose durante un deploy,
-     dejaban una pantalla con un texto y un único botón de Salir: la única salida era
-     desloguearse. Ahora se puede volver a intentar sin perder la sesión. */
-  if (error) return (
-    <div className="sheet">
-      <p className="loading">{error}</p>
-      <p className="error-actions">
-        <button className="retry" onClick={() => { setError(null); setReloadCount((n) => n + 1) }}>
-          Reintentar
-        </button>
-        <button className="secondary" onClick={handleLogout}>Salir</button>
-      </p>
-    </div>
-  )
   /* LA GRILLA NO SE DIBUJA HASTA QUE LLEGÓ LA COLECCIÓN, y no es cosmético.
      `collectionData` arranca en `EMPTY_COLLECTION`, así que apenas contestan `/api/yo` y el catálogo se
      dibujaban las 1936 cartas en «me falta» mientras `/api/coleccion` seguía viajando.

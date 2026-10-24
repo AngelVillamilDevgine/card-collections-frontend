@@ -1550,6 +1550,83 @@ button { cursor: pointer; }
 }
 .retry:hover { filter: brightness(1.06); }
 
+/* -------------------------- no hay conexión -------------------------- */
+
+/* La pantalla de cuando el servidor no contesta (ConnectionTrouble). Escrita para bajar la
+   tensión: una columna angosta de lectura —en escritorio no se estira, en el teléfono
+   ocupa el ancho con los márgenes de siempre—, el logo arriba para que se note que sigue
+   siendo la misma app y no una página rota, y una sola acción fuerte. */
+.trouble {
+  max-width: 440px;
+  margin: clamp(28px, 9vh, 96px) auto 48px;
+  text-align: center;
+}
+.trouble-logo { display: block; width: 190px; height: auto; margin: 0 auto 22px; }
+.trouble-card {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 28px 24px 22px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+.trouble-icon { display: block; margin: 0 auto 10px; color: var(--ink2); }
+.trouble h1 { font-size: 20px; line-height: 1.3; margin: 0 0 10px; }
+/* El título recibe el foco al entrar sólo para que el lector de pantalla lo anuncie: no
+   es un control, así que no lleva anillo. */
+.trouble h1:focus { outline: none; }
+.trouble-calm { color: var(--ink2); margin: 0 0 22px; }
+.trouble-retry {
+  width: 100%;
+  margin-top: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.trouble-spinner {
+  width: 15px;
+  height: 15px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: trouble-spin 0.8s linear infinite;
+}
+@keyframes trouble-spin { to { transform: rotate(360deg); } }
+/* Quieto, pero sigue estando: el anillo cortado dice «esperando» igual. */
+@media (prefers-reduced-motion: reduce) { .trouble-spinner { animation: none; } }
+.trouble-status { font-size: 13px; color: var(--ink3); margin: 10px 0 0; }
+.trouble-last { display: block; }
+/* `balance` reparte los renglones parejo: sin eso, a 320 px quedaban palabras sueltas. */
+.trouble h1,
+.trouble-calm,
+.trouble-status { text-wrap: balance; }
+.trouble-help { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); }
+.trouble-help p { margin: 0 0 8px; font-size: 13px; color: var(--ink3); }
+.trouble-contact {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 10px 14px;
+  border: 1px solid var(--line2);
+  border-radius: 6px;
+  background: var(--white);
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: none;
+}
+.trouble-contact:hover { border-color: var(--accent); color: var(--accent); }
+.trouble-retry:focus-visible,
+.trouble-contact:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.trouble-logout { margin-top: 14px; }
+
+@media (max-width: 560px) {
+  .trouble-logo { width: 160px; margin-bottom: 18px; }
+  .trouble-card { padding: 24px 18px 18px; border-radius: 12px; }
+  .trouble h1 { font-size: 19px; }
+}
+
 .footer .notice-file { color: var(--replace-ink); font-size: 13px; }
 
 .footer .logout:hover:not(:disabled) { border-color: var(--replace-line); color: var(--replace-ink); }

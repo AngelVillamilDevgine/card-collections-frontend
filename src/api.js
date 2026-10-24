@@ -106,7 +106,12 @@ async function request(path, options = {}) {
   }
   if (!r.ok) {
     const data = await r.json().catch(() => null)
-    throw new ApiError(data?.error ?? 'No se pudo completar la operación.')
+    /* El código viaja en el error porque es lo único que dice DÓNDE se cortó: un 521 es
+       Cloudflare sin poder llegar al servidor, un 500 es la app. No se le muestra a nadie;
+       va adentro del WhatsApp de la pantalla de «no hay conexión». */
+    const failed = new ApiError(data?.error ?? 'No se pudo completar la operación.')
+    failed.status = r.status
+    throw failed
   }
   /* UN 200 QUE NO ES JSON TAMPOCO PUEDE MOSTRAR EL ERROR CRUDO. El `!r.ok` de arriba ya
      lo contempla; acá faltaba, así que el mensaje que veía la persona era literalmente

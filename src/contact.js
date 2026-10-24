@@ -18,3 +18,12 @@ export const forgotPasswordText = (who) =>
 /* Termina en un espacio: lo que sigue lo escribe la persona. */
 export const suggestionText = (who) =>
   'Hola Angel, te escribo desde la app de cromeros.com.ar' + (who ? ` (mi usuario es ${who})` : '') + ': '
+
+/* Cuando la app no logra hablar con el servidor. Lleva la hora del último intento y el
+   detalle técnico: a la persona no le sirven y por eso la pantalla no los muestra, pero a
+   Angel le dicen dónde se cortó sin tener que preguntar. */
+export const outageText = (who, time, detail) =>
+  'Hola Angel, la app de cromeros.com.ar no me conecta con el servidor' +
+  (who ? ` (mi usuario es ${who})` : '') + '.' +
+  (time ? ` Último intento: ${time}.` : '') +
+  (detail ? ` Dice: ${detail}` : '')
