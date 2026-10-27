@@ -300,7 +300,22 @@ test('lo que sumó el APK 7.3 del tracker, carta por carta', () => {
   for (const n of [385, 386, 388, 394, 395, 397, 398, 399, 400, 401])
     assert.deepEqual(offeredIds('ley-4', n), ['com', 'gci', 'gli'], `${n}`)
   for (let n = 504; n <= 513; n++) assert.deepEqual(offeredIds('ley-f', n), ['com', 'gci', 'gli'], `F${n}`)
-  for (let n = 544; n <= 550; n++) assert.deepEqual(offeredIds('ley-4', n), ['azu', 'dor', 'gci', 'gli', 'nar', 'pla'], `${n}`)
+  /* La «hol» de 544–550 es del 7.8.6 (abajo); el resto es la foto del 7.3. */
+  for (let n = 544; n <= 550; n++) assert.deepEqual(offeredIds('ley-4', n), ['azu', 'dor', 'gci', 'gli', 'hol', 'nar', 'pla'], `${n}`)
+})
+
+/* LO QUE SUMÓ EL APK 7.8.6 (2026-10-27), todo en Expansión 4 y calzando justo con los
+   grupos que ya estaban: Dorado al grupo de 18 y a la 537, Holográfica al de 11 y al de
+   544–550. Fuera de eso el 7.8.6 no trae nada nuevo para nosotros: lo demás que «cambió»
+   son cosas que el tracker tiene de menos y acá se quedan (las ocho de Angel, la Azul de
+   Personajes, las únicas en plata y dorado). */
+test('lo que sumó el APK 7.8.6 del tracker, carta por carta', () => {
+  const offeredIds = (expId, n) => variantsFor(appExpansion(expId), n).map((v) => v.id).sort()
+  for (const n of [425, 427, 429, 437, 440, 441, 442, 486, 498, 500, 502, 504, 515, 529, 530, 531, 533, 536])
+    assert.deepEqual(offeredIds('ley-4', n), ['dor', 'gci', 'gli', 'hol', 'nar', 'roj', 'ros'], `${n}`)
+  for (const n of [418, 449, 452, 454, 460, 470, 471, 472, 484, 485, 505])
+    assert.deepEqual(offeredIds('ley-4', n), ['azu', 'dor', 'gci', 'gli', 'hol', 'nar', 'pla'], `${n}`)
+  assert.deepEqual(offeredIds('ley-4', 537), ['azu', 'com', 'dor', 'nar', 'pla'], '537')
 })
 
 /* LO QUE EL TRACKER SACÓ Y ACÁ SE QUEDA. La 7.3 le sacó la Azul a 21 cartas de Personajes, y

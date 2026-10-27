@@ -543,6 +543,11 @@
         {
           "variantes": [
             {
+              "id": "dor",
+              "corto": "Dor",
+              "nombre": "Dorado"
+            },
+            {
               "id": "gci",
               "corto": "Gci",
               "nombre": "Glitter círculos"
@@ -617,6 +622,11 @@
               "nombre": "Glitter"
             },
             {
+              "id": "hol",
+              "corto": "Hol",
+              "nombre": "Holográfica"
+            },
+            {
               "id": "nar",
               "corto": "Nar",
               "nombre": "Naranja"
@@ -662,6 +672,11 @@
               "id": "gli",
               "corto": "Gli",
               "nombre": "Glitter"
+            },
+            {
+              "id": "hol",
+              "corto": "Hol",
+              "nombre": "Holográfica"
             },
             {
               "id": "nar",
@@ -792,6 +807,11 @@
               "id": "com",
               "corto": "Com",
               "nombre": "Común"
+            },
+            {
+              "id": "dor",
+              "corto": "Dor",
+              "nombre": "Dorado"
             },
             {
               "id": "nar",
