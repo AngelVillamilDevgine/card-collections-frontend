@@ -246,12 +246,10 @@ function buildText(mode, selectedExpansions, catalog, quantities, heading, varia
   return `${withHeading}\n\n${FOOTER_URL}`
 }
 
-/* LA PLANILLA COMO IMAGEN: la misma tabla dibujada a mano en un canvas y bajada como
-   PNG — en WhatsApp una imagen se previsualiza en el chat, cosa que el PDF no hace.
-   Sin librerías, como los fuegos del festejo: la planilla es una grilla perfectamente
-   regular y dibujarla son cuatro bucles. Se dibuja a 2× para que no salga borrosa en
-   pantallas densas, y los textos van como texto del canvas, que no depende de ningún
-   «gráficos de fondo» — la misma lección del PDF. */
+/* LA PLANILLA COMO IMAGEN: la tabla dibujada a mano en un canvas y exportada como
+   PNG — en WhatsApp una imagen se previsualiza en el chat. Sin librerías, como los
+   fuegos del festejo: la planilla es una grilla perfectamente regular y dibujarla son
+   cuatro bucles. Se dibuja a 2× para que no salga borrosa en pantallas densas. */
 function sheetImageCanvas(table, legendDate) {
   const { exp, cols, rows, offeredCells, ownedCells } = table
 
@@ -346,57 +344,34 @@ function sheetImageCanvas(table, legendDate) {
 
 /* LA PLANILLA DE VARIANTES: la tabla de la verdad de cada carta con variantes — qué
    fondos existen para ella, cuáles tenés y cuáles te faltan — como las planillas de
-   papel que se marcan con cruces, pero armada con TUS datos. Se imprime con el
-   «Guardar como PDF» del navegador: cero librerías, y anda también en el teléfono.
+   papel que se marcan con cruces, pero armada con TUS datos. Sale como IMAGEN (PNG):
+   copiada al portapapeles o descargada, que es lo que se pega en el chat. HUBO un
+   camino de imprimir / guardar PDF y se sacó el 2026-10-27 a pedido de Angel («no
+   quiero ningún pdf, quiero imagen»): no reintroducirlo.
 
    Filas: sólo las cartas que tienen variantes ofrecidas (el resto no tiene nada que
    decir acá). Columnas: las variantes DECLARADAS de la expansión, en su orden. Celda:
-   tildada si tenés ese fondo, vacía si existe y te falta, gris si esa carta no sale en
-   ese fondo — que es un dato, no un hueco. El nombre de la carta va sólo donde el
-   catálogo lo sabe (`detalle`, hoy las nueve únicas); para las demás, el número con su
-   prefijo, que es como se piden.
+   tildada si tenés ese fondo, vacía si existe y te falta, gris con «—» si esa carta no
+   sale en ese fondo — que es un dato, no un hueco. El nombre de la carta va sólo donde
+   el catálogo lo sabe (`detalle`, hoy las nueve únicas); para las demás, el número con
+   su prefijo, que es como se piden.
 
-   Va por PORTAL a body y no adentro del diálogo: el @media print esconde #root entero
-   y deja sólo esto — con la planilla anidada en la app, esconder la app la escondía. */
+   Lo que se ve en pantalla es la vista previa de esa imagen. Va por PORTAL a body y no
+   adentro del diálogo: es una página entera encima de todo, no una caja más adentro de
+   la caja del diálogo, que tiene su propio alto y su propio scroll. */
 function VariantsSheet({ catalog, quantities, heading, onClose }) {
   const [imageStatus, setImageStatus] = useState(null)
   const imageTimerRef = useRef(null)
   const [copyStatus, setCopyStatus] = useState(null)
   const copyTimerRef = useRef(null)
-  useEffect(() => {
-    document.body.classList.add('print-sheet-open')
-    return () => {
-      document.body.classList.remove('print-sheet-open')
-      document.getElementById('print-page-size')?.remove()
-      clearTimeout(imageTimerRef.current)
-      clearTimeout(copyTimerRef.current)
-    }
+  useEffect(() => () => {
+    clearTimeout(imageTimerRef.current)
+    clearTimeout(copyTimerRef.current)
   }, [])
 
-  /* EL PDF SALE EN UNA SOLA HOJA LARGA, no en páginas A4 (pedido de Angel: la primera
-     página salía casi vacía — el título solo, porque una tabla más alta que una hoja no
-     puede «no partirse» y arrancaba en la siguiente). Chrome respeta `@page { size }`,
-     así que al tocar Imprimir se mide el alto real del contenido y se fabrica UNA página
-     de ese tamaño. El margen de 20 mm de sobra es a propósito: medido en pantalla
-     angosta el título envuelve distinto que impreso, y quedarse corto parte en dos — el
-     error caro; sobrar deja blanco abajo, que no molesta. */
-  function printSheet() {
-    const body = document.querySelector('.print-sheet-body')
-    const mm = Math.ceil((body.scrollHeight * 25.4) / 96) + 20
-    let style = document.getElementById('print-page-size')
-    if (!style) {
-      style = document.createElement('style')
-      style.id = 'print-page-size'
-      document.head.appendChild(style)
-    }
-    style.textContent = `@page { size: 210mm ${mm}mm; margin: 8mm; }`
-    window.print()
-  }
-
   /* El botón DICE que descargó, como el «Copiar» de las listas: en el teléfono la
-     descarga es una notificación silenciosa, y sin señal el paso siguiente natural es
-     tocar el OTRO botón — que abre el diálogo de imprimir, y parece que «descargar
-     imagen» creó un PDF. Pasó de verdad. */
+     descarga es una notificación silenciosa y, sin ninguna señal, el botón parece
+     muerto y se lo vuelve a tocar. Pasó de verdad cuando convivía con el de PDF. */
   function downloadImage() {
     if (!tables.length) return
     sheetImageCanvas(tables[0], legendDate).toBlob((blob) => {
@@ -411,8 +386,7 @@ function VariantsSheet({ catalog, quantities, heading, onClose }) {
   /* Copiar la imagen al portapapeles, para pegarla directo en el chat sin pasar por
      Descargas. EL BLOB VA COMO PROMESA ADENTRO DEL ClipboardItem, no esperado antes:
      toBlob es asíncrono y en Safari el permiso de escribir el portapapeles caduca con
-     el gesto — esperar primero y escribir después falla justo ahí. El botón existe
-     sólo donde la API existe (canCopyImage): uno que falla es peor que ninguno. */
+     el gesto — esperar primero y escribir después falla justo ahí. */
   function copyImage() {
     if (!tables.length) return
     const blob = new Promise((resolve, reject) =>
@@ -427,6 +401,11 @@ function VariantsSheet({ catalog, quantities, heading, onClose }) {
       .then(() => note('Copiada ✓'))
       .catch(() => note('No se pudo copiar'))
   }
+
+  /* El botón existe sólo donde la API del portapapeles existe: uno que falla siempre
+     es peor que ninguno. Donde no está (Firefox viejo, contexto no seguro), descargar
+     pasa a ser la acción principal. */
+  const canCopyImage = typeof ClipboardItem !== 'undefined' && !!navigator.clipboard?.write
 
   const tables = []
   for (const exp of catalog) {
@@ -460,11 +439,12 @@ function VariantsSheet({ catalog, quantities, heading, onClose }) {
       <div className="print-sheet-bar">
         <button className="secondary" onClick={onClose}>Volver</button>
         <div className="print-sheet-actions">
-          {typeof ClipboardItem !== 'undefined' && !!navigator.clipboard?.write && (
-            <button className="secondary" onClick={copyImage}>{copyStatus ?? 'Copiar imagen'}</button>
+          <button className={canCopyImage ? 'secondary' : 'primary'} onClick={downloadImage}>
+            {imageStatus ?? 'Descargar imagen'}
+          </button>
+          {canCopyImage && (
+            <button className="primary" onClick={copyImage}>{copyStatus ?? 'Copiar imagen'}</button>
           )}
-          <button className="secondary" onClick={downloadImage}>{imageStatus ?? 'Descargar imagen'}</button>
-          <button className="primary" onClick={printSheet}>Imprimir o guardar PDF</button>
         </div>
       </div>
       <div className="print-sheet-body">
@@ -491,9 +471,9 @@ function VariantsSheet({ catalog, quantities, heading, onClose }) {
                 {rows.map(({ n, label, cells }) => (
                   <tr key={n}>
                     <td className="card-col">{label}</td>
-                    {/* La celda ausente lleva un «—» DE TEXTO además del fondo gris: el
-                        diálogo de imprimir trae «gráficos de fondo» apagado por omisión
-                        y el gris desaparecía del PDF — el texto se imprime siempre. */}
+                    {/* La celda ausente lleva un «—» DE TEXTO además del fondo gris,
+                        igual que en la imagen: «no existe en ese fondo» es un dato y
+                        tiene que leerse aunque el gris pase desapercibido. */}
                     {cells.map((c, i) => (
                       <td key={cols[i].id} className={c ? (c.owned ? 'owned' : '') : 'absent'}>
                         {c ? (c.owned ? '✓' : '') : '—'}
@@ -533,8 +513,8 @@ export default function ExportDialog({ catalog, collectionData, variantsByExpans
   const [showingText, setShowingText] = useState(false)
   /* La planilla hace elegir expansión SÍ O SÍ, y UNA como máximo (pedido de Angel):
      arranca sin ninguna y elegir otra reemplaza. Una por hoja, como las planillas de
-     papel — y además la hoja del PDF es UNA página larga a medida del contenido, que
-     con varias expansiones se iría a cualquier largo. */
+     papel — y además la imagen es UN canvas a medida del contenido, que con varias
+     expansiones se iría a cualquier largo. */
   const [sheetPicking, setSheetPicking] = useState(false)
   const [sheetExpansion, setSheetExpansion] = useState(null)
   const [showingSheet, setShowingSheet] = useState(false)
@@ -672,8 +652,8 @@ export default function ExportDialog({ catalog, collectionData, variantsByExpans
                 {o.label}
               </button>
             ))}
-            {/* La planilla no es una lista de texto: es la tabla para imprimir o guardar
-                en PDF. Sólo donde hay variantes, que es lo único que cuenta. */}
+            {/* La planilla no es una lista de texto: es la tabla de fondos, que sale
+                como imagen. Sólo donde hay variantes, que es lo único que cuenta. */}
             {hasVariants && (
               <button
                 className="option simple"
@@ -683,7 +663,7 @@ export default function ExportDialog({ catalog, collectionData, variantsByExpans
                 }}
               >
                 La planilla de variantes
-                <b>para imprimir o guardar en PDF</b>
+                <b>como imagen, para compartir</b>
               </button>
             )}
             <button className="cancel" onClick={onClose}>Cancelar</button>

@@ -2033,10 +2033,10 @@ body.with-install-bar { padding-bottom: var(--install-height, 150px); }
 
 /* ---------------------------- planilla de variantes ---------------------------- */
 
-/* La tabla de la verdad de las variantes, para imprimir o guardar como PDF con el
-   diálogo del navegador. En pantalla es una página blanca encima de todo (es la vista
-   previa de lo que sale impreso); al imprimir, el @media print de abajo esconde la app
-   entera y queda sólo esto. Va por portal a body — ver la nota en ExportDialog. */
+/* La tabla de la verdad de las variantes, que sale como IMAGEN (el canvas la dibuja
+   ExportDialog). En pantalla es una página blanca encima de todo: la vista previa de
+   esa imagen. Va por portal a body — ver la nota en ExportDialog. Los nombres
+   `print-*` son de cuando se imprimía; el PDF se sacó el 2026-10-27. */
 .print-sheet {
   position: fixed;
   inset: 0;
@@ -2067,21 +2067,16 @@ body.with-install-bar { padding-bottom: var(--install-height, 150px); }
    botón quedaba flotando pelado sobre los encabezados — pasó en el teléfono, donde las
    17 columnas de Personajes no entran. */
 .print-table-scroll { overflow-x: auto; }
-/* Los dos botones de la derecha van juntos y la barra puede envolver: a 320 los tres
-   («Volver», imagen y PDF) no entran en un renglón. */
+/* Los botones de la derecha van juntos y la barra puede envolver: a 320 los tres
+   («Volver», descargar y copiar) no entran en un renglón. */
 .print-sheet-bar { flex-wrap: wrap; }
-/* 14 de aire entre «Descargar imagen» e «Imprimir»: con 10, en el teléfono un pulgar
-   que caía apenas a la derecha tocaba el de al lado — y «descargar imagen» parecía
-   abrir el diálogo de PDF. */
+/* 14 de aire entre «Descargar imagen» y «Copiar imagen»: con 10, en el teléfono un
+   pulgar que caía apenas a la derecha tocaba el de al lado. */
 .print-sheet-actions { display: flex; gap: 14px; flex-wrap: wrap; }
 
 .print-sheet-body { max-width: 900px; margin: 0 auto; padding: 18px 16px 40px; }
 .print-sheet-body h1 { font-size: 20px; margin: 0 0 4px; }
 .print-sheet-legend { color: #555; font-size: 13px; margin: 0 0 18px; }
-/* SIN break-inside: avoid-page: una tabla más alta que una hoja no puede «no partirse»,
-   así que arrancaba entera en la página siguiente y la primera quedaba casi vacía — el
-   PDF de Angel salía con una página de título solo. Además la página es una sola y a
-   medida (ver printSheet), así que no hay dónde partir. */
 .print-table { margin-bottom: 26px; }
 .print-table h2 { font-size: 15px; margin: 0 0 6px; }
 .print-table h2 span { font-weight: 400; color: #555; font-size: 13px; }
@@ -2116,27 +2111,9 @@ body.with-install-bar { padding-bottom: var(--install-height, 150px); }
   background: #fff;
   box-shadow: 1px 0 0 #bbb;
 }
-/* El gris se fuerza a imprimirse (print-color-adjust): el diálogo de imprimir trae
-   «gráficos de fondo» apagado por omisión y las celdas de «no existe» desaparecían del
-   PDF. El «—» de texto que llevan además es el cinturón: el texto se imprime siempre,
-   en cualquier navegador e impresora. */
+/* El gris de «no existe en ese fondo», con su «—» de texto: es un dato, no un hueco. */
 .print-table td.absent {
   background: #d9d9d9;
   color: #8a8a8a;
-  -webkit-print-color-adjust: exact;
-  print-color-adjust: exact;
 }
 .print-table td.owned { font-weight: 700; }
-/* Que una fila no se parta entre dos hojas, y que el encabezado se repita en cada una
-   (table-header-group es el que lo hace; los navegadores lo traen de fábrica en thead). */
-.print-table tr { break-inside: avoid; }
-
-@media print {
-  body.print-sheet-open #root { display: none; }
-  .print-sheet { position: static; overflow: visible; }
-  .print-sheet-bar { display: none; }
-  .print-sheet-body { max-width: none; padding: 0; }
-  /* Impresa, la tabla va entera: un overflow con scroll cortaría las columnas que en
-     pantalla se deslizan. */
-  .print-table-scroll { overflow: visible; }
-}
