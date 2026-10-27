@@ -251,11 +251,13 @@ function buildText(mode, selectedExpansions, catalog, quantities, heading, varia
    PNG — en WhatsApp una imagen se previsualiza en el chat. Sin librerías, como los
    fuegos del festejo: la planilla es una grilla perfectamente regular y dibujarla son
    cuatro bucles. Se dibuja a 2× para que no salga borrosa en pantallas densas. */
-/* El rótulo de columna es el `corto` del catálogo («NA», «RO») — EL MISMO que la app
+/* El rótulo de columna es el `corto` del catálogo («Nar», «Roj») — EL MISMO que la app
    muestra en la esquina de cada carta, no una tercera forma inventada: cómo se abrevia
    un acabado es una sola respuesta, el criterio de siempre de `cardLabel`. Lo pidió
    Angel el 2026-10-27 («en vez de Naranja, Nar»): con el rótulo corto el encabezado va
-   horizontal y la planilla deja de ser alta por culpa de los nombres parados. */
+   horizontal y la planilla deja de ser alta por culpa de los nombres parados. Y van en
+   TRES letras, no dos («no se entiende bien»): el id con la primera en mayúscula, la
+   regla anotada en el propio catálogo. */
 const variantShort = (v) => v.corto ?? v.id.toUpperCase()
 
 /* La columna de cada acabado va TEÑIDA de su color («que toda esa fila sea color

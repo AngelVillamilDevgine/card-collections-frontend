@@ -2090,7 +2090,7 @@ body.with-install-bar { padding-bottom: var(--install-height, 150px); }
   height: 22px;
 }
 /* Los encabezados van HORIZONTALES desde el 2026-10-27 (pedido de Angel): con el rótulo
-   corto del catálogo («NA») entran derechos aun las 17 columnas de Personajes, y la
+   corto del catálogo («Nar») entran derechos aun las 17 columnas de Personajes, y la
    planilla deja de ser alta por culpa de los nombres parados. El nombre entero vive en
    el `title` del th y en la línea de clave de arriba. */
 .print-table th span {
