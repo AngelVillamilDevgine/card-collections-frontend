@@ -2097,9 +2097,11 @@ body.with-install-bar { padding-bottom: var(--install-height, 150px); }
   font-weight: 600;
   white-space: nowrap;
 }
-/* La clave de los cortos («NA Naranja · RO Rojo…»), para quien recibe la imagen sin
+/* La clave de los cortos («Nar Naranja · Roj Rojo…»), para quien recibe la imagen sin
    contexto; en pantalla acompaña igual para que la vista previa diga lo mismo. */
 .print-table-key { color: #555; font-size: 12px; margin: 0 0 8px; }
+/* El pie con la dirección, igual que en la imagen: la vista previa no promete de menos. */
+.print-sheet-url { color: #555; font-weight: 600; font-size: 13px; margin: 6px 0 0; }
 /* La columna de la carta queda FIJA al scrollear la tabla de costado: sin saber en qué
    fila estás, las tildes no dicen nada. El fondo es obligatorio — sticky no tapa solo —
    y el box-shadow repone el borde derecho: con border-collapse, el borde de una celda

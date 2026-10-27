@@ -188,6 +188,10 @@ const STAR = '⭐'
    Lo pidió Angel y es a propósito: son 28 personas que ya leen ese formato y ahora
    además ven de dónde sale. */
 const FOOTER_URL = 'https://www.cromeros.com.ar'
+/* La misma dirección para el pie de la PLANILLA, sin el https:// — en una imagen no hay
+   nada que clickear y el prefijo es ruido. Derivada y no escrita de nuevo: cómo se llama
+   el sitio es una sola respuesta. */
+const SITE_URL = FOOTER_URL.replace(/^https?:\/\//, '')
 
 const SECTIONS = {
   missing:         [{ title: 'ME FALTAN', list: listMissing }],
@@ -301,7 +305,10 @@ function sheetImageCanvas(table, legendDate) {
   if (line) keyLines.push(line)
 
   const titleH = 44 + keyLines.length * 15
-  const h = titleH + headH + rows.length * rowH + pad
+  /* El pie con la dirección, como en el texto exportado y por lo mismo: la imagen la ve
+     gente que no sabe que la app existe, y el pie es lo único que se lo dice. */
+  const footH = 26
+  const h = titleH + headH + rows.length * rowH + footH
 
   const SCALE = 2
   const canvas = document.createElement('canvas')
@@ -380,6 +387,12 @@ function sheetImageCanvas(table, legendDate) {
     ctx.lineTo(left + cardW + cols.length * colW, y)
   }
   ctx.stroke()
+
+  ctx.fillStyle = '#555'
+  ctx.font = '600 12px system-ui, sans-serif'
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'alphabetic'
+  ctx.fillText(SITE_URL, pad, gridBottom + 18)
   return canvas
 }
 
@@ -548,6 +561,7 @@ function VariantsSheet({ catalog, quantities, heading, onClose }) {
           </section>
           )
         })}
+        <p className="print-sheet-url">{SITE_URL}</p>
       </div>
     </div>,
     document.body
