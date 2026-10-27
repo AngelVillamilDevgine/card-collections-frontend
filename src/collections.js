@@ -71,11 +71,18 @@ export function rememberCollection(id) {
  * sueltas y sin grupos se lee como «todas sus cartas, estas variantes»; sin ninguna de
  * las dos no tiene variantes, que es todo Cromeros. */
 export function withVariants(e, raw) {
+  /* El COLOR de cada acabado («la columna de Naranja va naranja», en la planilla) vive
+     UNA sola vez en el registro `acabados` del catálogo y se pega acá, en vez de
+     repetirse en cada declaración de grupo: las declaraciones ya se repiten por grupo y
+     así fue como el nombre de `vcl` divergió una vez. Un acabado sin color en el
+     registro queda sin color y se dibuja sin teñir — Glitter u Holográfica no SON un
+     color, y un catálogo viejo en caché tampoco trae el registro. */
+  const colorOf = (v) => (raw.acabados?.[v.id] && !v.color ? { ...v, color: raw.acabados[v.id] } : v)
   const groups = (e.grupos ?? []).map((g) => ({
-    variantes: g.variantes ?? [],
+    variantes: (g.variantes ?? []).map(colorOf),
     cartas: new Set(g.cartas ?? []),
   }))
-  const looseVariants = e.variantes ?? raw.variantes ?? []
+  const looseVariants = (e.variantes ?? raw.variantes ?? []).map(colorOf)
 
   /* Todas las declaradas de la expansión, en orden y sin repetir. Es lo que se recorre
      para DIBUJAR los casilleros que ya tenés, y por eso es la unión y no lo de cada

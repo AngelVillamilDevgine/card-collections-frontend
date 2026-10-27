@@ -17,8 +17,31 @@
     "Las 9 cartas unicas llevan Plateado y Dorado segun la GUIA del tracker (dice variants: Plateada, Dorada en las nueve). Su dato por carta no enumera acabados, asi que esto es la unica parte del archivo que sale de prosa y no de dato: si aparece que no es asi, se saca una linea.",
     "'condicion': false apaga la pregunta de buen estado / perfecta / para reemplazar. En esta coleccion lo que se pregunta es la variante.",
     "El 'id' va CORTO, de una a tres letras, porque entra en la clave de cada carta y la columna es VARCHAR(40). La clave mas larga que este archivo puede generar es ley-personajes-xxx:1078, 23 caracteres.",
-    "Podes editar este archivo para corregir rangos o agregar sets sin recompilar la app."
+    "Podes editar este archivo para corregir rangos o agregar sets sin recompilar la app.",
+    "'acabados' es el COLOR de cada acabado, para la planilla de variantes: la columna de Naranja va naranja (pedido de Angel, 2026-10-27). Solo tienen color los acabados que SON un color; Comun, Glitter, Glitter circulos y Holografica no llevan porque inventarles uno seria agregar un dato que no existe. Un acabado sin color se dibuja sin tenir, asi que agregar uno nuevo sin color no rompe nada."
   ],
+  "acabados": {
+    "nar": "#f4a11d",
+    "roj": "#d9342b",
+    "vio": "#8e44ad",
+    "vcl": "#8bc34a",
+    "dor": "#c9a227",
+    "azu": "#2f6bd0",
+    "fuc": "#d6219c",
+    "pla": "#9aa2ab",
+    "ros": "#e98cb3",
+    "tur": "#1fa8a0",
+    "ver": "#2e8b3d",
+    "gri": "#8d8d8d",
+    "cel": "#67b7e8",
+    "cya": "#00acc1",
+    "hvi": "#9b59d0",
+    "avi": "#7fa8d9",
+    "mar": "#8d6e4b",
+    "mtx": "#38a169",
+    "neg": "#3a3a3a",
+    "rsd": "#f2a7c3"
+  },
   "variantes": [],
   "expansiones": [
     {

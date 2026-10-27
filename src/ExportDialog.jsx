@@ -8,6 +8,7 @@ import { trapFocus, useCloseOnEscape } from './dialog'
 import { slotsOf, missingVariantsOf, cardLabel, variantsFor, slotKey } from './collections'
 import { CONDITIONS } from './conditions'
 import { downloadBlob } from './api'
+import { tintOf, inkOn } from './color'
 
 const LIST_OPTIONS = [
   { id: 'missing',         label: 'Las que me faltan' },
@@ -250,22 +251,54 @@ function buildText(mode, selectedExpansions, catalog, quantities, heading, varia
    PNG — en WhatsApp una imagen se previsualiza en el chat. Sin librerías, como los
    fuegos del festejo: la planilla es una grilla perfectamente regular y dibujarla son
    cuatro bucles. Se dibuja a 2× para que no salga borrosa en pantallas densas. */
+/* El rótulo de columna es el `corto` del catálogo («NA», «RO») — EL MISMO que la app
+   muestra en la esquina de cada carta, no una tercera forma inventada: cómo se abrevia
+   un acabado es una sola respuesta, el criterio de siempre de `cardLabel`. Lo pidió
+   Angel el 2026-10-27 («en vez de Naranja, Nar»): con el rótulo corto el encabezado va
+   horizontal y la planilla deja de ser alta por culpa de los nombres parados. */
+const variantShort = (v) => v.corto ?? v.id.toUpperCase()
+
+/* La columna de cada acabado va TEÑIDA de su color («que toda esa fila sea color
+   naranja»): encabezado al 50% y celdas al 15%, con la tinta oscurecida hasta pasar
+   4.5:1 (`inkOn`) — el mismo vidrio de las bandas, así cualquier color del registro
+   pasa contraste solo. Un acabado sin color (Común, Glitter, Holográfica — no SON un
+   color) queda sin teñir, que es el dato. */
+const columnStyleOf = (v) => {
+  if (!v.color) return null
+  const head = tintOf(v.color, 0.5)
+  const cell = tintOf(v.color, 0.15)
+  return { head, cell, headInk: inkOn(v.color, head), cellInk: inkOn(v.color, cell) }
+}
+
 function sheetImageCanvas(table, legendDate) {
   const { exp, cols, rows, offeredCells, ownedCells } = table
+  const styles = cols.map(columnStyleOf)
 
   /* Medición en un contexto descartable: el ancho de la columna de la carta lo manda el
-     rótulo más largo (las únicas llevan nombre), y el alto del encabezado, el nombre de
-     fondo más largo, que va parado. */
+     rótulo más largo (las únicas llevan nombre), y el de cada columna, su corto. */
   const probe = document.createElement('canvas').getContext('2d')
   probe.font = '12px system-ui, sans-serif'
   const cardW = Math.ceil(Math.max(60, ...rows.map((r) => probe.measureText(r.label).width + 16)))
   probe.font = '600 11px system-ui, sans-serif'
-  const headH = Math.ceil(Math.max(...cols.map((v) => probe.measureText(v.nombre).width)) + 18)
-  const colW = 26
+  const colW = Math.ceil(Math.max(26, ...cols.map((v) => probe.measureText(variantShort(v)).width + 12)))
+  const headH = 24
   const rowH = 22
   const pad = 14
-  const titleH = 48
   const w = pad * 2 + cardW + cols.length * colW
+
+  /* La clave de los cortos — «NA Naranja · RO Rojo…» — envuelta al ancho de la tabla:
+     el que recibe la imagen por WhatsApp no tiene otra forma de saber qué es «TU». */
+  probe.font = '11px system-ui, sans-serif'
+  const keyLines = []
+  let line = ''
+  for (const part of cols.map((v) => `${variantShort(v)} ${v.nombre}`)) {
+    const joined = line ? `${line} · ${part}` : part
+    if (line && probe.measureText(joined).width > w - pad * 2) { keyLines.push(line); line = part }
+    else line = joined
+  }
+  if (line) keyLines.push(line)
+
+  const titleH = 44 + keyLines.length * 15
   const h = titleH + headH + rows.length * rowH + pad
 
   const SCALE = 2
@@ -283,20 +316,27 @@ function sheetImageCanvas(table, legendDate) {
   ctx.fillStyle = '#555'
   ctx.font = '11px system-ui, sans-serif'
   ctx.fillText(`✓ la tenés · vacía: te falta · — no existe en ese fondo · ${legendDate}`, pad, 38)
+  keyLines.forEach((k, i) => ctx.fillText(k, pad, 53 + i * 15))
 
   const left = pad
   const top = titleH
+  const gridBottom = top + headH + rows.length * rowH
   ctx.textBaseline = 'middle'
+  ctx.textAlign = 'center'
 
-  /* Los nombres de los fondos, parados como en la hoja. */
-  ctx.fillStyle = '#1a1a1a'
-  ctx.font = '600 11px system-ui, sans-serif'
+  /* Primero los fondos de columna, después los textos, y la grilla al final. */
   cols.forEach((v, i) => {
-    ctx.save()
-    ctx.translate(left + cardW + i * colW + colW / 2, top + headH - 8)
-    ctx.rotate(-Math.PI / 2)
-    ctx.fillText(v.nombre, 0, 0)
-    ctx.restore()
+    const s = styles[i]
+    const x = left + cardW + i * colW
+    if (s) {
+      ctx.fillStyle = s.head
+      ctx.fillRect(x, top, colW, headH)
+      ctx.fillStyle = s.cell
+      ctx.fillRect(x, top + headH, colW, rows.length * rowH)
+    }
+    ctx.fillStyle = s ? s.headInk : '#1a1a1a'
+    ctx.font = '600 11px system-ui, sans-serif'
+    ctx.fillText(variantShort(v), x + colW / 2, top + headH / 2 + 1)
   })
 
   rows.forEach((r, ri) => {
@@ -315,7 +355,7 @@ function sheetImageCanvas(table, legendDate) {
         ctx.font = '12px system-ui, sans-serif'
         ctx.fillText('—', x + colW / 2, y + rowH / 2 + 1)
       } else if (cell.owned) {
-        ctx.fillStyle = '#1a1a1a'
+        ctx.fillStyle = styles[ci] ? styles[ci].cellInk : '#1a1a1a'
         ctx.font = '700 13px system-ui, sans-serif'
         ctx.fillText('✓', x + colW / 2, y + rowH / 2 + 1)
       }
@@ -323,11 +363,10 @@ function sheetImageCanvas(table, legendDate) {
     ctx.textAlign = 'left'
   })
 
-  /* La grilla de líneas, al final para que pase por encima de los fondos grises. */
+  /* La grilla de líneas, al final para que pase por encima de los fondos. */
   ctx.strokeStyle = '#bbb'
   ctx.lineWidth = 1
   ctx.beginPath()
-  const gridBottom = top + headH + rows.length * rowH
   for (let i = 0; i <= cols.length + 1; i++) {
     const x = left + (i === 0 ? 0 : cardW + (i - 1) * colW)
     ctx.moveTo(x, top)
@@ -453,9 +492,15 @@ function VariantsSheet({ catalog, quantities, heading, onClose }) {
           ✓ la tenés · vacía: te falta · — no existe en ese fondo
           · {legendDate}
         </p>
-        {tables.map(({ exp, cols, rows, offeredCells, ownedCells }) => (
+        {tables.map(({ exp, cols, rows, offeredCells, ownedCells }) => {
+          const styles = cols.map(columnStyleOf)
+          return (
           <section key={exp.id} className="print-table">
             <h2>{exp.nombre} <span>{ownedCells} de {offeredCells} variantes</span></h2>
+            {/* La clave de los cortos: en pantalla el `title` del encabezado también la
+                da, pero la imagen que se comparte no tiene tooltips — misma línea acá
+                y en el canvas, para que la vista previa no prometa de más. */}
+            <p className="print-table-key">{cols.map((v) => `${variantShort(v)} ${v.nombre}`).join(' · ')}</p>
             {/* El scroll horizontal vive ACÁ y no en la página: con la página entera
                 scrolleando de costado, la barra pegajosa de arriba —que sólo se fija en
                 vertical— quedaba corrida, con el botón flotando sobre los encabezados. */}
@@ -464,7 +509,15 @@ function VariantsSheet({ catalog, quantities, heading, onClose }) {
               <thead>
                 <tr>
                   <th className="card-col">Carta</th>
-                  {cols.map((v) => <th key={v.id}><span>{v.nombre}</span></th>)}
+                  {cols.map((v, i) => (
+                    <th
+                      key={v.id}
+                      title={v.nombre}
+                      style={styles[i] ? { background: styles[i].head, color: styles[i].headInk } : undefined}
+                    >
+                      <span>{variantShort(v)}</span>
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
@@ -473,9 +526,15 @@ function VariantsSheet({ catalog, quantities, heading, onClose }) {
                     <td className="card-col">{label}</td>
                     {/* La celda ausente lleva un «—» DE TEXTO además del fondo gris,
                         igual que en la imagen: «no existe en ese fondo» es un dato y
-                        tiene que leerse aunque el gris pase desapercibido. */}
+                        tiene que leerse aunque el gris pase desapercibido. El gris le
+                        gana al tinte de la columna a propósito: «no existe» es más
+                        fuerte que «de qué color es». */}
                     {cells.map((c, i) => (
-                      <td key={cols[i].id} className={c ? (c.owned ? 'owned' : '') : 'absent'}>
+                      <td
+                        key={cols[i].id}
+                        className={c ? (c.owned ? 'owned' : '') : 'absent'}
+                        style={c && styles[i] ? { background: styles[i].cell, color: styles[i].cellInk } : undefined}
+                      >
                         {c ? (c.owned ? '✓' : '') : '—'}
                       </td>
                     ))}
@@ -485,7 +544,8 @@ function VariantsSheet({ catalog, quantities, heading, onClose }) {
             </table>
             </div>
           </section>
-        ))}
+          )
+        })}
       </div>
     </div>,
     document.body
