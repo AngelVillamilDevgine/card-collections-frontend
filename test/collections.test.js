@@ -550,7 +550,7 @@ test('cardLabel: Y LOS 20 DE CROMEROS, entre especiales y manuales', () => {
   /* Desde el 2026-10-29 Cromeros tiene sus propios números repetidos: `especiales`
      repite 504 a 513 sobre el tramo de Expansión 4, y `manuales` numera sus diez del 1
      al 10, que también son cartas de Expansión 1 — ahí el número es nuestro, no impreso,
-     y lo que separa es el rótulo entero («Manual v1.0» contra «1»). Mismo seguro que el
+     y lo que separa es el rótulo entero («Manual 1» contra «1»). Mismo seguro que el
      de arriba: el día que alguien saque el `sufijo` o el `prefijo`, esto se pone rojo. */
   const raw = JSON.parse(fs.readFileSync(new URL('../public/data/expansiones.json', import.meta.url), 'utf8'))
   const exps = raw.expansiones.map((e) => withVariants(e, raw))
@@ -568,7 +568,7 @@ test('cardLabel: Y LOS 20 DE CROMEROS, entre especiales y manuales', () => {
 
   assert.equal(cardLabel(byId('especiales'), 504), '504E')
   assert.equal(cardLabel(byId('exp-4'), 504), '504')
-  assert.equal(cardLabel(byId('manuales'), 1), 'Manual v1.0')
+  assert.equal(cardLabel(byId('manuales'), 1), 'Manual 1')
   assert.equal(cardLabel(byId('exp-1'), 1), '1')
 })
 

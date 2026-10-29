@@ -69,14 +69,16 @@ test('las Cartas Especiales: diez huecos más, 504E a 513E, encima de la corrida
   for (const n of numbersOf(e)) assert.ok(inRun.has(n), `la ${n} no existe en la corrida`)
 })
 
-test('los Manuales: diez huecos aparte que no contabilizan, Manual v1.0 a v10.0', () => {
+test('los Manuales: diez huecos aparte que no contabilizan, Manual 1 a Manual 10', () => {
   const e = expansions.find((x) => x.id === MANUALS_ID)
   assert.ok(e, 'la expansión de los manuales tiene que existir')
   assert.deepEqual(numbersOf(e), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
-  /* El rótulo entero sale de prefijo + número + sufijo: «Manual v» + 3 + «.0». Es lo
-     que dicen el diálogo, el lector de pantalla y el pie de lo no guardado. */
-  assert.equal(e.prefijo, 'Manual v')
-  assert.equal(e.sufijo, '.0')
+  /* El rótulo sale del prefijo: «Manual » + 3. Es lo que dicen la ficha, el diálogo, el
+     lector de pantalla y el pie de lo no guardado. Fue «Manual v1.0» —el nombre que les
+     da dragonball.center, que calza con lo impreso en las tapas— y Angel lo corrigió el
+     mismo día: «esos títulos no me gusta, ponele manual 1, manual 2». */
+  assert.equal(e.prefijo, 'Manual ')
+  assert.equal(e.sufijo, undefined)
   /* Y el seguro del pedido de Angel: «que no contabilice en las cartas». Sin esta
      marca, los diez entran al «N de 1946» y a los filtros. */
   assert.equal(e.contabiliza, false)
@@ -84,15 +86,15 @@ test('los Manuales: diez huecos aparte que no contabilizan, Manual v1.0 a v10.0'
   /* El detalle: si una expansión lo trae, lo trae para TODAS sus cartas — la misma
      regla que `leyenda.test.js` le ata a las únicas, que allá no mira este catálogo. */
   assert.deepEqual(Object.keys(e.detalle).map(Number).sort((a, b) => a - b), numbersOf(e))
-  /* Nueve tapas con foto; la 6.0 no tiene foto en dragonball.center ni en Google, así
-     que su ficha va sin imagen A PROPÓSITO — si aparece la tapa, se agrega al json. Y
-     su nombre está INFERIDO de la secuencia (3.0 a 10.0 dicen todas lo mismo). */
+  /* Nueve tapas con foto; la del 6 no existe en dragonball.center ni en Google, así que
+     su ficha va sin imagen A PROPÓSITO — si la tapa aparece, se agrega al json. Y SIN
+     `nombre` ninguno: la ficha dice «Manual N» y muestra la tapa, nada más — los
+     títulos impresos (REGLAS DE JUEGO, REGLAS REVISADAS N.0) los sacó Angel y quedaron
+     documentados en la nota del json. */
   for (const n of numbersOf(e)) {
-    assert.ok(e.detalle[n].nombre, `el manual ${n} sin nombre`)
     assert.equal(!!e.detalle[n].imagen, n !== 6, `la foto del manual ${n}`)
+    assert.equal(e.detalle[n].nombre, undefined, `el manual ${n} con un título que Angel sacó`)
   }
-  assert.equal(e.detalle[1].nombre, 'Reglas de juego')
-  assert.equal(e.detalle[10].nombre, 'Reglas revisadas 10.0')
 })
 
 test('son 18 expansiones y cada una tiene lo que necesita para dibujarse', () => {

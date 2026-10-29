@@ -232,7 +232,10 @@ const Card = memo(function Card({ cardKey, number, label, detail, variant, condi
   /* La tirada va también en la etiqueta hablada, no sólo pintada: es la mitad del dato
      —lo que separa a Shenron de las otras ocho— y sin esto quien usa lector de pantalla
      oye el personaje y no se entera de que una es de 500. */
-  const displayName = detail
+  /* Un detalle puede venir SIN nombre (los manuales, que van «Manual 1» a secas —
+     Angel sacó los títulos de las tapas: «esos títulos no me gusta»): ahí el rótulo es
+     todo lo que hay que decir. */
+  const displayName = detail?.nombre
     ? `${label}, ${detail.nombre}${detail.copias > 0 ? `, ${detail.copias} copias` : ''}`
     : label
   const accessibleName = variant ? `Carta ${displayName}, ${variant.nombre}` : `Carta ${displayName}`
@@ -267,19 +270,21 @@ const Card = memo(function Card({ cardKey, number, label, detail, variant, condi
           el marco de las cajas. Decorativa (alt vacío): el rótulo y el nombre ya la
           dicen. El envoltorio de los textos existe sólo en esta rama: el estado sigue
           siendo el fondo de la ficha entera, como en todas. */}
+      {/* Sin nombre en el detalle, el rótulo chico no va: sería «MANUAL 1» arriba de
+          «Manual 1». Queda el rótulo solo, en el tamaño del nombre. */}
       {detail?.imagen ? (
         <>
           <img className="detail-photo" src={detail.imagen} alt="" loading="lazy" />
           <span className="detail-texts">
-            <span className="detail-label">{label}</span>
-            <span className="detail-name">{detail.nombre}</span>
+            {detail.nombre && <span className="detail-label">{label}</span>}
+            <span className="detail-name">{detail.nombre ?? label}</span>
             {detail.copias > 0 && <span className="backup-detail">{detail.copias.toLocaleString('es-AR')} copias</span>}
           </span>
         </>
       ) : detail ? (
         <>
-          <span className="detail-label">{label}</span>
-          <span className="detail-name">{detail.nombre}</span>
+          {detail.nombre && <span className="detail-label">{label}</span>}
+          <span className="detail-name">{detail.nombre ?? label}</span>
           {detail.copias > 0 && <span className="backup-detail">{detail.copias.toLocaleString('es-AR')} copias</span>}
         </>
       ) : number}
