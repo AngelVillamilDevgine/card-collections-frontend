@@ -39,8 +39,9 @@ const conditionOf = (e) => (CONDITIONS.some((x) => x.id === e) ? e : 'bien')
    Las cartas únicas no tienen número impreso —van con LOTE / EDICIÓN LIMITADA Nº /
    TOTAL— así que su prefijo es la palabra entera: «Leyenda 3».
 
-   En Cromeros ninguna expansión tiene `prefijo`, así que su texto sale byte por byte igual
-   que antes. Eso importa: son 28 personas que ya leen ese formato.
+   Desde el 2026-10-29 Cromeros tiene su propio caso: las «Cartas Especiales» repiten los
+   números 504 a 513 de Expansión 4 y salen con `sufijo` — «504E» contra «504». Sus demás
+   expansiones siguen sin prefijo y ese texto sale byte por byte igual que siempre.
 
    Vive en `collections.js` porque la grilla y el diálogo dicen lo mismo: cómo se llama una
    carta es una sola respuesta, y tenerla en dos lados es como se desincronizó `numbersOf`. */

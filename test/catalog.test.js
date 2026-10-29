@@ -22,7 +22,15 @@ const expansions = JSON.parse(
   fs.readFileSync(new URL('../public/data/expansiones.json', import.meta.url), 'utf8')
 ).expansiones
 
-const allNumbers = expansions.flatMap(numbersOf)
+/* Las «Cartas Especiales» quedan FUERA de la corrida a propósito: son diez cartas
+   DISTINTAS que repiten los números 504 a 513 de Expansión 4 (la 504 común es «CONSEJOS
+   PATERNOS», la especial «EL NUEVO GOHAN») y se rotulan con el sufijo E. Es el mismo
+   trato que `leyenda.test.js` le da a las F: un duplicado deliberado y documentado no
+   puede volver ciego al test que existe para cazar duplicados por error. */
+const SPECIALS_ID = 'especiales'
+const corrida = expansions.filter((e) => e.id !== SPECIALS_ID)
+
+const allNumbers = corrida.flatMap(numbersOf)
 
 test('son 1936 cartas y ni una más', () => {
   assert.equal(allNumbers.length, TOTAL)
@@ -31,7 +39,7 @@ test('son 1936 cartas y ni una más', () => {
 test('la corrida es exacta del 1 al 1936: sin duplicados y sin huecos', () => {
   const seenIn = new Map()
   const duplicates = []
-  for (const exp of expansions) {
+  for (const exp of corrida) {
     for (const n of numbersOf(exp)) {
       if (seenIn.has(n)) duplicates.push(`${n} está en «${seenIn.get(n)}» y en «${exp.nombre}»`)
       else seenIn.set(n, exp.nombre)
@@ -44,8 +52,21 @@ test('la corrida es exacta del 1 al 1936: sin duplicados y sin huecos', () => {
   assert.deepEqual(missing, [], 'no puede faltar ningún número del 1 al 1936')
 })
 
-test('son 16 expansiones y cada una tiene lo que necesita para dibujarse', () => {
-  assert.equal(expansions.length, 16)
+test('las Cartas Especiales: diez huecos más, 504E a 513E, encima de la corrida', () => {
+  const e = expansions.find((x) => x.id === SPECIALS_ID)
+  assert.ok(e, 'la expansión de las especiales tiene que existir')
+  assert.deepEqual(numbersOf(e), [504, 505, 506, 507, 508, 509, 510, 511, 512, 513])
+  /* El sufijo es lo que separa «504E» de la 504 común en el diálogo, el lector de
+     pantalla y el texto exportado: sin él, dos cartas distintas se llaman igual. */
+  assert.equal(e.sufijo, 'E')
+  /* Y cada número tiene que EXISTIR también en la corrida: si uno no está, esto ya no es
+     «la segunda carta de un número repetido», es un rango mal tipeado. */
+  const inRun = new Set(allNumbers)
+  for (const n of numbersOf(e)) assert.ok(inRun.has(n), `la ${n} no existe en la corrida`)
+})
+
+test('son 17 expansiones y cada una tiene lo que necesita para dibujarse', () => {
+  assert.equal(expansions.length, 17)
   const ids = new Set()
   for (const exp of expansions) {
     assert.ok(exp.id, `una expansión sin id: ${JSON.stringify(exp).slice(0, 80)}`)
@@ -67,7 +88,7 @@ test('son 16 expansiones y cada una tiene lo que necesita para dibujarse', () =>
 test('los sets son de 136 cartas, salvo las cuatro excepciones conocidas', () => {
   const knownExceptions = { 129: 2, 6: 1, 88: 2 } // Expansión 1 y Especial GT, Ocultas, las dos de Batalla Final
   const unexpected = []
-  for (const exp of expansions) {
+  for (const exp of corrida) {
     const n = numbersOf(exp).length
     if (n === 136) continue
     if (knownExceptions[n]) { knownExceptions[n]--; continue }

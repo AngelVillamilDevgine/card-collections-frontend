@@ -464,19 +464,27 @@ test('EL PREFIJO Y EL CORTO NO SE APILAN: «F F504» era lo que decía', () => {
   assert.equal(listLabel(withoutPrefix, 824, true), '824')
   /* Y sin ninguno de los dos, el número y nada más. */
   assert.equal(listLabel(makeExpansion({ id: 'x', desde: 1, hasta: 9 }), 5, false), '5')
+  /* El sufijo identifica igual que el prefijo: «CE 504E» apilaría lo mismo que «F F504». */
+  const withSuffix = makeExpansion({ id: 'especiales', corto: 'CE', desde: 504, hasta: 513, sufijo: 'E' })
+  assert.equal(listLabel(withSuffix, 504, false), '504E', 'el sufijo ya la identifica')
+  assert.equal(listLabel(withSuffix, 504, true), '504E')
 })
 
 test('el doble prefijo, contra los CATÁLOGOS DE VERDAD y no contra un fixture', () => {
-  const raw = JSON.parse(fs.readFileSync(new URL('../public/data/leyenda.json', import.meta.url), 'utf8'))
-  const cats = { leyenda: { expansiones: raw.expansiones.map((e) => withVariants(e, raw)) } }
-  for (const exp of cats.leyenda.expansiones) {
-    if (!exp.prefijo) continue
+  const rawLeyenda = JSON.parse(fs.readFileSync(new URL('../public/data/leyenda.json', import.meta.url), 'utf8'))
+  const rawCromeros = JSON.parse(fs.readFileSync(new URL('../public/data/expansiones.json', import.meta.url), 'utf8'))
+  const cats = {
+    cromeros: { expansiones: rawCromeros.expansiones.map((e) => withVariants(e, rawCromeros)) },
+    leyenda: { expansiones: rawLeyenda.expansiones.map((e) => withVariants(e, rawLeyenda)) },
+  }
+  for (const col of Object.values(cats)) for (const exp of col.expansiones) {
+    if (!exp.prefijo && !exp.sufijo) continue
     const n = exp.desde
     const label = slotName(`${exp.id}:${n}`, cats, false)
     assert.ok(!label.startsWith(`${exp.corto} `),
-      `${exp.id}: «${label}» apila el corto sobre el prefijo`)
+      `${exp.id}: «${label}» apila el corto sobre el prefijo o el sufijo`)
     assert.ok(!orphanName(`${exp.id}:999999`, cats).startsWith(`${exp.corto} `),
-      `${exp.id}: el diálogo que borra apila el corto sobre el prefijo`)
+      `${exp.id}: el diálogo que borra apila el corto sobre el prefijo o el sufijo`)
   }
 })
 
@@ -501,11 +509,14 @@ test('readCollection: sin localStorage se cae a la de siempre en vez de reventar
 
 // ---------------------------------------------------------------- cardLabel
 
-test('cardLabel: el número va con el prefijo de su expansión', () => {
+test('cardLabel: el número va con el prefijo —o el sufijo— de su expansión', () => {
   assert.equal(cardLabel({ id: 'ley-f', prefijo: 'F' }, 504), 'F504')
   assert.equal(cardLabel({ id: 'ley-unicas', prefijo: 'Leyenda ' }, 3), 'Leyenda 3')
-  /* Cromeros no tiene prefijo en ninguna expansión y su texto sale byte por byte igual
-     que antes: son 28 personas que ya leen ese formato. */
+  /* Las Cartas Especiales de Cromeros llevan la letra ATRÁS, que es como las nombra
+     Angel: «504E», no «E504». */
+  assert.equal(cardLabel({ id: 'especiales', sufijo: 'E' }, 504), '504E')
+  /* El resto de Cromeros no tiene ni prefijo ni sufijo y su texto sale byte por byte
+     igual que siempre: son 28 personas que ya leen ese formato. */
   assert.equal(cardLabel({ id: 'exp-1' }, 5), '5')
   assert.equal(cardLabel(null, 5), '5', 'sin expansión no revienta')
 })
@@ -533,6 +544,28 @@ test('cardLabel: LOS 19 HUECOS QUE REPITEN NÚMERO quedan distinguidos', () => {
   assert.equal(cardLabel(byId('ley-4'), 504), '504')
   assert.equal(cardLabel(byId('ley-unicas'), 1), 'Leyenda 1')
   assert.equal(cardLabel(byId('ley-inicial'), 1), '1')
+})
+
+test('cardLabel: Y LOS 10 DE CROMEROS, desde que existen las Cartas Especiales', () => {
+  /* Desde el 2026-10-29 Cromeros tiene su propio par de cartas distintas con el mismo
+     número: `especiales` repite 504 a 513 sobre el tramo de Expansión 4. Mismo seguro
+     que el de arriba: el día que alguien le saque el `sufijo`, esto se pone rojo. */
+  const raw = JSON.parse(fs.readFileSync(new URL('../public/data/expansiones.json', import.meta.url), 'utf8'))
+  const exps = raw.expansiones.map((e) => withVariants(e, raw))
+  const byId = (id) => exps.find((e) => e.id === id)
+
+  const collisions = []
+  for (const a of exps) for (const b of exps) {
+    if (a.id >= b.id) continue
+    for (const n of a.cardNumbers) if (b.cardNumbers.includes(n)) collisions.push([a, b, n])
+  }
+  assert.equal(collisions.length, 10, 'son 10 huecos con dos cartas cada uno')
+  for (const [a, b, n] of collisions)
+    assert.notEqual(cardLabel(a, n), cardLabel(b, n),
+      `${a.id} y ${b.id} llaman igual a la ${n}: hablado no hay banda que los separe`)
+
+  assert.equal(cardLabel(byId('especiales'), 504), '504E')
+  assert.equal(cardLabel(byId('exp-4'), 504), '504')
 })
 
 test('albumNames: los nombra en prosa y sale de la lista, no escrito a mano', () => {

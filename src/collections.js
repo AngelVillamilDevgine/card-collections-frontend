@@ -154,8 +154,13 @@ export function missingVariantsOf(exp, n, quantities, drawable) {
  * Existía sólo en el texto que se comparte. En la grilla y en el diálogo el número salía
  * pelado, así que el lector de pantalla decía «Carta 504» dos veces y el diálogo se
  * titulaba «Carta 1» para la Leyenda 1 y para la 1 del mazo inicial. Mirando la pantalla
- * la banda de la expansión te lo dice; hablado y en el título del diálogo, no había nada. */
-export const cardLabel = (exp, n) => `${exp?.prefijo ?? ''}${n}`
+ * la banda de la expansión te lo dice; hablado y en el título del diálogo, no había nada.
+ *
+ * Y desde el 2026-10-29 Cromeros tiene lo mismo: las «Cartas Especiales» repiten los
+ * números 504 a 513 de Expansión 4 y van con `sufijo` — `504E` contra `504`, con la
+ * letra ATRÁS porque así las nombra Angel. Prefijo o sufijo es dato del catálogo;
+ * acá sólo se pegan. */
+export const cardLabel = (exp, n) => `${exp?.prefijo ?? ''}${n}${exp?.sufijo ?? ''}`
 
 /* LO QUE SE SABE DE UNA CARTA EN PARTICULAR, cuando el catálogo lo sabe: `{ nombre,
  * copias }`. Hoy lo usan las nueve «Cartas únicas» de Leyenda y nada más.
@@ -197,11 +202,11 @@ export const albumPercent = (owned, total) =>
  * pie de lo que no se pudo guardar y en el diálogo que BORRA. No se vio contra producción
  * porque hoy no hay ni una carta cargada de las dos expansiones con prefijo.
  *
- * La regla: si la expansión tiene `prefijo`, ése ya la identifica y alcanza; si no, va el
- * `corto`. Nunca los dos. */
+ * La regla: si la expansión tiene `prefijo` o `sufijo`, ésos ya la identifican y alcanza;
+ * si no, va el `corto`. Nunca los dos («CE 504E» apila igual que «F F504»). */
 export function listLabel(exp, n, isCurrentCollection) {
   const label = cardLabel(exp, n)
-  if (isCurrentCollection || exp?.prefijo || !exp?.corto) return label
+  if (isCurrentCollection || exp?.prefijo || exp?.sufijo || !exp?.corto) return label
   return `${exp.corto} ${label}`
 }
 

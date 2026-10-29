@@ -4,6 +4,7 @@
   "anios": "2007-2008",
   "notas": [
     "Cada carta tiene un numero unico: la coleccion es la numeracion corrida del 1 al 1936, sin repetidos ni huecos.",
+    "La excepcion son las Cartas Especiales: diez cartas DISTINTAS que repiten los numeros 504 a 513 de Expansion 4 (la 504 comun es CONSEJOS PATERNOS, la especial es EL NUEVO GOHAN). Van como expansion aparte con sufijo E (504E a 513E), igual que las F de Leyenda pero con la letra atras, que es como las nombra Angel. Su planilla original las tenia, con la 124 ademas; la 124E no esta cargada porque Angel pidio 504E a 513E (2026-10-29).",
     "Podes editar este archivo para corregir rangos o agregar sets sin recompilar la app."
   ],
   "expansiones": [
@@ -149,6 +150,15 @@
       "color": "#4bc5d4",
       "desde": 402,
       "hasta": 407
+    },
+    {
+      "id": "especiales",
+      "nombre": "Cartas Especiales",
+      "corto": "CE",
+      "sufijo": "E",
+      "color": "#c27ba0",
+      "desde": 504,
+      "hasta": 513
     }
   ]
 }
