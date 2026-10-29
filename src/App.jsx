@@ -243,7 +243,7 @@ const Card = memo(function Card({ cardKey, number, label, detail, variant, condi
      estado y el número chico de la esquina es la cantidad. */
   return (
     <button
-      className={`card ${conditionClass(shownCondition, shownQuantity)}${unsaved ? ' unsaved' : ''}${variant ? ' variant' : ''}${subtracting ? ' subtracting' : ''}`}
+      className={`card ${conditionClass(shownCondition, shownQuantity)}${unsaved ? ' unsaved' : ''}${variant ? ' variant' : ''}${subtracting ? ' subtracting' : ''}${detail?.imagen ? ' with-photo' : ''}`}
       aria-label={`${accessibleName}. ${statusText}${unsaved ? '. Sin guardar' : ''}`}
       /* La forma estándar de anunciar un atajo de teclado. Restar con Backspace no
          estaba dicho en ningún lado: ni en la ayuda, ni en la etiqueta. Para quien usa
@@ -261,8 +261,22 @@ const Card = memo(function Card({ cardKey, number, label, detail, variant, condi
       {/* Con detalle la carta muestra tres cosas y no una: el rótulo chico arriba —que
           acá es «Leyenda 3» y no un número pelado—, el personaje, que es lo que de verdad
           la identifica, y la tirada, que es lo que separa a Shenron (500) de las otras
-          ocho (1500). Sin detalle no cambia nada: el número solo, como siempre. */}
-      {detail ? (
+          ocho (1500). Sin detalle no cambia nada: el número solo, como siempre.
+
+          Y si el catálogo sabe la FOTO (los manuales), va a la izquierda del texto, con
+          el marco de las cajas. Decorativa (alt vacío): el rótulo y el nombre ya la
+          dicen. El envoltorio de los textos existe sólo en esta rama: el estado sigue
+          siendo el fondo de la ficha entera, como en todas. */}
+      {detail?.imagen ? (
+        <>
+          <img className="detail-photo" src={detail.imagen} alt="" loading="lazy" />
+          <span className="detail-texts">
+            <span className="detail-label">{label}</span>
+            <span className="detail-name">{detail.nombre}</span>
+            {detail.copias > 0 && <span className="backup-detail">{detail.copias.toLocaleString('es-AR')} copias</span>}
+          </span>
+        </>
+      ) : detail ? (
         <>
           <span className="detail-label">{label}</span>
           <span className="detail-name">{detail.nombre}</span>

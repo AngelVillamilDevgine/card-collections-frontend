@@ -567,6 +567,30 @@ button { cursor: pointer; }
   font-size: 11.5px;
   font-variant-numeric: tabular-nums;
 }
+/* Y con FOTO (los manuales), la ficha se acomoda como la banda: la tapa a la izquierda
+   con el marco de las cajas, y a su derecha el bloque de textos. El estado sigue siendo
+   el fondo de la ficha entera. La clase la pone el JSX mirando el dato (detail.imagen),
+   no un :has(), que en los Android viejos que esta app se toma en serio no existe. */
+.grid.detailed .card.with-photo {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+.detail-photo {
+  width: 45px;
+  height: 62px;
+  flex: none;
+  object-fit: cover;
+  border: 2px solid #fff;
+  border-radius: 5px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+.detail-texts {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
 /* El contador de repetidas y la marca de variante siguen en sus esquinas, así que hay que
    dejarles el lugar para que no se monten sobre el texto. */
 .grid.detailed .card .variant-mark { bottom: 6px; right: 8px; left: auto; }

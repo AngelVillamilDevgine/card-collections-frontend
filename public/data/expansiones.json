@@ -6,7 +6,7 @@
     "Cada carta tiene un numero unico: la coleccion es la numeracion corrida del 1 al 1936, sin repetidos ni huecos.",
     "La excepcion son las Cartas Especiales: diez cartas DISTINTAS que repiten los numeros 504 a 513 de Expansion 4 (la 504 comun es CONSEJOS PATERNOS, la especial es EL NUEVO GOHAN). Van como expansion aparte con sufijo E (504E a 513E), igual que las F de Leyenda pero con la letra atras, que es como las nombra Angel. Su planilla original las tenia, con la 124 ademas; la 124E no esta cargada porque Angel pidio 504E a 513E (2026-10-29).",
     "Los Manuales son los diez manuales del juego (v1.0 a v10.0), documentados en dragonball.center (seccion Extras de la coleccion). No son cartas: llevan contabiliza en false, asi que se marcan igual que todo pero no cuentan en el avance, ni en los filtros, ni en el texto exportado. El color es nuestro, elegido para la banda; la planilla original no los tenia (2026-10-29).",
-    "Las tapas dicen REGLAS DE JUEGO (v1, roja), REGLAS DE JUEGO 2a Edicion (v2, azul) y REGLAS REVISADAS 3.0 a 10.0: el vN.0 es literalmente lo impreso. La foto de la banda (cajas/manuales.jpg) es la tapa del v1.0; las nueve tapas conocidas estan en docs/manuales/ de la raiz. La 6.0 no tiene foto en dragonball.center ni aparece en Google (2026-10-29).",
+    "Las tapas dicen REGLAS DE JUEGO (v1, roja), REGLAS DE JUEGO 2a Edicion (v2, azul) y REGLAS REVISADAS 3.0 a 10.0: el vN.0 es literalmente lo impreso. La foto de la banda (cajas/manuales.jpg) es la tapa del v1.0; las nueve tapas conocidas estan en docs/manuales/ de la raiz y, achicadas, en public/manuales/ para el detalle de cada ficha. La 6.0 no tiene foto en dragonball.center ni aparece en Google, por eso su detalle no trae imagen; su nombre (Reglas revisadas 6.0) esta INFERIDO de la secuencia 3.0 a 10.0, que son todas iguales -- si la tapa real dice otra cosa, se corrige aca (2026-10-29).",
     "Podes editar este archivo para corregir rangos o agregar sets sin recompilar la app."
   ],
   "expansiones": [
@@ -172,7 +172,19 @@
       "desde": 1,
       "hasta": 10,
       "contabiliza": false,
-      "imagen": "cajas/manuales.jpg"
+      "imagen": "cajas/manuales.jpg",
+      "detalle": {
+        "1": { "nombre": "Reglas de juego", "imagen": "manuales/v1.jpg" },
+        "2": { "nombre": "Reglas de juego · 2º Edición", "imagen": "manuales/v2.jpg" },
+        "3": { "nombre": "Reglas revisadas 3.0", "imagen": "manuales/v3.jpg" },
+        "4": { "nombre": "Reglas revisadas 4.0", "imagen": "manuales/v4.jpg" },
+        "5": { "nombre": "Reglas revisadas 5.0", "imagen": "manuales/v5.jpg" },
+        "6": { "nombre": "Reglas revisadas 6.0" },
+        "7": { "nombre": "Reglas revisadas 7.0", "imagen": "manuales/v7.jpg" },
+        "8": { "nombre": "Reglas revisadas 8.0", "imagen": "manuales/v8.jpg" },
+        "9": { "nombre": "Reglas revisadas 9.0", "imagen": "manuales/v9.jpg" },
+        "10": { "nombre": "Reglas revisadas 10.0", "imagen": "manuales/v10.jpg" }
+      }
     }
   ]
 }

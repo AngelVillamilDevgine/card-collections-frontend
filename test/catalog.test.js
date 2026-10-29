@@ -80,6 +80,19 @@ test('los Manuales: diez huecos aparte que no contabilizan, Manual v1.0 a v10.0'
   /* Y el seguro del pedido de Angel: «que no contabilice en las cartas». Sin esta
      marca, los diez entran al «N de 1946» y a los filtros. */
   assert.equal(e.contabiliza, false)
+
+  /* El detalle: si una expansión lo trae, lo trae para TODAS sus cartas — la misma
+     regla que `leyenda.test.js` le ata a las únicas, que allá no mira este catálogo. */
+  assert.deepEqual(Object.keys(e.detalle).map(Number).sort((a, b) => a - b), numbersOf(e))
+  /* Nueve tapas con foto; la 6.0 no tiene foto en dragonball.center ni en Google, así
+     que su ficha va sin imagen A PROPÓSITO — si aparece la tapa, se agrega al json. Y
+     su nombre está INFERIDO de la secuencia (3.0 a 10.0 dicen todas lo mismo). */
+  for (const n of numbersOf(e)) {
+    assert.ok(e.detalle[n].nombre, `el manual ${n} sin nombre`)
+    assert.equal(!!e.detalle[n].imagen, n !== 6, `la foto del manual ${n}`)
+  }
+  assert.equal(e.detalle[1].nombre, 'Reglas de juego')
+  assert.equal(e.detalle[10].nombre, 'Reglas revisadas 10.0')
 })
 
 test('son 18 expansiones y cada una tiene lo que necesita para dibujarse', () => {
