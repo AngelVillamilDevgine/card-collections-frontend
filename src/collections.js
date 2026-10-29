@@ -162,6 +162,44 @@ export function missingVariantsOf(exp, n, quantities, drawable) {
  * acá sólo se pegan. */
 export const cardLabel = (exp, n) => `${exp?.prefijo ?? ''}${n}${exp?.sufijo ?? ''}`
 
+/* AGREGAR POR NÚMERO: a qué expansión pertenece un número TIPEADO, sin más contexto que
+ * lo escrito. Lo usa el botón «Agregar por número» del encabezado.
+ *
+ * Sin sufijo, sólo buscan las expansiones SIN prefijo ni sufijo — la corrida de verdad.
+ * Es la regla de `cardLabel` mirada al revés: el prefijo y el sufijo existen para cuando
+ * el número se lee FUERA de contexto, y un número tipeado en un campo es exactamente eso.
+ * Si entraran las otras, «504» serían dos cartas (la común y la 504E) y «1» tres (la 1,
+ * la Leyenda 1 y el Manual 1), y la ganadora la elegiría el orden del catálogo, en
+ * silencio. Con sufijo («504E») gana la expansión que declara ESA letra, sin importar
+ * mayúsculas: así los diez huecos de las Especiales también se piden por teclado.
+ *
+ * `cardNumbers` cuando el catálogo ya pasó por `withVariants` (la app), `numbersOf` si
+ * no (un json crudo en un test). */
+export function expansionForNumber(catalog, n, suffix = null) {
+  const wanted = suffix ? suffix.toUpperCase() : null
+  for (const exp of catalog ?? []) {
+    if (wanted ? (exp.sufijo ?? '').toUpperCase() !== wanted : (exp.prefijo || exp.sufijo)) continue
+    if ((exp.cardNumbers ?? numbersOf(exp)).includes(n)) return exp
+  }
+  return null
+}
+
+/* De qué número a qué número va esa corrida de números pelados, para decirlo en el campo
+   y en el error («van del 1 al 1936»). Null si el catálogo no tiene ninguna — ahí el
+   botón directamente no se dibuja. */
+export function plainNumberRun(catalog) {
+  let min = Infinity
+  let max = -Infinity
+  for (const exp of catalog ?? []) {
+    if (exp.prefijo || exp.sufijo) continue
+    for (const n of exp.cardNumbers ?? numbersOf(exp)) {
+      if (n < min) min = n
+      if (n > max) max = n
+    }
+  }
+  return max < min ? null : { min, max }
+}
+
 /* LO QUE SE SABE DE UNA CARTA EN PARTICULAR, cuando el catálogo lo sabe: `{ nombre,
  * copias }`. Hoy lo usan las nueve «Cartas únicas» de Leyenda y nada más.
  *

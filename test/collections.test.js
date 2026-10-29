@@ -14,7 +14,7 @@ import fs from 'node:fs'
 import {
   COLLECTIONS, DEFAULT_COLLECTION, readCollection, albumNames, cardLabel, cardDetail, listLabel, albumPercent,
   withVariants, variantsFor, slotKey, slotsOf, missingVariantsOf, albumTally, closestToComplete, drawableVariants, pointsToASlot, numbersOf,
-  slotOf, slotName, orphanName, completionBy, countsInTally,
+  slotOf, slotName, orphanName, completionBy, countsInTally, expansionForNumber, plainNumberRun,
 } from '../src/collections.js'
 
 /* Una expansión como sale de un json, para no depender de los catálogos de verdad: lo que
@@ -685,4 +685,55 @@ test('completionBy: completar los Manuales no festeja, y no tenerlos no frena el
   const before = { 'a:1': 1 }
   assert.deepEqual(completionBy('a:2', before, { ...before, 'a:2': 1 }, album),
     { expansion: cards, album: true })
+})
+
+// ---------------------------------------------------------------- expansionForNumber
+// «Agregar por número»: un número tipeado no trae contexto, así que sólo puede resolver
+// contra las expansiones de número pelado — las de prefijo o sufijo repiten números de la
+// corrida A PROPÓSITO (504E, Manual 1, F504) y entrarían a la rifa en silencio.
+
+test('expansionForNumber: las de prefijo o sufijo no juegan, aunque vengan primero en el catálogo', () => {
+  /* El orden importa para el mutante: si se saca el salto, acá gana la de prefijo. En el
+     catálogo real las especiales van al final, así que un test sobre el catálogo de
+     verdad NO agarra esta rotura. */
+  const manuals = makeExpansion({ id: 'man', prefijo: 'Manual ', desde: 1, hasta: 10 })
+  const specials = makeExpansion({ id: 'esp', sufijo: 'E', desde: 1, hasta: 10 })
+  const cards = makeExpansion({ id: 'a', desde: 1, hasta: 10 })
+  assert.equal(expansionForNumber([manuals, specials, cards], 5), cards)
+  assert.equal(expansionForNumber([manuals, specials], 5), null, 'sin corrida pelada no hay carta 5')
+  assert.equal(expansionForNumber([cards], 11), null)
+  assert.equal(expansionForNumber(null, 5), null, 'sin catálogo no revienta')
+})
+
+test('expansionForNumber: con sufijo gana la que declara ESA letra, mayúscula o no', () => {
+  const specials = makeExpansion({ id: 'esp', sufijo: 'E', desde: 504, hasta: 513 })
+  const cards = makeExpansion({ id: 'a', desde: 1, hasta: 1000 })
+  const catalog = [cards, specials]
+  assert.equal(expansionForNumber(catalog, 504, 'E'), specials)
+  assert.equal(expansionForNumber(catalog, 504, 'e'), specials, 'tipeado en minúscula vale igual')
+  assert.equal(expansionForNumber(catalog, 504), cards, 'sin la letra es la común')
+  assert.equal(expansionForNumber(catalog, 504, 'F'), null, 'una letra que nadie declara')
+  assert.equal(expansionForNumber(catalog, 514, 'E'), null, 'la letra está pero el número no')
+})
+
+test('plainNumberRun: el rango es el de las peladas, sin que las otras lo estiren', () => {
+  /* El mutante que cuenta también las de sufijo no se ve contra el catálogo real —las
+     especiales caen adentro del 1..1936— así que acá la de sufijo se va de rango. */
+  const cards = makeExpansion({ id: 'a', desde: 1, hasta: 10 })
+  const specials = makeExpansion({ id: 'esp', sufijo: 'E', desde: 50, hasta: 60 })
+  assert.deepEqual(plainNumberRun([cards, specials]), { min: 1, max: 10 })
+  assert.equal(plainNumberRun([specials]), null, 'sin ninguna pelada no hay rango, y el botón no se dibuja')
+  assert.equal(plainNumberRun([]), null)
+})
+
+test('expansionForNumber y plainNumberRun contra el catálogo DE VERDAD de Cromeros', () => {
+  const raw = JSON.parse(fs.readFileSync(new URL('../public/data/expansiones.json', import.meta.url), 'utf8'))
+  const exps = raw.expansiones.map((e) => withVariants(e, raw))
+  assert.deepEqual(plainNumberRun(exps), { min: 1, max: 1936 }, 'lo que dice el diálogo')
+  assert.equal(expansionForNumber(exps, 1).id, 'exp-1', 'la 1 es la carta, no el Manual 1')
+  assert.equal(expansionForNumber(exps, 504).id, 'exp-4', 'la 504 pelada es la común, no la 504E')
+  assert.equal(expansionForNumber(exps, 504, 'e').id, 'especiales', 'con la letra, la especial')
+  assert.equal(expansionForNumber(exps, 1936).id, 'bf-2', 'la última de la corrida')
+  assert.equal(expansionForNumber(exps, 1937), null, 'después de la corrida no hay nada')
+  assert.equal(expansionForNumber(exps, 0), null)
 })

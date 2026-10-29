@@ -660,6 +660,30 @@ button { cursor: pointer; }
 .almost:active { filter: brightness(0.96); }
 .almost:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
+/* «Agregar por número», debajo de la barra de avance. Mismo dibujo que «Panel»: una pill
+   terciaria con borde — es una entrada, no tiene que competir con la colección. Los 34 px
+   dibujados llegan a 44 de blanco de toque con el `::after` estirado de siempre, que no
+   mueve el layout; sólo a lo alto, porque a lo ancho el vecino es el propio aire. */
+.add-number {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  margin-top: 14px;
+  padding: 6px 15px;
+  border: 1px solid var(--line2);
+  border-radius: 999px;
+  background: none;
+  color: var(--ink2);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.add-number:hover { border-color: var(--accent); color: var(--accent); }
+.add-number::after { content: ''; position: absolute; left: 0; right: 0; top: -5px; bottom: -5px; }
+.add-number svg { flex: none; }
+
 .card { position: relative; }
 
 /* El rótulo corto de la variante, abajo a la izquierda — la esquina contraria al contador

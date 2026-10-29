@@ -39,7 +39,7 @@ import { pathFor, syncPath } from './routes'
 import { whatIsStale, staleText } from './health'
 import { ErrorBoundary } from './ErrorBoundary'
 import { whatsappTo, suggestionText } from './contact'
-import { COLLECTIONS, DEFAULT_COLLECTION, readCollection, rememberCollection, loadCatalogs, slotKey, slotsOf, variantsFor, missingVariantsOf, drawableVariants, pointsToASlot, cardLabel, cardDetail, albumPercent, albumTally, closestToComplete, slotOf, slotName, orphanName, completionBy, countsInTally } from './collections'
+import { COLLECTIONS, DEFAULT_COLLECTION, readCollection, rememberCollection, loadCatalogs, slotKey, slotsOf, variantsFor, missingVariantsOf, drawableVariants, pointsToASlot, cardLabel, cardDetail, albumPercent, albumTally, closestToComplete, slotOf, slotName, orphanName, completionBy, countsInTally, expansionForNumber, plainNumberRun } from './collections'
 import ConnectionTrouble, { AUTO_RETRY_SECONDS } from './ConnectionTrouble'
 import {
   ApiError,
@@ -378,6 +378,73 @@ function AskVariant({ label, variants, counts, onPick, onClose }) {
         <p className="exits">
           <button className="cancel" onClick={onClose}>Cancelar</button>
         </p>
+      </div>
+    </div>
+  )
+}
+
+/* «AGREGAR POR NÚMERO», lo pidió Angel: escribís el número de la carta que tenés en la
+   mano y pasa EXACTAMENTE lo que pasaría tocándola — si no la tenés, pregunta el estado;
+   si ya la tenés, suma una repetida. No es un marcado masivo (eso se sacó y no vuelve):
+   es UN número por vez, que desemboca en el mismo gesto de siempre. Sirve porque con 1936
+   casilleros encontrar la carta 1204 a ojo es scrollear media pantalla de números.
+
+   La diferencia con el toque es que acá la carta no está a la vista, así que lo que el
+   click muestra en el casillero lo tiene que decir el diálogo: la repetida sumada se
+   anuncia en la nota —que es viva, el mismo patrón de «Cambiar mi clave»— y el campo se
+   limpia para el siguiente número, que es el flujo de cargar un mazo recién comprado.
+   Cuando lo que sigue es una pregunta (el estado, o la variante), este diálogo se cierra
+   y la pregunta se abre en el mismo render, heredando la entrada del historial — igual
+   que el festejo hereda la del diálogo de condición.
+
+   `onSubmit` devuelve null si la pregunta quedó abierta (acá ya no hay nada que decir),
+   o `{ error }` / `{ added }` para decirlo sin cerrar. */
+function AddByNumber({ run, example, onSubmit, onClose }) {
+  const box = useRef(null)
+  const prevFocus = useRef(document.activeElement)
+  const [value, setValue] = useState('')
+  const [error, setError] = useState(null)
+  const [added, setAdded] = useState(null)
+  const inputRef = useRef(null)
+
+  useCloseOnEscape(onClose)
+  useEffect(() => trapFocus(box.current, prevFocus.current), [])
+
+  function handleSubmit(ev) {
+    ev.preventDefault()
+    const result = onSubmit(value.trim())
+    if (!result) return
+    if (result.error) { setError(result.error); setAdded(null); return }
+    setError(null)
+    setAdded(result.added)
+    setValue('')
+    inputRef.current?.focus()
+  }
+
+  return (
+    <div className="overlay" onClick={onClose}>
+      <div className="dialog" role="dialog" aria-modal="true" aria-label="Agregar por número"
+           ref={box} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
+        <h3>Agregar por número</h3>
+        {/* La nota SIEMPRE está y lo que cambia es el texto: una región viva se anuncia
+            cuando cambia, no cuando nace escrita. Arranca diciendo el rango —que sale del
+            catálogo, no escrito a mano— y pasa a decir la repetida que se acaba de sumar. */}
+        <p className="dialog-note" role="status">
+          {added ?? `Del ${run.min} al ${run.max}${example ? `; las especiales, con su letra (${example})` : ''}.`}
+        </p>
+        <form className="login-form" onSubmit={handleSubmit}>
+          <label>
+            Número de la carta
+            {/* inputMode y no type="number": el teclado numérico del teléfono, sin las
+                flechitas de spinner, y deja escribir la E de las especiales. */}
+            <input ref={inputRef} type="text" inputMode="numeric" autoComplete="off"
+                   value={value} onChange={(e) => { setValue(e.target.value); setError(null) }}
+                   autoFocus />
+          </label>
+          {error && <p className="error" role="alert">{error}</p>}
+          <button type="submit" className="primary">Agregar</button>
+          <button type="button" className="secondary" onClick={onClose}>Cerrar</button>
+        </form>
       </div>
     </div>
   )
@@ -788,6 +855,7 @@ export default function App() {
   const [profileOpen, setProfileOpen] = useState(false)
   const [orphansDialogOpen, setOrphansDialogOpen] = useState(false)
   const [variantPrompt, setVariantPrompt] = useState(null)
+  const [addByNumberOpen, setAddByNumberOpen] = useState(false)
   // Qué se completó con el último toque: {expansion, album}, o null.
   const [celebration, setCelebration] = useState(null)
 
@@ -795,13 +863,14 @@ export default function App() {
      —el telón se come los clicks de atrás— así que alcanza con «hay alguno» y «cerrá el
      que sea». Si algún día se pueden apilar, esto pasa a ser uno por diálogo. */
   const isDialogOpen =
-    exportOpen || passwordDialogOpen || profileOpen || orphansDialogOpen ||
+    exportOpen || passwordDialogOpen || profileOpen || orphansDialogOpen || addByNumberOpen ||
     !!conditionPrompt || !!variantPrompt || !!pendingRestore || !!celebration
   const closeDialogs = useCallback(() => {
     setExportOpen(false)
     setPasswordDialogOpen(false)
     setProfileOpen(false)
     setOrphansDialogOpen(false)
+    setAddByNumberOpen(false)
     setConditionPrompt(null)
     setVariantPrompt(null)
     setPendingRestore(null)
@@ -1577,6 +1646,15 @@ export default function App() {
     () => (catalog ? closestToComplete(catalog, quantities) : null),
     [catalog, quantities])
 
+  /* El rango que acepta «Agregar por número» (1 a 1936 en Cromeros) y el ejemplo de cómo
+     se escribe una especial («504E»), los dos sacados del catálogo y no escritos a mano —
+     perseguir al catálogo con números fijos es el error documentado del 1936. */
+  const numberRun = useMemo(() => (catalog ? plainNumberRun(catalog) : null), [catalog])
+  const suffixExample = useMemo(() => {
+    const exp = (catalog ?? []).find((e) => e.sufijo && !e.prefijo)
+    return exp ? cardLabel(exp, exp.cardNumbers[0]) : null
+  }, [catalog])
+
   /* Llevar a una expansión: si estaba plegada se abre, y recién después se baja hasta
      ella — con la banda cerrada el anclaje caería en el renglón de arriba. El `0` del
      timeout es para que React ya haya dibujado la expansión abierta. */
@@ -1769,6 +1847,36 @@ export default function App() {
   function pickCondition(condition) {
     applyChange(conditionPrompt.cardKey, 1, condition)
     setConditionPrompt(null)
+  }
+
+  /* El OK de «Agregar por número»: resuelve el número contra el catálogo y después hace
+     LO MISMO que un toque en esa carta — ése fue el pedido, «como si le hubieras hecho un
+     click». Si lo que sigue es una pregunta (el estado de una que no tenés, o la variante),
+     este diálogo se cierra y la pregunta se abre; si es una repetida muda, el diálogo se
+     queda y la dice, porque acá la carta no está a la vista. Devuelve lo que AddByNumber
+     tiene que mostrar, o null si ya no hay nada que decir. */
+  function addByNumber(text) {
+    const match = /^(\d+)\s*([a-zA-Z])?$/.exec(text)
+    if (!match) return { error: 'Escribí el número de la carta y nada más.' }
+    const n = Number(match[1])
+    const suffix = match[2]?.toUpperCase() ?? null
+    const exp = expansionForNumber(catalog, n, suffix)
+    if (!exp) {
+      return {
+        error: suffix
+          ? `No hay ninguna carta ${n}${suffix}.`
+          : `No hay ninguna carta ${n}: van del ${numberRun.min} al ${numberRun.max}.`,
+      }
+    }
+    const cardKey = slotKey(exp.id, n)
+    const quantity = liveRef.current.cantidades[cardKey] ?? 0
+    if (!quantity || variantsFor(exp, n).length) {
+      setAddByNumberOpen(false)
+      tap(cardKey, n)
+      return null
+    }
+    tap(cardKey, n)
+    return { added: `La ${cardLabel(exp, n)} ya la tenías: se sumó una repetida, ahora tenés ${quantity + 1}.` }
   }
 
   /* El alias se copia de un toque: es para pegarlo en el homebanking, no para leerlo. */
@@ -2158,6 +2266,25 @@ export default function App() {
                        aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
                 </button>
               )}
+              {/* «AGREGAR POR NÚMERO» — lo pidió Angel. Va acá, debajo de la barra, y NO
+                  en la barra de filtros: en teléfono ésa son cinco lugares de ancho igual
+                  y un sexto les saca el 20% a todos (está medido). Es de la familia de
+                  pills terciarias («Panel»), porque es una entrada y no tiene que competir
+                  con la colección.
+
+                  Sólo en álbumes CON condición (hoy Cromeros, que es lo pedido): ahí todo
+                  OK produce una respuesta visible — pregunta el estado, o el propio
+                  diálogo anuncia la repetida. En Leyenda una carta sin variantes se marca
+                  muda, y un botón que a veces no muestra nada parece roto. */}
+              {album?.condicion && numberRun && (
+                <button type="button" className="add-number" onClick={() => setAddByNumberOpen(true)}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                       strokeWidth="2.6" strokeLinecap="round" aria-hidden="true" focusable="false">
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
+                  Agregar por número
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -2517,6 +2644,15 @@ export default function App() {
             label={conditionPrompt.label}
             onPick={pickCondition}
             onClose={() => setConditionPrompt(null)}
+          />
+        )}
+
+        {addByNumberOpen && (
+          <AddByNumber
+            run={numberRun}
+            example={suffixExample}
+            onSubmit={addByNumber}
+            onClose={() => setAddByNumberOpen(false)}
           />
         )}
       </main>
