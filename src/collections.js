@@ -279,6 +279,20 @@ export function drawableVariants(expansions, quantities) {
   return result
 }
 
+/* ¿ESTA EXPANSIÓN CUENTA EN EL AVANCE? Los Manuales de Cromeros declaran
+   `"contabiliza": false`: se dibujan y se marcan igual que todo —ésa fue la consigna de
+   Angel, «visualmente igual»— pero no son cartas, así que quedan fuera de TODA cuenta
+   global: el «N de 1946» del encabezado y las píldoras del selector (`albumTally`), los
+   contadores y las vistas de los filtros que no son «Todas», el festejo de completar
+   (`completionBy`), el «te falta N» (`closestToComplete`) y el texto exportado. La banda
+   propia sigue diciendo su «3 de 10», que es lo visualmente igual.
+
+   Lo que NO excluye, a propósito: `dashboardCollections` manda el id igual, porque sin él
+   el panel anuncia los manuales marcados como «de un catálogo viejo» — filas legítimas
+   con cartel de borrar. Ahí los manuales cuentan como un hueco más de la columna «Álbum»,
+   que por definición es «todo lo que hay para marcar». */
+export const countsInTally = (exp) => exp?.contabiliza !== false
+
 /* CUÁNTO LLEVÁS DE UN ÁLBUM: los huecos que tiene y cuántos tienen algo.
  *
  * Vive acá porque la pregunta se hace en DOS lugares con la misma respuesta: el avance
@@ -295,6 +309,7 @@ export function albumTally(catalog, quantities) {
   const drawable = drawableVariants(catalog, quantities)
   let total = 0, owned = 0
   for (const exp of catalog ?? []) {
+    if (!countsInTally(exp)) continue
     for (const n of exp.cardNumbers) {
       total++
       if (slotsOf(exp, n, drawable[exp.id], quantities).some((s) => (quantities[s.cardKey] ?? 0) > 0)) owned++
@@ -322,6 +337,7 @@ export function closestToComplete(catalog, quantities, limit = 5) {
   const drawable = drawableVariants(catalog, quantities)
   let best = null
   for (const exp of catalog ?? []) {
+    if (!countsInTally(exp)) continue
     let owned = 0
     for (const n of exp.cardNumbers) {
       if (slotsOf(exp, n, drawable[exp.id], quantities).some((s) => (quantities[s.cardKey] ?? 0) > 0)) owned++
@@ -353,13 +369,17 @@ export function completionBy(cardKey, before, after, album) {
   const expansions = album?.expansiones ?? []
   const slot = slotOf(cardKey, { album })
   if (!slot) return null
+  /* Un manual no completa nada ni frena nada: completar los Manuales no festeja —el
+     diálogo diría «las 10 cartas» de algo que no son cartas— y, al revés, el álbum está
+     completo cuando están las 1946 CARTAS, tengas los manuales o no. */
+  if (!countsInTally(slot.exp)) return null
   const owns = (exp, n, quantities, drawable) =>
     slotsOf(exp, n, drawable[exp.id], quantities).some((s) => (quantities[s.cardKey] ?? 0) > 0)
   if (owns(slot.exp, slot.n, before, drawableVariants(expansions, before))) return null
   const drawableAfter = drawableVariants(expansions, after)
   const isComplete = (exp) => exp.cardNumbers.every((n) => owns(exp, n, after, drawableAfter))
   if (!isComplete(slot.exp)) return null
-  return { expansion: slot.exp, album: expansions.every(isComplete) }
+  return { expansion: slot.exp, album: expansions.filter(countsInTally).every(isComplete) }
 }
 
 /* ¿Esta clave apunta a un hueco que existe? Se usa para las huérfanas, y la respuesta

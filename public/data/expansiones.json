@@ -5,6 +5,7 @@
   "notas": [
     "Cada carta tiene un numero unico: la coleccion es la numeracion corrida del 1 al 1936, sin repetidos ni huecos.",
     "La excepcion son las Cartas Especiales: diez cartas DISTINTAS que repiten los numeros 504 a 513 de Expansion 4 (la 504 comun es CONSEJOS PATERNOS, la especial es EL NUEVO GOHAN). Van como expansion aparte con sufijo E (504E a 513E), igual que las F de Leyenda pero con la letra atras, que es como las nombra Angel. Su planilla original las tenia, con la 124 ademas; la 124E no esta cargada porque Angel pidio 504E a 513E (2026-10-29).",
+    "Los Manuales son los diez manuales del juego (v1.0 a v10.0), documentados en dragonball.center (seccion Extras de la coleccion). No son cartas: llevan contabiliza en false, asi que se marcan igual que todo pero no cuentan en el avance, ni en los filtros, ni en el texto exportado. El color es nuestro, elegido para la banda; la planilla original no los tenia (2026-10-29).",
     "Podes editar este archivo para corregir rangos o agregar sets sin recompilar la app."
   ],
   "expansiones": [
@@ -159,6 +160,17 @@
       "color": "#c27ba0",
       "desde": 504,
       "hasta": 513
+    },
+    {
+      "id": "manuales",
+      "nombre": "Manuales",
+      "corto": "MA",
+      "prefijo": "Manual v",
+      "sufijo": ".0",
+      "color": "#8d6e63",
+      "desde": 1,
+      "hasta": 10,
+      "contabiliza": false
     }
   ]
 }

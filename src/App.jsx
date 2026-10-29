@@ -39,7 +39,7 @@ import { pathFor, syncPath } from './routes'
 import { whatIsStale, staleText } from './health'
 import { ErrorBoundary } from './ErrorBoundary'
 import { whatsappTo, suggestionText } from './contact'
-import { COLLECTIONS, DEFAULT_COLLECTION, readCollection, rememberCollection, loadCatalogs, slotKey, slotsOf, variantsFor, missingVariantsOf, drawableVariants, pointsToASlot, cardLabel, cardDetail, albumPercent, albumTally, closestToComplete, slotOf, slotName, orphanName, completionBy } from './collections'
+import { COLLECTIONS, DEFAULT_COLLECTION, readCollection, rememberCollection, loadCatalogs, slotKey, slotsOf, variantsFor, missingVariantsOf, drawableVariants, pointsToASlot, cardLabel, cardDetail, albumPercent, albumTally, closestToComplete, slotOf, slotName, orphanName, completionBy, countsInTally } from './collections'
 import ConnectionTrouble, { AUTO_RETRY_SECONDS } from './ConnectionTrouble'
 import {
   ApiError,
@@ -1482,6 +1482,11 @@ export default function App() {
        distintos para lo mismo. El exportar cuenta los suyos aparte, por carta, que es lo
        que necesita para armar la lista. */
     for (const exp of catalog) {
+      /* Los Manuales no son cartas: fuera del avance Y de los contadores de filtro. Si
+         contaran en los chips, el de «Todas» diría 1956 al lado de un «de 1946» — los
+         dos números en la misma pantalla sin cerrar entre sí, que es el bug documentado
+         de los contadores. Ver `countsInTally`. */
+      if (!countsInTally(exp)) continue
       for (const n of exp.cardNumbers) {
         total++
         let hasAny = false
@@ -1526,7 +1531,13 @@ export default function App() {
   /* LO QUE EL PANEL NECESITA SABER DE LOS CATÁLOGOS, y que el servidor no puede saber.
      Cada colección con su nombre, cuántos huecos tiene y qué prefijos de clave son suyos.
      Sin esto la columna «Álbum» divide por la suma de los dos: el que tiene Cromeros
-     entero —1936 de 1936— se dibujaba con 64%. */
+     entero —1936 de 1936— se dibujaba con 64%.
+
+     Acá los Manuales van ADENTRO a propósito, id y total, aunque no contabilicen en la
+     app: sin el id, el panel anuncia los manuales marcados como «de un catálogo viejo»
+     con cartel de borrar; y con el id pero sin el total, el numerador puede pasar al
+     denominador y alguien a una carta de terminar sale con 100%. La columna «Álbum» es
+     «todo lo que hay para marcar», y los manuales se marcan. */
   const dashboardCollections = useMemo(() => {
     const result = []
     for (const c of COLLECTIONS) {
@@ -2220,6 +2231,9 @@ export default function App() {
         <div className="expansions">
         {catalog.map((exp) => {
           const activeFilterDef = FILTERS.find((f) => f.id === effectiveFilter)
+          /* Lo que no contabiliza sólo se ve en «Todas»: los chips no lo cuentan, así
+             que mostrarlo filtrado sería listar huecos que el contador de arriba niega. */
+          if (effectiveFilter !== 'all' && !countsInTally(exp)) return null
           /* Un hueco se dibuja si ALGUNO de sus casilleros pasa el filtro — o si el
              filtro es de hueco, si el hueco entero pasa. La misma distinción que en
              `summary`, para que el chip y lo dibujado cuenten lo mismo. */
@@ -2374,7 +2388,10 @@ export default function App() {
 
         {exportOpen && (
           <ExportDialog
-            catalog={catalog}
+            /* Sin los Manuales: el «ME FALTAN (N)» que se pega en un grupo es una cuenta
+               de cartas, y meterles diez renglones que no lo son la infla. Si algún día
+               hace falta intercambiar manuales por acá, es sacar este filtro. */
+            catalog={catalog.filter(countsInTally)}
             collectionData={collectionData}
             /* Las mismas que dibuja la grilla, no sólo las declaradas: una variante que
                tenés cargada con un id que el catálogo dejó de declarar sigue siendo una

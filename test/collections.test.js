@@ -14,7 +14,7 @@ import fs from 'node:fs'
 import {
   COLLECTIONS, DEFAULT_COLLECTION, readCollection, albumNames, cardLabel, cardDetail, listLabel, albumPercent,
   withVariants, variantsFor, slotKey, slotsOf, missingVariantsOf, albumTally, closestToComplete, drawableVariants, pointsToASlot, numbersOf,
-  slotOf, slotName, orphanName, completionBy,
+  slotOf, slotName, orphanName, completionBy, countsInTally,
 } from '../src/collections.js'
 
 /* Una expansión como sale de un json, para no depender de los catálogos de verdad: lo que
@@ -546,10 +546,12 @@ test('cardLabel: LOS 19 HUECOS QUE REPITEN NÚMERO quedan distinguidos', () => {
   assert.equal(cardLabel(byId('ley-inicial'), 1), '1')
 })
 
-test('cardLabel: Y LOS 10 DE CROMEROS, desde que existen las Cartas Especiales', () => {
-  /* Desde el 2026-10-29 Cromeros tiene su propio par de cartas distintas con el mismo
-     número: `especiales` repite 504 a 513 sobre el tramo de Expansión 4. Mismo seguro
-     que el de arriba: el día que alguien le saque el `sufijo`, esto se pone rojo. */
+test('cardLabel: Y LOS 20 DE CROMEROS, entre especiales y manuales', () => {
+  /* Desde el 2026-10-29 Cromeros tiene sus propios números repetidos: `especiales`
+     repite 504 a 513 sobre el tramo de Expansión 4, y `manuales` numera sus diez del 1
+     al 10, que también son cartas de Expansión 1 — ahí el número es nuestro, no impreso,
+     y lo que separa es el rótulo entero («Manual v1.0» contra «1»). Mismo seguro que el
+     de arriba: el día que alguien saque el `sufijo` o el `prefijo`, esto se pone rojo. */
   const raw = JSON.parse(fs.readFileSync(new URL('../public/data/expansiones.json', import.meta.url), 'utf8'))
   const exps = raw.expansiones.map((e) => withVariants(e, raw))
   const byId = (id) => exps.find((e) => e.id === id)
@@ -559,13 +561,15 @@ test('cardLabel: Y LOS 10 DE CROMEROS, desde que existen las Cartas Especiales',
     if (a.id >= b.id) continue
     for (const n of a.cardNumbers) if (b.cardNumbers.includes(n)) collisions.push([a, b, n])
   }
-  assert.equal(collisions.length, 10, 'son 10 huecos con dos cartas cada uno')
+  assert.equal(collisions.length, 20, 'diez de las especiales y diez de los manuales')
   for (const [a, b, n] of collisions)
     assert.notEqual(cardLabel(a, n), cardLabel(b, n),
       `${a.id} y ${b.id} llaman igual a la ${n}: hablado no hay banda que los separe`)
 
   assert.equal(cardLabel(byId('especiales'), 504), '504E')
   assert.equal(cardLabel(byId('exp-4'), 504), '504')
+  assert.equal(cardLabel(byId('manuales'), 1), 'Manual v1.0')
+  assert.equal(cardLabel(byId('exp-1'), 1), '1')
 })
 
 test('albumNames: los nombra en prosa y sale de la lista, no escrito a mano', () => {
@@ -628,4 +632,57 @@ test('completionBy: una clave de otro álbum, o que no apunta a ningún hueco, n
   assert.equal(completionBy('b:1', {}, { 'b:1': 1 }, album), null)
   assert.equal(completionBy('a:9', {}, { 'a:9': 1 }, album), null)
   assert.equal(completionBy('a:1', {}, { 'a:1': 1 }, null), null, 'sin álbum cargado')
+})
+
+// ---------------------------------------------------------------- countsInTally
+// Los Manuales de Cromeros: se marcan como todo pero no son cartas, así que quedan
+// fuera de todas las cuentas globales. Es el pedido de Angel del 2026-10-29:
+// «visualmente igual pero que no contabilice en las cartas».
+
+test('countsInTally: sólo un `contabiliza: false` explícito saca a una expansión', () => {
+  assert.equal(countsInTally({ id: 'exp-1' }), true, 'sin el campo, cuenta')
+  assert.equal(countsInTally({ id: 'manuales', contabiliza: false }), false)
+  assert.equal(countsInTally({ id: 'x', contabiliza: true }), true)
+  assert.equal(countsInTally(null), true, 'sin expansión no revienta')
+})
+
+test('albumTally: lo que no contabiliza no entra ni al total ni a lo tenido', () => {
+  const cards = makeExpansion({ id: 'a', desde: 1, hasta: 2 })
+  const manuals = makeExpansion({ id: 'man', desde: 1, hasta: 10, contabiliza: false })
+  const catalog = [cards, manuals]
+  assert.deepEqual(albumTally(catalog, {}), { total: 2, owned: 0 }, 'diez manuales no agrandan el álbum')
+  assert.deepEqual(albumTally(catalog, { 'man:1': 1, 'man:2': 3 }), { total: 2, owned: 0 },
+    'marcar manuales no mueve el avance')
+  assert.deepEqual(albumTally(catalog, { 'a:1': 1, 'man:1': 1 }), { total: 2, owned: 1 })
+})
+
+test('albumTally contra el catálogo DE VERDAD: Cromeros sigue siendo «de 1946»', () => {
+  /* El seguro de que el número grande no cambió el día que entraron los Manuales: el
+     catálogo tiene 1956 huecos dibujables y el avance cuenta 1946. Si esto se pone rojo,
+     o se tocó la corrida o alguien le sacó el `contabiliza` a los manuales. */
+  const raw = JSON.parse(fs.readFileSync(new URL('../public/data/expansiones.json', import.meta.url), 'utf8'))
+  const exps = raw.expansiones.map((e) => withVariants(e, raw))
+  assert.equal(exps.reduce((a, e) => a + e.cardNumbers.length, 0), 1956, 'los huecos dibujables')
+  assert.equal(albumTally(exps, {}).total, 1946, 'las cartas que contabilizan')
+})
+
+test('closestToComplete: estar a uno de completar los Manuales no es noticia', () => {
+  const manuals = makeExpansion({ id: 'man', desde: 1, hasta: 3, contabiliza: false })
+  const cards = makeExpansion({ id: 'a', desde: 1, hasta: 136 })
+  const q = { 'man:1': 1, 'man:2': 1 }
+  assert.equal(closestToComplete([manuals, cards], q), null,
+    'el «te falta 1» es de cartas, y acá sólo hay manuales empezados')
+})
+
+test('completionBy: completar los Manuales no festeja, y no tenerlos no frena el festejo del álbum', () => {
+  const cards = makeExpansion({ id: 'a', desde: 1, hasta: 2 })
+  const manuals = makeExpansion({ id: 'man', desde: 1, hasta: 2, contabiliza: false })
+  const album = { expansiones: [cards, manuals] }
+  /* El último manual no abre ningún diálogo de festejo: no completó cartas. */
+  const allCards = { 'a:1': 1, 'a:2': 1, 'man:1': 1 }
+  assert.equal(completionBy('man:2', allCards, { ...allCards, 'man:2': 1 }, album), null)
+  /* Y el álbum está completo cuando están las CARTAS, tengas los manuales o no. */
+  const before = { 'a:1': 1 }
+  assert.deepEqual(completionBy('a:2', before, { ...before, 'a:2': 1 }, album),
+    { expansion: cards, album: true })
 })

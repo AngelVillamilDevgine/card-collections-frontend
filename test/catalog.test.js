@@ -22,13 +22,17 @@ const expansions = JSON.parse(
   fs.readFileSync(new URL('../public/data/expansiones.json', import.meta.url), 'utf8')
 ).expansiones
 
-/* Las «Cartas Especiales» quedan FUERA de la corrida a propósito: son diez cartas
-   DISTINTAS que repiten los números 504 a 513 de Expansión 4 (la 504 común es «CONSEJOS
-   PATERNOS», la especial «EL NUEVO GOHAN») y se rotulan con el sufijo E. Es el mismo
-   trato que `leyenda.test.js` le da a las F: un duplicado deliberado y documentado no
-   puede volver ciego al test que existe para cazar duplicados por error. */
+/* Dos expansiones quedan FUERA de la corrida a propósito. Las «Cartas Especiales» son
+   diez cartas DISTINTAS que repiten los números 504 a 513 de Expansión 4 (la 504 común
+   es «CONSEJOS PATERNOS», la especial «EL NUEVO GOHAN») y se rotulan con el sufijo E —
+   el mismo trato que `leyenda.test.js` le da a las F: un duplicado deliberado y
+   documentado no puede volver ciego al test que existe para cazar duplicados por error.
+   Y los «Manuales» directamente no son cartas: sus números (1 a 10) son nuestros, no
+   están impresos en ninguna corrida, y van con `contabiliza: false`. */
 const SPECIALS_ID = 'especiales'
-const corrida = expansions.filter((e) => e.id !== SPECIALS_ID)
+const MANUALS_ID = 'manuales'
+const OUT_OF_RUN = new Set([SPECIALS_ID, MANUALS_ID])
+const corrida = expansions.filter((e) => !OUT_OF_RUN.has(e.id))
 
 const allNumbers = corrida.flatMap(numbersOf)
 
@@ -65,8 +69,21 @@ test('las Cartas Especiales: diez huecos más, 504E a 513E, encima de la corrida
   for (const n of numbersOf(e)) assert.ok(inRun.has(n), `la ${n} no existe en la corrida`)
 })
 
-test('son 17 expansiones y cada una tiene lo que necesita para dibujarse', () => {
-  assert.equal(expansions.length, 17)
+test('los Manuales: diez huecos aparte que no contabilizan, Manual v1.0 a v10.0', () => {
+  const e = expansions.find((x) => x.id === MANUALS_ID)
+  assert.ok(e, 'la expansión de los manuales tiene que existir')
+  assert.deepEqual(numbersOf(e), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+  /* El rótulo entero sale de prefijo + número + sufijo: «Manual v» + 3 + «.0». Es lo
+     que dicen el diálogo, el lector de pantalla y el pie de lo no guardado. */
+  assert.equal(e.prefijo, 'Manual v')
+  assert.equal(e.sufijo, '.0')
+  /* Y el seguro del pedido de Angel: «que no contabilice en las cartas». Sin esta
+     marca, los diez entran al «N de 1946» y a los filtros. */
+  assert.equal(e.contabiliza, false)
+})
+
+test('son 18 expansiones y cada una tiene lo que necesita para dibujarse', () => {
+  assert.equal(expansions.length, 18)
   const ids = new Set()
   for (const exp of expansions) {
     assert.ok(exp.id, `una expansión sin id: ${JSON.stringify(exp).slice(0, 80)}`)
