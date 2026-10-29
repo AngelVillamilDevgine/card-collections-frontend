@@ -389,22 +389,23 @@ function AskVariant({ label, variants, counts, onPick, onClose }) {
    es UN número por vez, que desemboca en el mismo gesto de siempre. Sirve porque con 1936
    casilleros encontrar la carta 1204 a ojo es scrollear media pantalla de números.
 
-   La diferencia con el toque es que acá la carta no está a la vista, así que lo que el
-   click muestra en el casillero lo tiene que decir el diálogo: la repetida sumada se
-   anuncia en la nota —que es viva, el mismo patrón de «Cambiar mi clave»— y el campo se
-   limpia para el siguiente número, que es el flujo de cargar un mazo recién comprado.
-   Cuando lo que sigue es una pregunta (el estado, o la variante), este diálogo se cierra
-   y la pregunta se abre en el mismo render, heredando la entrada del historial — igual
-   que el festejo hereda la del diálogo de condición.
+   ES UN BUCLE, no un trámite de una vez — la segunda corrección de Angel: «que no se
+   cierre después de ingresar el estado, que se vacíe así puedo seguir ingresando». La
+   carta nueva abre el diálogo de condición y, elegido el estado, SE VUELVE ACÁ: el campo
+   vacío con el foco puesto y la confirmación en la nota (`notice`, que viaja por prop
+   porque este diálogo se desmonta mientras el otro está abierto). La repetida ni se va:
+   se anuncia en la misma nota —que es viva, el patrón de «Cambiar mi clave»— con el campo
+   limpio. Así cargar un mazo recién comprado es número, Enter, estado, número, Enter…
+   La única salida del bucle es Cerrar, Escape, Atrás o el telón.
 
-   `onSubmit` devuelve null si la pregunta quedó abierta (acá ya no hay nada que decir),
-   o `{ error }` / `{ added }` para decirlo sin cerrar. */
-function AddByNumber({ run, example, onSubmit, onClose }) {
+   `onSubmit` devuelve null si lo que sigue es otro diálogo (acá ya no hay nada que
+   decir), o `{ error }` / `{ added }` para decirlo sin cerrar. */
+function AddByNumber({ run, example, notice, onSubmit, onClose }) {
   const box = useRef(null)
   const prevFocus = useRef(document.activeElement)
   const [value, setValue] = useState('')
   const [error, setError] = useState(null)
-  const [added, setAdded] = useState(null)
+  const [added, setAdded] = useState(notice ?? null)
   const inputRef = useRef(null)
 
   useCloseOnEscape(onClose)
@@ -855,7 +856,11 @@ export default function App() {
   const [profileOpen, setProfileOpen] = useState(false)
   const [orphansDialogOpen, setOrphansDialogOpen] = useState(false)
   const [variantPrompt, setVariantPrompt] = useState(null)
-  const [addByNumberOpen, setAddByNumberOpen] = useState(false)
+  /* «Agregar por número»: null cerrado, o { notice } — la confirmación de lo que acaba de
+     pasar en el viaje de ida y vuelta por el diálogo de condición, o null si no hay nada
+     que decir. Es un objeto y no un booleano porque el diálogo se desmonta mientras el de
+     condición está abierto, así que lo que tiene que decir al volver viaja por acá. */
+  const [addByNumberPrompt, setAddByNumberPrompt] = useState(null)
   // Qué se completó con el último toque: {expansion, album}, o null.
   const [celebration, setCelebration] = useState(null)
 
@@ -863,14 +868,14 @@ export default function App() {
      —el telón se come los clicks de atrás— así que alcanza con «hay alguno» y «cerrá el
      que sea». Si algún día se pueden apilar, esto pasa a ser uno por diálogo. */
   const isDialogOpen =
-    exportOpen || passwordDialogOpen || profileOpen || orphansDialogOpen || addByNumberOpen ||
+    exportOpen || passwordDialogOpen || profileOpen || orphansDialogOpen || !!addByNumberPrompt ||
     !!conditionPrompt || !!variantPrompt || !!pendingRestore || !!celebration
   const closeDialogs = useCallback(() => {
     setExportOpen(false)
     setPasswordDialogOpen(false)
     setProfileOpen(false)
     setOrphansDialogOpen(false)
-    setAddByNumberOpen(false)
+    setAddByNumberPrompt(null)
     setConditionPrompt(null)
     setVariantPrompt(null)
     setPendingRestore(null)
@@ -1506,11 +1511,20 @@ export default function App() {
     queueSave(cardKey, quantity, quantity > 0 ? condition : null)
 
     /* El festejo, sólo cuando un casillero pasa de no tenerla a tenerla: es el único toque
-       que puede completar algo. Si cuando llega éste ya hay uno abierto, queda el primero. */
+       que puede completar algo. Si cuando llega éste ya hay uno abierto, queda el primero.
+
+       DEVUELVE si quedó un festejo en pantalla, y no es cortesía: «Agregar por número»
+       vuelve a abrirse después de elegir el estado, y si este cambio completó algo tiene
+       que quedarse el festejo SOLO — dos diálogos a la vez rompen el supuesto de toda la
+       mecánica (un Escape cerraría los dos). */
     if (!previousQuantity && quantity > 0) {
       const done = completionBy(cardKey, d.cantidades, nextQuantities, album)
-      if (done) setCelebration((current) => current ?? done)
+      if (done) {
+        setCelebration((current) => current ?? done)
+        return true
+      }
     }
+    return false
   }
 
   /* Cartas que están en tu cuenta pero NO en el catálogo.
@@ -1845,16 +1859,26 @@ export default function App() {
   const handleHold = useCallback((cardKey) => handlersRef.current.decrement(cardKey), [])
 
   function pickCondition(condition) {
-    applyChange(conditionPrompt.cardKey, 1, condition)
+    const { cardKey, label, returnToAdd } = conditionPrompt
+    const celebrating = applyChange(cardKey, 1, condition)
     setConditionPrompt(null)
+    /* Si se vino de «Agregar por número», SE VUELVE — lo pidió Angel: «que no se cierre
+       después de ingresar el estado, que se vacíe así puedo seguir ingresando». El
+       diálogo reabre vacío, con la confirmación en la nota viva. Salvo que este toque
+       haya completado algo: ahí el festejo se queda solo, porque dos diálogos a la vez
+       rompen la mecánica de todos (un Escape cerraría ambos). */
+    if (returnToAdd && !celebrating) {
+      setAddByNumberPrompt({ notice: `La ${label} quedó marcada: ${conditionLabel(condition, 1)}.` })
+    }
   }
 
   /* El OK de «Agregar por número»: resuelve el número contra el catálogo y después hace
      LO MISMO que un toque en esa carta — ése fue el pedido, «como si le hubieras hecho un
-     click». Si lo que sigue es una pregunta (el estado de una que no tenés, o la variante),
-     este diálogo se cierra y la pregunta se abre; si es una repetida muda, el diálogo se
-     queda y la dice, porque acá la carta no está a la vista. Devuelve lo que AddByNumber
-     tiene que mostrar, o null si ya no hay nada que decir. */
+     click». La carta que no tenés abre el diálogo de condición marcado con `returnToAdd`:
+     al elegir el estado (o al cancelar) se VUELVE acá, vacío, para seguir ingresando —
+     la segunda corrección de Angel. La repetida ni se va: el diálogo se queda y la dice,
+     porque acá la carta no está a la vista. Devuelve lo que AddByNumber tiene que
+     mostrar, o null si lo que sigue es otro diálogo. */
   function addByNumber(text) {
     const match = /^(\d+)\s*([a-zA-Z])?$/.exec(text)
     if (!match) return { error: 'Escribí el número de la carta y nada más.' }
@@ -1870,9 +1894,17 @@ export default function App() {
     }
     const cardKey = slotKey(exp.id, n)
     const quantity = liveRef.current.cantidades[cardKey] ?? 0
-    if (!quantity || variantsFor(exp, n).length) {
-      setAddByNumberOpen(false)
+    /* Con variantes la pregunta es cuál, y la contesta el diálogo de variantes vía `tap`.
+       Hoy no pasa —el botón vive sólo en álbumes con condición y ahí no hay variantes—
+       así que ese camino no vuelve acá; si Leyenda gana el botón, se le agrega la vuelta. */
+    if (variantsFor(exp, n).length) {
+      setAddByNumberPrompt(null)
       tap(cardKey, n)
+      return null
+    }
+    if (!quantity) {
+      setAddByNumberPrompt(null)
+      setConditionPrompt({ cardKey, label: cardLabel(exp, n), returnToAdd: true })
       return null
     }
     tap(cardKey, n)
@@ -2277,7 +2309,7 @@ export default function App() {
                   diálogo anuncia la repetida. En Leyenda una carta sin variantes se marca
                   muda, y un botón que a veces no muestra nada parece roto. */}
               {album?.condicion && numberRun && (
-                <button type="button" className="add-number" onClick={() => setAddByNumberOpen(true)}>
+                <button type="button" className="add-number" onClick={() => setAddByNumberPrompt({ notice: null })}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                        strokeWidth="2.6" strokeLinecap="round" aria-hidden="true" focusable="false">
                     <path d="M12 5v14M5 12h14" />
@@ -2643,16 +2675,24 @@ export default function App() {
           <AskCondition
             label={conditionPrompt.label}
             onPick={pickCondition}
-            onClose={() => setConditionPrompt(null)}
+            /* Cancelar también VUELVE cuando se vino de «Agregar por número»: en ese
+               flujo cancelar es «me equivoqué de número», no «sacame de acá» — y la
+               salida está a una Escape más, en el propio diálogo. */
+            onClose={() => {
+              const { returnToAdd } = conditionPrompt
+              setConditionPrompt(null)
+              if (returnToAdd) setAddByNumberPrompt({ notice: null })
+            }}
           />
         )}
 
-        {addByNumberOpen && (
+        {addByNumberPrompt && (
           <AddByNumber
             run={numberRun}
             example={suffixExample}
+            notice={addByNumberPrompt.notice}
             onSubmit={addByNumber}
-            onClose={() => setAddByNumberOpen(false)}
+            onClose={() => setAddByNumberPrompt(null)}
           />
         )}
       </main>
