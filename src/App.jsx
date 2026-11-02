@@ -2204,7 +2204,7 @@ export default function App() {
                 onClick={openDashboard}
                 aria-label={staleItems.length
                   ? `Panel · revisá ${staleText(staleItems)}`
-                  : undefined}
+                  : 'Panel'}
               >
                 {/* SVG y no un emoji: un emoji lo dibuja cada sistema a su manera y en
                     Android viejo puede salir un cuadradito. */}
@@ -2213,7 +2213,7 @@ export default function App() {
                   <rect x="5" y="3" width="3" height="10" rx="1" fill="currentColor" />
                   <rect x="10" y="0" width="3" height="13" rx="1" fill="currentColor" />
                 </svg>
-                Panel
+                <span className="open-panel-label">Panel</span>
               </button>
             )}
               {/* «MI PERFIL». Un ícono solo, con su nombre para el lector de pantalla y sin

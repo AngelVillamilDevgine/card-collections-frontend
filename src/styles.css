@@ -1477,6 +1477,18 @@ button { cursor: pointer; }
 .profile-account { margin: -2px 0 14px; font-size: 13.5px; color: var(--ink2); overflow-wrap: anywhere; }
 .profile-account b { color: var(--ink); }
 .open-panel svg { flex: none; }
+/* EN LOS TELÉFONOS ANGOSTOS «PANEL» PASA A SER SÓLO EL ÍCONO. El encabezado es una grilla de
+   `logo | botones`, y con «Panel» + «Mi perfil» a la derecha el logo de 240 px no entra
+   en 296 de pantalla: la columna `1fr` no se achicaba (su mínimo era el logo entero), la
+   página entera se ensanchaba y quedaban cortados el botón de perfil y el «0%» del avance.
+   Lo vio Angel, que es el único que ve el botón — mi API de prueba no era admin y por eso
+   el barrido de anchos de antes daba todo bien. El nombre sigue estando (`aria-label`) y el
+   punto rojo de la copia vieja pasa a la esquina, porque ya no hay texto al lado. */
+@media (max-width: 380px) {
+  .open-panel { position: relative; width: 34px; padding: 0; gap: 0; justify-content: center; }
+  .open-panel-label { display: none; }
+  .open-panel.has-alert::before { position: absolute; top: 3px; right: 3px; }
+}
 
 /* CUANDO LA COPIA DE LA BASE ESTÁ VIEJA. Lo único que Angel pidió que le avise, y hasta hoy
    el aviso era el bloque Salud del panel poniéndose rojo — que hay que ABRIR el panel para
@@ -1539,7 +1551,7 @@ button { cursor: pointer; }
      necesita. */
   .masthead .column {
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: end;
     gap: 14px 12px;
   }
@@ -1552,7 +1564,7 @@ button { cursor: pointer; }
   /* El botón va en el renglón del LOGO, no en el del subtítulo. Puesto al lado del
      subtítulo lo partía en dos y dejaba un «2008» solo abajo: el logo mide 240 px fijos
      y a su derecha hay lugar de sobra, el subtítulo no. */
-  .masthead h1 { grid-area: 1 / 1; align-self: center; }
+  .masthead h1 { grid-area: 1 / 1; align-self: center; min-width: 0; }
   /* Desde que existe «Mi perfil», la celda es del ENVOLTORIO de los botones y no de
      «Panel»: así los dos comparten el renglón del logo, también para quien no es admin y
      sólo tiene el de perfil. */
