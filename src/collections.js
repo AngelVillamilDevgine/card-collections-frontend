@@ -210,6 +210,148 @@ export function expansionForNumber(catalog, n, suffix = null) {
   return null
 }
 
+/* ---------------------------------- carga masiva ---------------------------------- */
+
+/* Lee lo que escribe una persona cuando enumera cartas: «5, 17, 20-22», «1 a 10 y 15»,
+   «20 al 25», «504e». No es un lenguaje: es tolerar las formas en que alguien lo escribiría
+   sin pensar. Devuelve { items: [{from, to, suffix}] } o { error } con una frase que dice
+   qué escribir. Vacío es una lista vacía, no un error: la lista de excepciones es opcional. */
+export function parseNumberList(text) {
+  const clean = String(text ?? '')
+    .toLowerCase()
+    .replace(/[–—]/g, '-')
+    .replace(/\s*-\s*/g, '-')
+    .replace(/\s+(?:al?|hasta)\s+/g, '-')
+  const tokens = clean.split(/[\s,;]+/).filter((t) => t && t !== 'y')
+  /* «Ninguna», «nada», «no»: quien no entiende que el campo es opcional lo llena con lo que
+     le parece natural. Es lo mismo que dejarlo vacío. */
+  if (tokens.length && tokens.every((t) => ['ninguna', 'ninguno', 'nada', 'no', 'sin', '-'].includes(t))) return { items: [] }
+  const items = []
+  for (const token of tokens) {
+    const range = /^(\d{1,5})-(\d{1,5})$/.exec(token)
+    const single = /^(\d{1,5})([a-z])?$/.exec(token)
+    if (range) {
+      const a = Number(range[1])
+      const b = Number(range[2])
+      items.push({ from: Math.min(a, b), to: Math.max(a, b), suffix: null })
+    } else if (single) {
+      items.push({ from: Number(single[1]), to: Number(single[1]), suffix: single[2] ?? null })
+    } else {
+      return { items: [], error: `No entendí «${token.slice(0, 20)}». Escribí sólo números separados por coma, por ejemplo: 5, 17, 20-22.` }
+    }
+  }
+  return { items }
+}
+
+/* «1–129», «504E–513E», «Manual 1–Manual 10»: de qué carta a qué carta va una expansión, con
+   el mismo rótulo que usa todo lo demás. */
+export function expansionRangeText(exp) {
+  const numbers = exp.cardNumbers ?? numbersOf(exp)
+  if (!numbers.length) return ''
+  const first = cardLabel(exp, numbers[0])
+  const last = cardLabel(exp, numbers.at(-1))
+  return first === last ? first : `${first}–${last}`
+}
+
+/* QUÉ CARTAS ALCANZA UNA CARGA MASIVA. `spec` es lo que eligió la persona:
+ *   { scope: 'expansion', expansionId }       una expansión entera
+ *   { scope: 'range', from, to }              un tramo de números pelados (1 a 1936 en Cromeros)
+ *   { scope: 'all' }                          todo el álbum que cuenta (sin los manuales)
+ * más `except`, opcional: las que NO tiene, escritas como las escribiría cualquiera.
+ *
+ * Devuelve { targets: [{cardKey, exp, n}], baseCount, excludedCount, scopeText } o { error }, con
+ * una frase para la persona. Cada error dice qué hacer, porque a quien llega perdido «inválido»
+ * no le sirve. Una excepción que NO está entre las elegidas es un error y no se ignora: casi
+ * seguro es un número mal escrito, y ignorarla marcaría una carta que dijo que no tiene. */
+export function bulkTargets(catalog, spec) {
+  const fail = (error) => ({ targets: [], error })
+  const keyOf = (exp, n) => slotKey(exp.id, n)
+  const numbersIn = (exp) => exp.cardNumbers ?? numbersOf(exp)
+  let base = []
+  let scopeText
+  let singleExp = null
+
+  if (spec.scope === 'expansion') {
+    singleExp = (catalog ?? []).find((e) => e.id === spec.expansionId)
+    if (!singleExp) return fail('Elegí una expansión de la lista.')
+    base = numbersIn(singleExp).map((n) => ({ exp: singleExp, n }))
+    scopeText = singleExp.nombre
+  } else if (spec.scope === 'range') {
+    const run = plainNumberRun(catalog)
+    if (!run) return fail('En este álbum no se puede cargar por tramo.')
+    const raw = [String(spec.from ?? '').trim(), String(spec.to ?? '').trim()]
+    if (!raw[0]) return fail('Escribí desde qué carta querés marcar.')
+    if (!raw[1]) return fail('Escribí hasta qué carta querés marcar.')
+    if (!/^\d+$/.test(raw[0]) || !/^\d+$/.test(raw[1])) return fail('Escribí sólo números, sin letras ni signos.')
+    let from = Number(raw[0])
+    let to = Number(raw[1])
+    if (from > to) [from, to] = [to, from]
+    for (const n of [from, to]) {
+      if (n < run.min || n > run.max) return fail(`La carta ${n} no existe: van de la ${run.min} a la ${run.max}.`)
+    }
+    for (let n = from; n <= to; n++) {
+      const exp = expansionForNumber(catalog, n)
+      if (exp) base.push({ exp, n })
+    }
+    scopeText = from === to ? `la carta ${from}` : `de la ${from} a la ${to}`
+  } else if (spec.scope === 'all') {
+    for (const exp of catalog ?? []) {
+      if (!countsInTally(exp)) continue
+      for (const n of numbersIn(exp)) base.push({ exp, n })
+    }
+    scopeText = 'todo el álbum'
+  } else {
+    return fail('Elegí qué querés marcar.')
+  }
+
+  const excluded = new Set()
+  if (String(spec.except ?? '').trim()) {
+    const parsed = parseNumberList(spec.except)
+    if (parsed.error) return fail(parsed.error)
+    const inBase = new Set(base.map(({ exp, n }) => keyOf(exp, n)))
+    for (const item of parsed.items) {
+      for (let n = item.from; n <= item.to; n++) {
+        let exp
+        if (singleExp) {
+          exp = singleExp
+          if (item.suffix && (exp.sufijo ?? '').toLowerCase() !== item.suffix) {
+            return fail(`«${n}${item.suffix.toUpperCase()}» no es de ${exp.nombre}.`)
+          }
+        } else {
+          exp = expansionForNumber(catalog, n, item.suffix)
+        }
+        const label = exp ? cardLabel(exp, n) : `${n}${(item.suffix ?? '').toUpperCase()}`
+        if (!exp || !numbersIn(exp).includes(n)) {
+          return fail(singleExp
+            ? `La ${label} no es de ${exp.nombre}: esa expansión va de la ${cardLabel(exp, numbersIn(exp)[0])} a la ${cardLabel(exp, numbersIn(exp).at(-1))}.`
+            : `La carta ${label} no existe.`)
+        }
+        const key = keyOf(exp, n)
+        if (!inBase.has(key)) return fail(`La ${label} no está entre las que elegiste (${scopeText}). Revisá los números que escribiste.`)
+        excluded.add(key)
+      }
+    }
+  }
+
+  const targets = base
+    .filter(({ exp, n }) => !excluded.has(keyOf(exp, n)))
+    .map(({ exp, n }) => ({ cardKey: keyOf(exp, n), exp, n }))
+  return { targets, baseCount: base.length, excludedCount: excluded.size, scopeText }
+}
+
+/* Qué haría de verdad la carga: sólo se marcan las que NO tenés. Las que ya tenés quedan como
+   están —nunca se les cambia el estado ni la cantidad—, y las que están a medio guardar
+   (`isBusy`) también se saltan, para no pisar un toque que todavía está viajando. */
+export function bulkPlan(targets, quantities, isBusy = () => false) {
+  const toMark = []
+  const owned = []
+  for (const t of targets) {
+    if ((quantities[t.cardKey] ?? 0) > 0) owned.push(t)
+    else if (!isBusy(t.cardKey)) toMark.push(t)
+  }
+  return { toMark, owned }
+}
+
 /* De qué número a qué número va esa corrida de números pelados, para decirlo en el campo
    y en el error («van del 1 al 1936»). Null si el catálogo no tiene ninguna — ahí el
    botón directamente no se dibuja.

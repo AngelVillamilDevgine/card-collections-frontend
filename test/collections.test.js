@@ -12,6 +12,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import {
+  parseNumberList, bulkTargets, bulkPlan, expansionRangeText,
   COLLECTIONS, DEFAULT_COLLECTION, readCollection, readHiddenCollections, rememberHiddenCollections, visibleCollections, albumNames, cardLabel, cardDetail, listLabel, albumPercent,
   withVariants, variantsFor, slotKey, slotsOf, missingVariantsOf, albumTally, closestToComplete, drawableVariants, pointsToASlot, numbersOf,
   slotOf, slotName, orphanName, completionBy, countsInTally, expansionForNumber, plainNumberRun,
@@ -786,4 +787,129 @@ test('colecciones ocultas: se guardan en el aparato y un valor roto no rompe nad
     store.set('dbz-cromeros-colecciones-ocultas', '["leyenda", 3, null]')
     assert.deepEqual(readHiddenCollections(), ['leyenda'], 'sólo textos')
   } finally { delete globalThis.localStorage }
+})
+
+// ------------------------------------------------------------------ carga masiva
+
+const cromeros = JSON.parse(fs.readFileSync(new URL('../public/data/expansiones.json', import.meta.url), 'utf8')).expansiones
+
+test('parseNumberList: lee las formas en que alguien enumera cartas sin pensar', () => {
+  const ok = (text) => parseNumberList(text).items.map((i) => [i.from, i.to, i.suffix])
+  assert.deepEqual(ok('5, 17, 20-22'), [[5, 5, null], [17, 17, null], [20, 22, null]])
+  assert.deepEqual(ok('1 a 10 y 15'), [[1, 10, null], [15, 15, null]])
+  assert.deepEqual(ok('20 al 25'), [[20, 25, null]])
+  assert.deepEqual(ok('20 - 25;30'), [[20, 25, null], [30, 30, null]])
+  assert.deepEqual(ok('22-20'), [[20, 22, null]], 'un tramo al revés se da vuelta')
+  assert.deepEqual(ok('504e, 505E'), [[504, 504, 'e'], [505, 505, 'e']])
+  assert.deepEqual(ok('  '), [], 'vacío no es un error: la lista es opcional')
+  assert.deepEqual(ok(''), [])
+  for (const nothing of ['ninguna', 'Nada', 'no', 'sin', '-']) assert.deepEqual(ok(nothing), [], nothing + ' es lo mismo que dejarlo vacío')
+  assert.ok(parseNumberList('ninguna 5, hola').error, 'pero mezclado con basura sigue siendo un error')
+})
+
+test('parseNumberList: lo que no entiende lo dice, con un ejemplo', () => {
+  for (const garbage of ['hola', '5, abc', '12x3', '1,,,x', '5 6 siete']) {
+    const r = parseNumberList(garbage)
+    assert.ok(r.error, garbage)
+    assert.match(r.error, /por ejemplo/, 'tiene que mostrar cómo se escribe')
+  }
+})
+
+test('bulkTargets: una expansión entera, con sus claves de verdad', () => {
+  const r = bulkTargets(cromeros, { scope: 'expansion', expansionId: 'exp-3' })
+  assert.equal(r.error, undefined)
+  assert.equal(r.targets.length, 136)
+  assert.equal(r.targets[0].cardKey, 'exp-3:266')
+  assert.equal(r.targets.at(-1).cardKey, 'exp-3:401')
+  assert.equal(r.excludedCount, 0)
+  assert.ok(bulkTargets(cromeros, { scope: 'expansion', expansionId: 'no-existe' }).error)
+  assert.ok(bulkTargets(cromeros, { scope: 'expansion' }).error, 'sin elegir ninguna')
+})
+
+test('bulkTargets: una expansión, menos las que no tiene', () => {
+  const r = bulkTargets(cromeros, { scope: 'expansion', expansionId: 'exp-3', except: '270, 275-277' })
+  assert.equal(r.targets.length, 136 - 4)
+  const keys = new Set(r.targets.map((x) => x.cardKey))
+  for (const n of [270, 275, 276, 277]) assert.ok(!keys.has('exp-3:' + n), 'la ' + n + ' no se marca')
+  assert.equal(r.excludedCount, 4)
+  // Una excepción de OTRA expansión es un error y no se ignora: casi seguro es un número mal escrito.
+  const wrong = bulkTargets(cromeros, { scope: 'expansion', expansionId: 'exp-3', except: '5' })
+  assert.match(wrong.error, /no es de Expansión 3/)
+  assert.match(wrong.error, /266/, 'y dice de dónde a dónde va')
+  assert.ok(bulkTargets(cromeros, { scope: 'expansion', expansionId: 'exp-3', except: '270e' }).error, 'la letra no es de esta expansión')
+  assert.ok(bulkTargets(cromeros, { scope: 'expansion', expansionId: 'exp-3', except: 'hola' }).error)
+})
+
+test('bulkTargets: un tramo de números, también si cruza de una expansión a otra', () => {
+  const r = bulkTargets(cromeros, { scope: 'range', from: '1', to: '50' })
+  assert.equal(r.targets.length, 50)
+  assert.equal(r.targets[0].cardKey, 'exp-1:1')
+  // Expansión 1 es 1-129 y Expansión 2 es 130-265: el tramo 120-140 cae en las dos.
+  const cross = bulkTargets(cromeros, { scope: 'range', from: '120', to: '140' })
+  assert.equal(cross.targets.length, 21)
+  assert.equal(cross.targets[0].cardKey, 'exp-1:120')
+  assert.equal(cross.targets.at(-1).cardKey, 'exp-2:140')
+  assert.equal(cross.targets.filter((x) => x.exp.id === 'exp-1').length, 10)
+  // «50 a 1» es lo mismo que «1 a 50».
+  assert.equal(bulkTargets(cromeros, { scope: 'range', from: '50', to: '1' }).targets.length, 50)
+  // Una sola carta.
+  assert.equal(bulkTargets(cromeros, { scope: 'range', from: '7', to: '7' }).targets.length, 1)
+})
+
+test('bulkTargets: el tramo sólo usa números pelados, nunca las Especiales ni los Manuales', () => {
+  const r = bulkTargets(cromeros, { scope: 'range', from: '500', to: '520' })
+  // La 504 a 513 existen como pelada en Expansión 4 Y como 504E a 513E: sólo cuenta la pelada.
+  const ids = new Set(r.targets.map((x) => x.exp.id))
+  assert.ok(!ids.has('especiales') && !ids.has('manuales'))
+  assert.equal(r.targets.length, 21)
+})
+
+test('bulkTargets: los errores del tramo dicen qué hacer', () => {
+  const err = (from, to) => bulkTargets(cromeros, { scope: 'range', from, to }).error
+  assert.match(err('', '5'), /desde/)
+  assert.match(err('5', ''), /hasta/)
+  assert.match(err('a', '5'), /sólo números/)
+  assert.match(err('1.5', '5'), /sólo números/)
+  assert.match(err('0', '5'), /no existe/)
+  assert.match(err('1', '2000'), /1936/, 'dice hasta dónde llega el álbum')
+  assert.match(err('-3', '5'), /sólo números/)
+})
+
+test('bulkTargets: todo el álbum son las 1946 que cuentan, sin los Manuales', () => {
+  const r = bulkTargets(cromeros, { scope: 'all' })
+  assert.equal(r.targets.length, 1946)
+  assert.ok(!r.targets.some((x) => x.exp.id === 'manuales'))
+  assert.ok(r.targets.some((x) => x.cardKey === 'especiales:504'), 'las Especiales sí')
+  // Menos algunas: por número pelado y por letra.
+  const menos = bulkTargets(cromeros, { scope: 'all', except: '5, 504e, 100-102' })
+  assert.equal(menos.targets.length, 1946 - 5)
+  const keys = new Set(menos.targets.map((x) => x.cardKey))
+  assert.ok(!keys.has('exp-1:5') && !keys.has('especiales:504') && keys.has('exp-4:504'), 'la 504 pelada y la 504E son cartas distintas')
+  assert.match(bulkTargets(cromeros, { scope: 'all', except: '2000' }).error, /no existe/)
+})
+
+test('bulkTargets: una excepción fuera del tramo elegido es un error, no se ignora', () => {
+  const r = bulkTargets(cromeros, { scope: 'range', from: '1', to: '50', except: '60' })
+  assert.match(r.error, /no está entre las que elegiste/)
+  assert.equal(bulkTargets(cromeros, { scope: 'range', from: '1', to: '50', except: '10-12' }).targets.length, 47)
+})
+
+test('bulkPlan: sólo se marcan las que NO tenés, y las que están a medio guardar se saltan', () => {
+  const targets = bulkTargets(cromeros, { scope: 'range', from: '1', to: '10' }).targets
+  const quantities = { 'exp-1:2': 1, 'exp-1:3': 4 }
+  const { toMark, owned } = bulkPlan(targets, quantities, (k) => k === 'exp-1:9')
+  assert.deepEqual(owned.map((x) => x.cardKey), ['exp-1:2', 'exp-1:3'])
+  assert.equal(toMark.length, 10 - 2 - 1)
+  assert.ok(!toMark.some((x) => x.cardKey === 'exp-1:9'), 'la que está viajando no se pisa')
+  assert.ok(!toMark.some((x) => owned.includes(x)), 'una carta no cae en las dos')
+  // Con todas ya marcadas no hay nada para hacer.
+  const all = Object.fromEntries(targets.map((x) => [x.cardKey, 1]))
+  assert.equal(bulkPlan(targets, all).toMark.length, 0)
+})
+
+test('expansionRangeText: usa el mismo rótulo que el resto', () => {
+  const by = (id) => cromeros.find((e) => e.id === id)
+  assert.equal(expansionRangeText(by('exp-1')), '1–129')
+  assert.equal(expansionRangeText(by('especiales')), '504E–513E')
+  assert.equal(expansionRangeText(by('manuales')), 'Manual 1–Manual 10')
 })

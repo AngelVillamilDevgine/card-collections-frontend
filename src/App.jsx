@@ -6,6 +6,7 @@ import Login from './Login'
 import ExportDialog from './ExportDialog'
 import Celebration from './Celebration'
 import Sidebar from './Sidebar'
+import BulkLoad from './BulkLoad'
 /* El panel del administrador se baja aparte y recién cuando se abre.
 
    Lo ven 1 de 40 cuentas, y estaba en el chunk principal: las otras 39 se bajaban el
@@ -43,6 +44,7 @@ import { whatsappTo, suggestionText } from './contact'
 import { COLLECTIONS, DEFAULT_COLLECTION, readCollection, rememberCollection, readHiddenCollections, rememberHiddenCollections, visibleCollections, loadCatalogs, slotKey, slotsOf, variantsFor, missingVariantsOf, drawableVariants, pointsToASlot, cardLabel, cardDetail, albumPercent, albumTally, closestToComplete, slotOf, slotName, orphanName, completionBy, countsInTally, expansionForNumber, plainNumberRun } from './collections'
 import ConnectionTrouble, { AUTO_RETRY_SECONDS } from './ConnectionTrouble'
 import {
+  saveBatch,
   ApiError,
   downloadJson, readBackupFile, fetchAccount, logout,
   fetchCollection, saveCard, replaceCollection,
@@ -898,6 +900,8 @@ export default function App() {
   // El cajón del menú (sólo se prende abajo de 1024 px; de ahí para arriba la barra está siempre).
   const [menuOpen, setMenuOpen] = useState(false)
   const [collectionsOpen, setCollectionsOpen] = useState(false)
+  // La carga masiva (sólo Cromeros): marcar muchas cartas de una vez.
+  const [bulkOpen, setBulkOpen] = useState(false)
   // Las colecciones que ESTE aparato esconde del selector (ver `visibleCollections`).
   const [hiddenCollections, setHiddenCollections] = useState(readHiddenCollections)
   const menuButtonRef = useRef(null)
@@ -915,7 +919,7 @@ export default function App() {
      —el telón se come los clicks de atrás— así que alcanza con «hay alguno» y «cerrá el
      que sea». Si algún día se pueden apilar, esto pasa a ser uno por diálogo. */
   const isDialogOpen =
-    menuOpen || collectionsOpen || exportOpen || passwordDialogOpen || profileOpen || orphansDialogOpen || !!addByNumberPrompt ||
+    menuOpen || collectionsOpen || bulkOpen || exportOpen || passwordDialogOpen || profileOpen || orphansDialogOpen || !!addByNumberPrompt ||
     !!conditionPrompt || !!variantPrompt || !!pendingRestore || !!celebration
   const closeDialogs = useCallback(() => {
     setExportOpen(false)
@@ -923,6 +927,7 @@ export default function App() {
     setProfileOpen(false)
     setMenuOpen(false)
     setCollectionsOpen(false)
+    setBulkOpen(false)
     setOrphansDialogOpen(false)
     setAddByNumberPrompt(null)
     setConditionPrompt(null)
@@ -1553,6 +1558,55 @@ export default function App() {
   }, [])
 
   /* Cambiar una carta: primero se ve en pantalla, después sale para el servidor. */
+  /* CARGA MASIVA: marca de una vez las cartas que NO tenés. Va por un pedido propio (`saveBatch`),
+     todo o nada, y recién cuando el servidor contesta se pinta: no hay carga a medias que la
+     persona no pueda ver. NO pasa por la cola de cada carta.
+
+     Se saltan las que están a medio guardar (en la cola o viajando): un toque de hace un
+     instante —por ejemplo bajar una a cero— puede llegar DESPUÉS de este pedido y borrarla. */
+  const isBusyCard = (cardKey) =>
+    pending.current.has(cardKey) || queued.current.has(cardKey) || inFlight.current.has(cardKey)
+
+  async function bulkMark(cardKeys, condition) {
+    const live = liveRef.current
+    const keys = cardKeys.filter((k) => !(live.cantidades[k] > 0) && !isBusyCard(k))
+    if (!keys.length) return { markedKeys: [] }
+    try {
+      await saveBatch(Object.fromEntries(keys.map((k) => [k, { cantidad: 1, estado: condition }])))
+    } catch (e) {
+      if (e?.sessionExpired) handleSessionExpired()
+      throw e
+    }
+    // Sobre lo MÁS NUEVO, no sobre lo que había al empezar: mientras viajaba pudo cambiar otra carta.
+    const d = liveRef.current
+    const cantidades = { ...d.cantidades }
+    const estados = { ...d.estados }
+    for (const k of keys) { cantidades[k] = 1; estados[k] = condition }
+    liveRef.current = { estados, cantidades }
+    setCollectionData(liveRef.current)
+    return { markedKeys: keys }
+  }
+
+  /* Deshacer: saca EXACTAMENTE las que esta carga marcó, y sólo si siguen como las dejó (una
+     cantidad de 1 con el mismo estado). Si alguna ya la tocaste de nuevo, se respeta lo tuyo. */
+  async function bulkUnmark(cardKeys, condition) {
+    const live = liveRef.current
+    const keys = cardKeys.filter((k) => live.cantidades[k] === 1 && live.estados[k] === condition && !isBusyCard(k))
+    if (!keys.length) return
+    try {
+      await saveBatch(Object.fromEntries(keys.map((k) => [k, { cantidad: 0 }])))
+    } catch (e) {
+      if (e?.sessionExpired) handleSessionExpired()
+      throw e
+    }
+    const d = liveRef.current
+    const cantidades = { ...d.cantidades }
+    const estados = { ...d.estados }
+    for (const k of keys) { delete cantidades[k]; delete estados[k] }
+    liveRef.current = { estados, cantidades }
+    setCollectionData(liveRef.current)
+  }
+
   function applyChange(cardKey, quantity, condition) {
     const d = liveRef.current
     const previousQuantity = d.cantidades[cardKey] ?? 0
@@ -2362,15 +2416,28 @@ export default function App() {
                   OK produce una respuesta visible — pregunta el estado, o el propio
                   diálogo anuncia la repetida. En Leyenda una carta sin variantes se marca
                   muda, y un botón que a veces no muestra nada parece roto. */}
-              {album?.condicion && numberRun && (
-                <button type="button" className="add-number" onClick={() => setAddByNumberPrompt({ notice: null })}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                       strokeWidth="2.6" strokeLinecap="round" aria-hidden="true" focusable="false">
-                    <path d="M12 5v14M5 12h14" />
-                  </svg>
-                  Agregar por número
-                </button>
-              )}
+              <div className="progress-actions">
+                {album?.condicion && numberRun && (
+                  <button type="button" className="add-number" onClick={() => setAddByNumberPrompt({ notice: null })}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         strokeWidth="2.6" strokeLinecap="round" aria-hidden="true" focusable="false">
+                      <path d="M12 5v14M5 12h14" />
+                    </svg>
+                    Agregar por número
+                  </button>
+                )}
+                {/* CARGA MASIVA, al lado de «Agregar por número» y sólo en Cromeros (pedido de Angel). Con
+                    la misma condición que el de al lado: hace falta el estado y los números pelados. */}
+                {shownCollectionId === DEFAULT_COLLECTION && album?.condicion && numberRun && (
+                  <button type="button" className="add-number" onClick={() => setBulkOpen(true)}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+                      <path d="M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5M3 17.5l9 5 9-5" />
+                    </svg>
+                    Carga masiva
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -2843,6 +2910,17 @@ export default function App() {
       {passwordDialogOpen && !account?.mustChange && (
         <ChangePasswordDialog onClose={() => setPasswordDialogOpen(false)} onSessionExpired={handleSessionExpired} />
       )}
+      {bulkOpen && catalog && (
+        <BulkLoad
+          catalog={catalog}
+          quantities={quantities}
+          isBusy={isBusyCard}
+          onApply={bulkMark}
+          onUndo={bulkUnmark}
+          onClose={() => setBulkOpen(false)}
+        />
+      )}
+
       {collectionsOpen && (
         <CollectionsDialog
           collections={loadedCollections}

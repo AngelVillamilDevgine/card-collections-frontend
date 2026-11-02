@@ -2388,3 +2388,115 @@ body.with-install-bar { padding-bottom: var(--install-height, 150px); }
 }
 .collection-check input { flex: none; width: 20px; height: 20px; margin: 0; accent-color: var(--accent); cursor: inherit; }
 @media (hover: hover) { .collection-check:hover { background: var(--paper); } }
+
+/* ------------------------------- carga masiva -------------------------------- */
+
+/* Los dos botones terciarios de debajo del avance: «Agregar por número» y «Carga masiva». En el
+   teléfono entran juntos; si no entran, el segundo baja entero en vez de partirse. */
+.progress-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.progress-actions .add-number { margin-top: 0; }
+
+/* El diálogo de la carga masiva es más ancho que los demás (tiene listas y campos) y nunca más
+   que la pantalla. */
+.dialog.bulk { width: 380px; max-width: calc(100vw - 40px); }
+.bulk-step { margin: 2px 0 12px; font-size: 13px; }
+.bulk-step b { color: var(--ink); }
+.dialog .bulk-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 56px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  background: var(--white);
+  border-color: var(--line2);
+  border-radius: 10px;
+  color: var(--ink);
+  cursor: pointer;
+}
+.bulk-choice span { font-size: 15px; font-weight: 700; }
+.bulk-choice small { color: var(--ink2); font-size: 13px; font-weight: 400; }
+@media (hover: hover) { .dialog .bulk-choice:hover { border-color: var(--accent); } }
+.bulk-tip { margin: 6px 0 4px; font-size: 13px; }
+
+.bulk-group { min-width: 0; margin: 0 0 16px; padding: 0; border: 0; }
+.bulk-group legend { margin: 0 0 6px; padding: 0; color: var(--ink); font-size: 14px; font-weight: 700; }
+.bulk-group legend span { color: var(--ink2); font-weight: 400; }
+.bulk-list {
+  max-height: 232px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 2px 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.bulk .collection-check { align-items: center; }
+.bulk-row { display: flex; flex-direction: column; padding: 6px 0; line-height: 1.3; }
+.bulk-row b { font-size: 14.5px; }
+.bulk-row small { color: var(--ink2); font-size: 12.5px; font-weight: 400; }
+.bulk-range { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.bulk-range label { display: flex; flex-direction: column; gap: 4px; color: var(--ink2); font-size: 13px; }
+/* 16px y no menos: por debajo, Safari en iPhone hace zoom al tocar el campo y deja la pantalla corrida. */
+.bulk-range input,
+.bulk-except input {
+  width: 100%;
+  padding: 11px 12px;
+  background: var(--white);
+  border: 1px solid var(--line2);
+  border-radius: 6px;
+  color: var(--ink);
+  font-size: 16px;
+}
+.bulk-range input:focus,
+.bulk-except input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgb(168 89 13 / 0.15); }
+.bulk-hint { display: block; margin-top: 6px; color: var(--ink2); font-size: 12.5px; line-height: 1.4; }
+.dialog .bulk-all { color: var(--ink); font-size: 15px; }
+.dialog .bulk-big { margin: 4px 0 10px; color: var(--ink); font-size: 17px; line-height: 1.35; }
+.bulk-facts { margin: 0 0 14px; padding-left: 18px; color: var(--ink2); font-size: 14px; line-height: 1.5; }
+.dialog .bulk-celebrate { color: var(--ink); font-size: 15px; }
+.bulk .error {
+  margin: 0 0 10px;
+  padding: 9px 11px;
+  background: var(--replace-bg);
+  border: 1px solid var(--replace-line);
+  border-radius: 6px;
+  color: var(--replace-ink);
+  font-size: 13.5px;
+}
+.bulk .primary { display: block; width: 100%; }
+.bulk .secondary { display: block; width: 100%; margin-top: 2px; }
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* La barra de botones del asistente se queda pegada abajo del diálogo cuando hay que scrollear: en el
+   paso 2 el «Siguiente» quedaba al final de una lista larga y a quien llega perdido le costaba encontrarlo.
+   Se extiende sobre el relleno del diálogo (22 px) para que no se vea el contenido pasando por detrás. */
+.bulk-actions {
+  position: sticky;
+  bottom: -22px;
+  margin: 0 -22px -22px;
+  padding: 10px 22px 22px;
+  background: var(--white);
+  border-top: 1px solid var(--line);
+}
+.bulk-actions .error { margin-bottom: 8px; }
+.bulk .cancel { min-height: 44px; }
+
+/* «Atrás/Volver» y «Cancelar» van en UNA fila debajo del botón grande: apilados se comían la mitad
+   de la pantalla del teléfono. */
+.bulk-minor { display: flex; justify-content: space-between; gap: 12px; margin-top: 2px; }
+.dialog .bulk-minor .secondary,
+.dialog .bulk-minor .cancel { width: auto; min-height: 44px; margin: 0; padding: 4px 10px; font-size: 14px; }
+
+/* «Deshacer» es lo que necesita ver alguien que se equivocó: con borde, no como un texto gris suelto. */
+.bulk .undo { min-height: 44px; margin-bottom: 10px; border: 1px solid var(--line2); border-radius: 6px; color: var(--ink); font-weight: 600; }
+.bulk .undo:hover { border-color: var(--accent); }

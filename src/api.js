@@ -207,6 +207,10 @@ export const saveCard = (cardKey, quantity, condition, options = {}) =>
     ...options,
   })
 
+/* Varias cartas en un solo pedido y una sola transacción: la carga masiva. Entra todo o no
+   entra nada. Sólo agrega o cambia lo que manda (cantidad 0 saca la carta); no es el reemplazo. */
+export const saveBatch = (cards) => request('/cartas/lote', { method: 'POST', json: { cartas: cards } })
+
 export const replaceCollection = (collection) =>
   request('/coleccion', { method: 'PUT', json: collection })
 
