@@ -5,6 +5,7 @@ import { textColorOn, tintOf, inkOn } from './color'
 import Login from './Login'
 import ExportDialog from './ExportDialog'
 import Celebration from './Celebration'
+import Sidebar from './Sidebar'
 /* El panel del administrador se baja aparte y recién cuando se abre.
 
    Lo ven 1 de 40 cuentas, y estaba en el chunk principal: las otras 39 se bajaban el
@@ -39,7 +40,7 @@ import { pathFor, syncPath } from './routes'
 import { whatIsStale, staleText } from './health'
 import { ErrorBoundary } from './ErrorBoundary'
 import { whatsappTo, suggestionText } from './contact'
-import { COLLECTIONS, DEFAULT_COLLECTION, readCollection, rememberCollection, loadCatalogs, slotKey, slotsOf, variantsFor, missingVariantsOf, drawableVariants, pointsToASlot, cardLabel, cardDetail, albumPercent, albumTally, closestToComplete, slotOf, slotName, orphanName, completionBy, countsInTally, expansionForNumber, plainNumberRun } from './collections'
+import { COLLECTIONS, DEFAULT_COLLECTION, readCollection, rememberCollection, readHiddenCollections, rememberHiddenCollections, visibleCollections, loadCatalogs, slotKey, slotsOf, variantsFor, missingVariantsOf, drawableVariants, pointsToASlot, cardLabel, cardDetail, albumPercent, albumTally, closestToComplete, slotOf, slotName, orphanName, completionBy, countsInTally, expansionForNumber, plainNumberRun } from './collections'
 import ConnectionTrouble, { AUTO_RETRY_SECONDS } from './ConnectionTrouble'
 import {
   ApiError,
@@ -464,6 +465,46 @@ function AddByNumber({ run, example, notice, onSubmit, onClose }) {
    Muestra los NÚMEROS y no sólo la cantidad: es lo que deja ver de un vistazo que son
    «las 129 de la Expansión 1» y no cartas sueltas, o sea que el problema está en el
    catálogo y no en la colección. */
+/* «COLECCIONES»: cuáles se ven en el selector. Un check y el nombre. Aplica en el momento, sin
+   botón de guardar —cero ceremonia—, y la última tildada no se deja sacar: sin álbum no hay
+   app. Lo que se saca no se borra: las cartas siguen en la cuenta. */
+function CollectionsDialog({ collections, hidden, onToggle, onClose }) {
+  const box = useRef(null)
+  const prevFocus = useRef(document.activeElement)
+  useCloseOnEscape(onClose)
+  useEffect(() => trapFocus(box.current, prevFocus.current), [])
+  const shown = collections.filter((c) => !hidden.includes(c.id))
+  return (
+    <div className="overlay" onClick={onClose}>
+      <div className="dialog" role="dialog" aria-modal="true" aria-label="Colecciones"
+           ref={box} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
+        <h3>Colecciones</h3>
+        <p id="collections-note">
+          Elegí cuáles querés ver. Tiene que quedar al menos una. Las que saques no se borran:
+          tus cartas siguen guardadas.
+        </p>
+        <ul className="collection-checks">
+          {collections.map((c) => {
+            const checked = shown.some((x) => x.id === c.id)
+            return (
+              <li key={c.id}>
+                <label className="collection-check">
+                  <input type="checkbox" checked={checked} disabled={checked && shown.length === 1}
+                         aria-describedby="collections-note" onChange={() => onToggle(c.id)} />
+                  <span>{c.name}</span>
+                </label>
+              </li>
+            )
+          })}
+        </ul>
+        <p className="exits">
+          <button className="cancel" onClick={onClose} autoFocus>Listo</button>
+        </p>
+      </div>
+    </div>
+  )
+}
+
 function OrphansDialog({ keys, catalogs, onConfirm, onClose }) {
   const box = useRef(null)
   const prevFocus = useRef(document.activeElement)
@@ -854,6 +895,12 @@ export default function App() {
   const [aliasNotice, setAliasNotice] = useState(null)
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
+  // El cajón del menú (sólo se prende abajo de 1024 px; de ahí para arriba la barra está siempre).
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [collectionsOpen, setCollectionsOpen] = useState(false)
+  // Las colecciones que ESTE aparato esconde del selector (ver `visibleCollections`).
+  const [hiddenCollections, setHiddenCollections] = useState(readHiddenCollections)
+  const menuButtonRef = useRef(null)
   const [orphansDialogOpen, setOrphansDialogOpen] = useState(false)
   const [variantPrompt, setVariantPrompt] = useState(null)
   /* «Agregar por número»: null cerrado, o { notice } — la confirmación de lo que acaba de
@@ -868,12 +915,14 @@ export default function App() {
      —el telón se come los clicks de atrás— así que alcanza con «hay alguno» y «cerrá el
      que sea». Si algún día se pueden apilar, esto pasa a ser uno por diálogo. */
   const isDialogOpen =
-    exportOpen || passwordDialogOpen || profileOpen || orphansDialogOpen || !!addByNumberPrompt ||
+    menuOpen || collectionsOpen || exportOpen || passwordDialogOpen || profileOpen || orphansDialogOpen || !!addByNumberPrompt ||
     !!conditionPrompt || !!variantPrompt || !!pendingRestore || !!celebration
   const closeDialogs = useCallback(() => {
     setExportOpen(false)
     setPasswordDialogOpen(false)
     setProfileOpen(false)
+    setMenuOpen(false)
+    setCollectionsOpen(false)
     setOrphansDialogOpen(false)
     setAddByNumberPrompt(null)
     setConditionPrompt(null)
@@ -964,9 +1013,15 @@ export default function App() {
   const { estados: conditions, cantidades: quantities } = collectionData
 
   /* Las que de verdad se pueden mostrar: si un archivo no cargó, su píldora no existe. */
-  const availableCollections = useMemo(
+  const loadedCollections = useMemo(
     () => (catalogs ? COLLECTIONS.filter((c) => catalogs[c.id]) : []),
     [catalogs]
+  )
+  /* Y de esas, las que este aparato no escondió con «Colecciones». Con una sola visible el
+     selector no se dibuja (`availableCollections.length > 1`). */
+  const availableCollections = useMemo(
+    () => visibleCollections(loadedCollections, hiddenCollections),
+    [loadedCollections, hiddenCollections]
   )
   /* Si la guardada no cargó, se cae a la primera que sí: mejor mostrar algo que nada. */
   const shownCollectionId = availableCollections.some((c) => c.id === collection)
@@ -1033,6 +1088,14 @@ export default function App() {
      y sin forma de verlo presionado. La grilla, el aviso de vacío y el aria-pressed
      miran TODOS éste, nunca `activeFilter` directo. */
   const effectiveFilter = visibleFilters.some((f) => f.id === activeFilter) ? activeFilter : 'all'
+
+  function toggleCollection(id) {
+    const next = hiddenCollections.includes(id)
+      ? hiddenCollections.filter((h) => h !== id)
+      : [...hiddenCollections, id]
+    setHiddenCollections(next)
+    rememberHiddenCollections(next)
+  }
 
   function pickCollection(id) {
     /* El filtro activo puede no existir en el álbum al que vas («Para reemplazar» no está
@@ -2102,6 +2165,28 @@ export default function App() {
           de entrada ya tenía su <main>; la app, que es donde se pasa el tiempo, no. */}
       <a className="skip" href="#cartas">Saltar a las cartas</a>
 
+      <Sidebar
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        returnFocusTo={menuButtonRef}
+        username={account.username}
+        isAdmin={account.admin}
+        panelActive={dashboardOpen}
+        panelAlert={staleItems.length > 0}
+        panelLabel={staleItems.length ? `Panel · revisá ${staleText(staleItems)}` : 'Panel'}
+        onProfile={() => { setMenuOpen(false); setProfileOpen(true) }}
+        onCollections={() => { setMenuOpen(false); setCollectionsOpen(true) }}
+        onPanel={() => {
+          /* Cerrando el cajón se saca su entrada del historial con un back() asíncrono; el
+             panel empuja la suya recién cuando eso termina, o el back() se llevaría puesta
+             la del panel. De escritorio para arriba no hay cajón y se abre directo. */
+          if (menuOpen) {
+            window.addEventListener('popstate', openDashboard, { once: true })
+            setMenuOpen(false)
+          } else openDashboard()
+        }}
+      />
+
       {/* Header, barra y footer van fuera de la columna de las cartas: así el fondo
           de cada franja llega de lado a lado y lo de adentro sigue alineado. */}
       <header className="masthead">
@@ -2185,45 +2270,14 @@ export default function App() {
                 (todos). Van en un envoltorio para que en el teléfono ocupen UNA celda de la
                 grilla del encabezado —la del renglón del logo— y no se auto-coloque ninguno
                 en una fila implícita, que es lo que ya infló este encabezado una vez. */}
+            {/* El menú de la cuenta vive en la barra lateral; abajo de 1024 px el encabezado
+                sólo lleva el botón que abre el cajón. */}
             <div className="header-actions">
-            {account.admin && (
-              /* LA MARCA CUANDO LA COPIA ESTÁ VIEJA. Angel: «lo único que me importa es que
-                 se haga la copia de seguridad, y si no se hace que ahí sí me avise».
-                 El bloque Salud del panel ya lo decía — pero hay que ABRIR el panel para
-                 verlo, y eso es un tablero, no una alarma. Acá aparece en la app, que se
-                 abre todos los días.
-
-                 Y NO ES UN CARTEL NI UN DIÁLOGO a propósito: un aviso que tapa algo se
-                 aprende a cerrar sin leerlo. Un punto en un botón que ya está ahí no molesta
-                 nunca y no se puede pasar por alto dos días seguidos.
-
-                 El umbral NO se decide acá: sale de `health.js`, que es el mismo módulo que
-                 usa el panel. Si viviera en los dos lados, un día dirían cosas distintas. */
-              <button
-                className={`open-panel${staleItems.length ? ' has-alert' : ''}`}
-                onClick={openDashboard}
-                aria-label={staleItems.length
-                  ? `Panel · revisá ${staleText(staleItems)}`
-                  : 'Panel'}
-              >
-                {/* SVG y no un emoji: un emoji lo dibuja cada sistema a su manera y en
-                    Android viejo puede salir un cuadradito. */}
-                <svg width="13" height="13" viewBox="0 0 13 13" aria-hidden="true" focusable="false">
-                  <rect x="0" y="7" width="3" height="6" rx="1" fill="currentColor" />
-                  <rect x="5" y="3" width="3" height="10" rx="1" fill="currentColor" />
-                  <rect x="10" y="0" width="3" height="13" rx="1" fill="currentColor" />
-                </svg>
-                <span className="open-panel-label">Panel</span>
-              </button>
-            )}
-              {/* «MI PERFIL». Un ícono solo, con su nombre para el lector de pantalla y sin
-                  `title` (con los dos, el lector lee el nombre dos veces). */}
-              <button type="button" className="profile-button" aria-label="Mi perfil"
-                      onClick={() => setProfileOpen(true)}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              <button type="button" className="menu-button" aria-label="Abrir el menú"
+                      aria-expanded={menuOpen} ref={menuButtonRef} onClick={() => setMenuOpen(true)}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                      strokeWidth="2.2" strokeLinecap="round" aria-hidden="true" focusable="false">
-                  <circle cx="12" cy="8" r="4" />
-                  <path d="M4 21c0-4 3.6-7 8-7s8 3 8 7" />
+                  <path d="M4 7h16M4 12h16M4 17h16" />
                 </svg>
               </button>
             </div>
@@ -2430,12 +2484,24 @@ export default function App() {
             slotsOf(exp, n, drawableByExpansion[exp.id], quantities).some((s) => (quantities[s.cardKey] ?? 0) > 0)
           ).length
           const isCollapsed = collapsed.has(exp.id)
-          const donutPct = (ownedInExpansion / exp.cardNumbers.length) * 100
-          /* Con piso y tapado a 99, como albumPercent: 128 de 129 es 99,2% y no puede
-             leerse «100%». El 100 es sólo para la completa de verdad. */
-          const donutLabel = ownedInExpansion === exp.cardNumbers.length
-            ? '100%'
-            : `${Math.min(99, Math.floor(donutPct))}%`
+          /* El largo de la barra de la ficha. Tapado a 97 mientras falte alguna, como `albumPercent`
+             tapa a 99: 128 de 129 es 99,2% y sobre ~100 px de barra el hueco mide menos de un
+             píxel, o sea que se vería llena — «completa» es sólo la de verdad. */
+          const isComplete = ownedInExpansion === exp.cardNumbers.length
+          const progressPct = isComplete ? 100 : Math.min(97, (ownedInExpansion / exp.cardNumbers.length) * 100)
+          /* Completa es tener todas, estén en el estado que estén: las "para reemplazar"
+             también cuentan, y ya tienen su propio filtro. */
+          const countEl = isComplete ? (
+            <span className="count complete" title={`${ownedInExpansion} de ${exp.cardNumbers.length}`}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M5 13l4 4L19 7" />
+              </svg>
+              Completa
+            </span>
+          ) : (
+            <span className="count">{ownedInExpansion} de {exp.cardNumbers.length}</span>
+          )
           /* El `id` es el blanco del «te falta 1 para completar»: sin él no hay a dónde
              llevar. Va con prefijo para no chocar con `#panel` ni `#cartas`. */
           return (
@@ -2477,45 +2543,21 @@ export default function App() {
                     tres, y a 320 se corta. El CLAUDE.md ya avisaba que ahí estaba al
                     límite: hacen falta 311 px de texto en 292 de ancho útil. */}
                 <span className="range">{exp.desde}–{exp.hasta}</span>
-                {/* Completa es tener todas, estén en el estado que estén: las "para reemplazar"
-                    también cuentan, y ya tienen su propio filtro. */}
-                {ownedInExpansion === exp.cardNumbers.length ? (
-                  <span className="count complete" title={`${ownedInExpansion} de ${exp.cardNumbers.length}`}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                         strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M5 13l4 4L19 7" />
-                    </svg>
-                    Completa
-                  </span>
-                ) : (
-                  <span className="count">{ownedInExpansion} de {exp.cardNumbers.length}</span>
-                )}
-                {/* La dona de avance de la ficha: el mismo truco que el DonutChart del
-                    panel (r = 15.9155 da circunferencia 100, así el dasharray es el
-                    porcentaje directo). Decorativa: el «3 de 129» de al lado ya lo dice.
-                    El arco va en currentColor, que textColorOn ya eligió por contraste. */}
-                {exp.imagen && (
-                  <svg className="band-donut" viewBox="0 0 36 36" aria-hidden="true">
-                    <circle className="rail" cx="18" cy="18" r="15.9155" />
-                    {/* Con cero no se monta: un dasharray de 0 con punta redonda pinta
-                        un puntito igual, y una expansión sin empezar no tiene arco. */}
-                    {/* El patrón tiene que sumar 100 justo (la circunferencia), o no
-                        cierra la vuelta y el anillo queda con un hueco corrido. */}
-                    {ownedInExpansion > 0 && (
-                      <circle
-                        className="arc"
-                        cx="18"
-                        cy="18"
-                        r="15.9155"
-                        strokeDasharray={`${donutPct} ${100 - donutPct}`}
-                        strokeDashoffset="25"
-                      />
-                    )}
-                    <text x="18" y="18" textAnchor="middle" dominantBaseline="central">
-                      {donutLabel}
-                    </text>
-                  </svg>
-                )}
+                {/* EL AVANCE DE LA FICHA ES UNA BARRA, y reemplazó a una dona con el porcentaje adentro.
+                    La fila de abajo juntaba tres cosas rígidas —un círculo de 34 px, un texto que no
+                    se parte y los espacios— y por debajo de unos 290 px no entraban: se salía de la
+                    banda en vez de saltar. Además el progreso se decía tres veces (arco, «100%» y la
+                    cuenta). Ahora es la cuenta arriba y una barra que ocupa el ancho que haya: no
+                    puede salirse. Decorativa: la cuenta ya lo dice. Va en currentColor, que
+                    textColorOn ya eligió por contraste. Las bandas sin foto no la llevan. */}
+                {exp.imagen ? (
+                  <div className="band-progress">
+                    {countEl}
+                    <span className="band-meter" aria-hidden="true">
+                      {ownedInExpansion > 0 && <span className="band-meter-fill" style={{ width: `${progressPct}%` }} />}
+                    </span>
+                  </div>
+                ) : countEl}
               </div>
               {(!isCollapsed || closingId === exp.id) && (
               /* El envoltorio .unfold anima la apertura (0fr → 1fr) SÓLO cuando la
@@ -2801,6 +2843,15 @@ export default function App() {
       {passwordDialogOpen && !account?.mustChange && (
         <ChangePasswordDialog onClose={() => setPasswordDialogOpen(false)} onSessionExpired={handleSessionExpired} />
       )}
+      {collectionsOpen && (
+        <CollectionsDialog
+          collections={loadedCollections}
+          hidden={hiddenCollections}
+          onToggle={toggleCollection}
+          onClose={() => setCollectionsOpen(false)}
+        />
+      )}
+
       {profileOpen && !account?.mustChange && (
         <Suspense fallback={
           <ProfileShell onClose={() => setProfileOpen(false)}>

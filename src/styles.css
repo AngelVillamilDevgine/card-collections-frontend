@@ -114,8 +114,7 @@ button { cursor: pointer; }
 }
 /* LA PASTILLA VIAJA, no aparece del otro lado — lo pidió Angel: «que se mueva de un lado
    a otro al cambiar, no que se teletransporte». Es una sola pieza con `position:
-   absolute` que se corre con `transform`, así que la anima el compositor y no toca el
-   layout: en una pantalla con 1936 botones eso importa.
+   absolute` que anima `left` y `width` —ver abajo por qué no `transform`—.
  *
  * Dónde está y cuánto mide salen de dos variables que pone el JSX: cuántos álbumes hay y
  * cuál está elegido. Así no hay que medir nada con JavaScript —ni al cargar, ni al
@@ -126,13 +125,19 @@ button { cursor: pointer; }
   position: absolute;
   top: 3px;
   bottom: 3px;
-  left: 3px;
+  /* POSICIÓN Y ANCHO SALEN DEL RIEL, no de la propia pastilla. Antes iba corrida con
+     `transform: translateX(índice * 100%)`, y ese 100% es el de SU ancho, que cambia de golpe
+     cuando cambia la cantidad de álbumes: al ocultar uno y pasar de la última posición a la
+     primera, durante el movimiento llegaba a 396 px en una pantalla de 316. El navegador del
+     teléfono ensancha la pantalla ante un desborde y NO la vuelve a achicar: el modal quedaba
+     corrido, la barra de abajo fuera de vista y la página descuajeringada. Con `left` y
+     `width` calculados sobre el riel, los dos extremos del movimiento caen siempre adentro. */
+  left: calc(3px + var(--album-index, 0) * (100% - 6px) / var(--album-count, 2));
   width: calc((100% - 6px) / var(--album-count, 2));
-  transform: translateX(calc(var(--album-index, 0) * 100%));
   border-radius: 999px;
   background: var(--white);
   box-shadow: 0 1px 2px rgba(32, 29, 26, .13);
-  transition: transform .26s cubic-bezier(.33, .9, .3, 1);
+  transition: left .26s cubic-bezier(.33, .9, .3, 1), width .26s cubic-bezier(.33, .9, .3, 1);
 }
 /* Para algunas personas el movimiento no es un gusto: es mareo. Se queda quieta y el
    cambio lo cuenta el color, igual que en el guiño del botón de exportar. */
@@ -459,36 +464,45 @@ button { cursor: pointer; }
 .band.boxed .band-thumb { grid-row: 1 / 4; grid-column: 2; }
 .band.boxed h2 { grid-row: 1; grid-column: 3 / 5; }
 .band.boxed .range { grid-row: 2; grid-column: 3 / 5; font-size: 12px; }
-.band.boxed .count {
+/* El avance es un bloque en la fila de abajo —la cuenta y debajo la barra— que ocupa el ancho de
+   la columna del texto. Apilados y no en fila: así no hay nada rígido que pelee por el ancho, y
+   la altura (≈72 px) sigue entrando en la de la caja (88). */
+.band.boxed .band-progress {
   grid-row: 3;
-  grid-column: 4;
+  grid-column: 3 / 5;
   align-self: center;
-  justify-self: start;
-  margin-left: 0;
-  font-size: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
 }
-
-/* El arco informa y va en currentColor pleno (ya elegido por contraste contra la
-   banda); el riel es contexto, no dato, y por eso puede ir tenue. */
-.band.boxed .band-donut {
-  grid-row: 3;
-  grid-column: 3;
-  align-self: center;
-  justify-self: start;
-  width: 34px;
-  height: 34px;
+.band.boxed .count { margin-left: 0; font-size: 14px; }
+/* El riel es contexto y puede ir tenue; el relleno informa y va pleno en currentColor (ya elegido
+   por contraste contra la banda). */
+.band-meter {
+  position: relative;
+  display: block;
+  height: 7px;
+  border-radius: 999px;
+  overflow: hidden;
 }
-.band-donut circle { fill: none; stroke: currentColor; stroke-width: 4; }
-.band-donut .rail { opacity: 0.25; }
-.band-donut .arc { stroke-linecap: round; }
-/* El número de adentro informa y va pleno, como el arco: currentColor ya pasó contraste.
-   El tamaño está en unidades del viewBox (36 sobre 34 px dibujados). */
-.band-donut text {
-  fill: currentColor;
-  font-size: 9.5px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
+.band-meter::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  opacity: 0.22;
 }
+.band-meter-fill {
+  position: relative;
+  display: block;
+  height: 100%;
+  min-width: 7px;
+  border-radius: 999px;
+  background: currentColor;
+  transition: width .3s ease;
+}
+@media (prefers-reduced-motion: reduce) { .band-meter-fill { transition: none; } }
 
 /* La apertura de una expansión entra desplegándose: la fila del grid va de 0fr a 1fr,
    que es la única forma CSS de animar hacia una altura que no se conoce, y la grilla
@@ -2204,3 +2218,173 @@ body.with-install-bar { padding-bottom: var(--install-height, 150px); }
   color: #8a8a8a;
 }
 .print-table td.owned { font-weight: 700; }
+
+/* ----------------------------- barra lateral ----------------------------- */
+
+/* LA BARRA LATERAL DE LA CUENTA (Mi perfil / Panel / Configuración). El visual sale de UKO:
+   fondo blanco, secciones en versalitas, ítems redondeados con ícono y el activo como
+   píldora teñida. Los colores son los del papel de esta app.
+
+   De 1024 px para arriba está siempre y empuja el contenido con el relleno del `body`. Abajo
+   es un cajón (ver el @media de más abajo) que abre el botón del encabezado. El z-index de
+   escritorio queda debajo de los diálogos (20) y del panel (70), y encima de la barra
+   pegajosa (5). */
+.sidebar {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  width: 248px;
+  padding: 18px 14px 14px;
+  background: var(--white);
+  border-right: 1px solid var(--line);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.sidebar-brand { display: flex; align-items: center; justify-content: space-between; padding: 2px 8px 20px; }
+.sidebar-brand img { display: block; border-radius: 9px; }
+.sidebar-close {
+  display: none;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--line2);
+  border-radius: 50%;
+  background: none;
+  color: var(--ink2);
+  cursor: pointer;
+}
+.sidebar-label {
+  margin: 6px 12px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--ink3);
+}
+.sidebar-list { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 12px;
+  background: none;
+  color: var(--ink2);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color .18s ease, color .18s ease;
+}
+.sidebar-item svg { flex: none; }
+@media (hover: hover) {
+  .sidebar-item:hover { background: var(--paper); color: var(--ink); }
+}
+.sidebar-item.active { background: rgba(244, 161, 29, .17); color: var(--accent); }
+/* El punto de la copia vieja, el mismo rojo de siempre (`--replace-ink`). */
+.sidebar-item.has-alert::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  margin-left: auto;
+  border-radius: 50%;
+  background: var(--replace-ink);
+}
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: auto;
+  padding: 14px 10px 4px;
+  border-top: 1px solid var(--line);
+}
+.sidebar-avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--paper);
+  border: 1px solid var(--line2);
+  color: var(--ink2);
+  font-size: 13px;
+  font-weight: 700;
+}
+.sidebar-username { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 600; color: var(--ink2); }
+
+/* El telón y el botón del encabezado sólo existen abajo de 1024 px. */
+.sidebar-scrim { display: none; }
+.menu-button {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--line2);
+  border-radius: 50%;
+  background: none;
+  color: var(--ink2);
+  cursor: pointer;
+}
+.menu-button::after { content: ''; position: absolute; inset: -5px; }
+
+@media (min-width: 1024px) {
+  body { padding-left: 248px; }
+  .menu-button { display: none; }
+}
+@media (max-width: 1023px) {
+  .sidebar {
+    z-index: 30;
+    width: min(280px, 86vw);
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition: transform .26s cubic-bezier(.33, .9, .3, 1), visibility 0s linear .26s;
+    box-shadow: none;
+  }
+  .sidebar.open { transform: none; visibility: visible; transition-delay: 0s; box-shadow: 0 0 40px rgba(32, 29, 26, .25); }
+  .sidebar-close { display: inline-grid; }
+  .sidebar-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 29;
+    background: rgba(32, 29, 26, .42);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .26s ease;
+  }
+  .sidebar-scrim.open { opacity: 1; pointer-events: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sidebar, .sidebar-scrim { transition: none; }
+}
+
+/* Diálogo «Colecciones»: una fila por colección, con el check a la izquierda. La fila entera es
+   el blanco de toque (48 px). El check usa el acento de la app. */
+.collection-checks { list-style: none; margin: 0 0 6px; padding: 0; }
+.collection-check {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 0 6px;
+  border-radius: 8px;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.collection-check input { flex: none; width: 20px; height: 20px; margin: 0; accent-color: var(--accent); cursor: inherit; }
+@media (hover: hover) { .collection-check:hover { background: var(--paper); } }

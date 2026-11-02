@@ -51,6 +51,31 @@ export function rememberCollection(id) {
   try { localStorage.setItem(STORAGE_KEY, id) } catch { /* modo privado */ }
 }
 
+/* CUÁLES COLECCIONES SE VEN. Es una preferencia de ESTE aparato, como qué álbum mirás, y por eso
+   va en `localStorage` y no en la cuenta. Se guardan las OCULTAS y no las visibles: así una
+   colección nueva que se agregue al catálogo aparece sola, en vez de quedar escondida hasta que
+   alguien la tilde. Ocultar no borra nada: las cartas siguen en la cuenta, y el pie y el panel
+   siguen contando contra TODOS los catálogos. */
+const HIDDEN_KEY = 'dbz-cromeros-colecciones-ocultas'
+
+export function readHiddenCollections() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(HIDDEN_KEY) ?? '[]')
+    return Array.isArray(raw) ? raw.filter((id) => typeof id === 'string') : []
+  } catch { return [] }
+}
+
+export function rememberHiddenCollections(ids) {
+  try { localStorage.setItem(HIDDEN_KEY, JSON.stringify(ids)) } catch { /* modo privado */ }
+}
+
+/* Las que se muestran: todas menos las ocultas, y NUNCA ninguna — si por un valor guardado viejo
+   o a mano quedaran todas ocultas, se muestran todas, que es mejor que una app sin álbum. */
+export function visibleCollections(all, hidden) {
+  const shown = all.filter((c) => !hidden.includes(c.id))
+  return shown.length ? shown : all
+}
+
 /* LAS VARIANTES VAN POR GRUPO DE CARTAS, no por expansión, y esto es el corazón del
  * diseño — la primera versión lo tuvo mal y el bug se veía en la pantalla.
  *

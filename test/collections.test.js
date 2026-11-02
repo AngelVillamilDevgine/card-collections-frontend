@@ -12,7 +12,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import {
-  COLLECTIONS, DEFAULT_COLLECTION, readCollection, albumNames, cardLabel, cardDetail, listLabel, albumPercent,
+  COLLECTIONS, DEFAULT_COLLECTION, readCollection, readHiddenCollections, rememberHiddenCollections, visibleCollections, albumNames, cardLabel, cardDetail, listLabel, albumPercent,
   withVariants, variantsFor, slotKey, slotsOf, missingVariantsOf, albumTally, closestToComplete, drawableVariants, pointsToASlot, numbersOf,
   slotOf, slotName, orphanName, completionBy, countsInTally, expansionForNumber, plainNumberRun,
 } from '../src/collections.js'
@@ -761,4 +761,29 @@ test('plainNumberRun: si un numero pelado cae en dos expansiones no hay corrida 
   const b = { id: 'b', desde: 5, hasta: 9 }
   assert.equal(plainNumberRun([a, b]), null, 'basta un solo numero repetido')
   assert.deepEqual(plainNumberRun([a, { id: 'c', desde: 6, hasta: 9 }]), { min: 1, max: 9 })
+})
+
+test('visibleCollections: todas menos las ocultas, y nunca ninguna', () => {
+  const all = [{ id: 'a' }, { id: 'b' }, { id: 'c' }]
+  assert.deepEqual(visibleCollections(all, []).map((c) => c.id), ['a', 'b', 'c'])
+  assert.deepEqual(visibleCollections(all, ['b']).map((c) => c.id), ['a', 'c'])
+  assert.deepEqual(visibleCollections(all, ['x']).map((c) => c.id), ['a', 'b', 'c'], 'un id que no existe no esconde nada')
+  assert.deepEqual(visibleCollections(all, ['a', 'b', 'c']).map((c) => c.id), ['a', 'b', 'c'], 'todas ocultas: se muestran todas')
+  assert.deepEqual(visibleCollections([], ['a']), [])
+})
+
+test('colecciones ocultas: se guardan en el aparato y un valor roto no rompe nada', () => {
+  const store = new Map()
+  globalThis.localStorage = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, String(v)) }
+  try {
+    assert.deepEqual(readHiddenCollections(), [])
+    rememberHiddenCollections(['leyenda'])
+    assert.deepEqual(readHiddenCollections(), ['leyenda'])
+    store.set('dbz-cromeros-colecciones-ocultas', '{no es json')
+    assert.deepEqual(readHiddenCollections(), [], 'json roto')
+    store.set('dbz-cromeros-colecciones-ocultas', '{"a":1}')
+    assert.deepEqual(readHiddenCollections(), [], 'no es una lista')
+    store.set('dbz-cromeros-colecciones-ocultas', '["leyenda", 3, null]')
+    assert.deepEqual(readHiddenCollections(), ['leyenda'], 'sólo textos')
+  } finally { delete globalThis.localStorage }
 })
