@@ -103,7 +103,7 @@ button { cursor: pointer; }
      todas las columnas el ancho de la más ancha, que es justo lo que hace falta. */
   display: inline-grid;
   grid-auto-flow: column;
-  grid-auto-columns: 1fr;
+  grid-auto-columns: minmax(0, 1fr);
   margin-top: 6px;
   padding: 3px;
   border: 1px solid var(--line2);
@@ -157,6 +157,28 @@ button { cursor: pointer; }
   transition: color .26s ease;
 }
 .album-name { font-size: 13.5px; font-weight: 700; line-height: 1.2; }
+.album-pill { min-width: 0; }
+.album-name, .album-tally { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+/* CON TRES ÁLBUMES EL RIEL NO ENTRABA EN LOS TELÉFONOS CHICOS: cada píldora medía 110 px como
+   mínimo y a 320 de pantalla el riel tiene 272, así que la última se salía del riel y las
+   tres quedaban desparejas (89 / 85 / 110) con la pastilla que viaja descalzada. Las
+   columnas son `minmax(0, 1fr)` —iguales de verdad, aunque el contenido no entre— y abajo
+   de 400 px el texto se achica un escalón en vez de dejar que reviente. Medido de 300 a
+   1280 px: las tres iguales y adentro del riel en todos. */
+@media (max-width: 400px) {
+  .album-pill { padding: 5px 4px; }
+  .album-name { font-size: 12.5px; }
+  .album-tally { font-size: 10px; }
+}
+@media (max-width: 340px) {
+  .album-name { font-size: 11.5px; }
+  .album-tally { font-size: 9.5px; }
+}
+@media (max-width: 300px) {
+  .album-pill { padding: 5px 2px; }
+  .album-name { font-size: 10.5px; }
+  .album-tally { font-size: 9px; }
+}
 /* El avance de CADA álbum, que es lo que convierte al selector en algo que informa: con
    dos colecciones, «cómo voy en la otra» obligaba a cambiar de álbum para contestarlo.
    `tabular-nums` para que el número no baile al ir sumando cartas. */
