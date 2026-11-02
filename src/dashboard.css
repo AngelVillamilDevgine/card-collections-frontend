@@ -381,8 +381,8 @@ body:has(.panel-page) {
    2007 y Leyenda en el azul frío de 2025 — los mismos dos climas de los actos y de los
    cuadros del cierre. No es «un color por métrica»: son los DOS álbumes, y la landing ya
    estableció qué color es cada época. OJO: va por posición (par = segunda colección),
-   porque el orden sale de COLLECTIONS y es estable; una tercera colección volvería al
-   dorado y habría que darle su renglón acá.
+   porque el orden sale de COLLECTIONS y es estable. La tercera, Serie Dorada, vuelve al
+   dorado a propósito (es la dorada); una cuarta pediría su renglón acá.
    Y va sobre `.collections`, NO sobre `.group` a secas: puesta ahí teñía de azul renglón
    por medio al reparto por aparato, donde el azul no quiere decir nada. */
 .stats .group.collections .row:nth-child(even) .fill { background: var(--p-blue); }

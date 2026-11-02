@@ -1,0 +1,29 @@
+{
+  "coleccion": "Dragon Ball Z - Serie Dorada",
+  "editorial": "Cromeros",
+  "anios": "",
+  "notas": [
+    "Dos expansiones de 116 cartas cada una, numeradas del 1 al 116 (Angel, 2026-11-02). Los numeros se repiten entre las dos: son cartas distintas, cada una con su banda. Marca por condicion como Cromeros. Los datos de las variantes y los nombres de carta no se cargaron: el APK de Ismael (7.8.6) trae las imagenes de las dos series pero no su json, asi que no se inventa nada. Las fotos de las cajas salen de ese APK.",
+    "Podes editar este archivo para corregir rangos o agregar sets sin recompilar la app."
+  ],
+  "expansiones": [
+    {
+      "id": "dor-1",
+      "nombre": "Expansión 1",
+      "corto": "D1",
+      "color": "#c9a227",
+      "desde": 1,
+      "hasta": 116,
+      "imagen": "cajas/dor-1.jpg"
+    },
+    {
+      "id": "dor-2",
+      "nombre": "Expansión 2",
+      "corto": "D2",
+      "color": "#e08a1e",
+      "desde": 1,
+      "hasta": 116,
+      "imagen": "cajas/dor-2.jpg"
+    }
+  ]
+}

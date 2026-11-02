@@ -576,7 +576,7 @@ test('albumNames: los nombra en prosa y sale de la lista, no escrito a mano', ()
   /* La bajada de la pantalla de entrada decía «Cartas Cromeros · 2007–2008» y quedó sin
      cambiar el día que entró Leyenda. Sacándolo de acá, agregar una tercera no lo deja
      viejo. */
-  assert.equal(albumNames(), 'Cromeros y Leyenda')
+  assert.equal(albumNames(), 'Cromeros, Leyenda y Serie Dorada')
   for (const c of COLLECTIONS) assert.ok(albumNames().includes(c.name), `${c.name} no aparece`)
 })
 
@@ -736,4 +736,29 @@ test('expansionForNumber y plainNumberRun contra el catálogo DE VERDAD de Crome
   assert.equal(expansionForNumber(exps, 1936).id, 'bf-2', 'la última de la corrida')
   assert.equal(expansionForNumber(exps, 1937), null, 'después de la corrida no hay nada')
   assert.equal(expansionForNumber(exps, 0), null)
+})
+
+test('Serie Dorada: dos expansiones de 116 con condicion y su caja, y sus ids no chocan con los otros catalogos', () => {
+  const raw = JSON.parse(fs.readFileSync(new URL('../public/data/serie-dorada.json', import.meta.url), 'utf8'))
+  assert.notEqual(raw.condicion, false, 'marca por condicion como Cromeros')
+  assert.deepEqual(raw.expansiones.map((e) => [e.id, e.nombre, e.desde, e.hasta]),
+    [['dor-1', 'Expansión 1', 1, 116], ['dor-2', 'Expansión 2', 1, 116]])
+  for (const e of raw.expansiones) {
+    assert.ok(fs.existsSync(new URL('../public/' + e.imagen, import.meta.url)), e.id + ': falta la foto de la caja')
+  }
+  /* Los ids de las tres colecciones tienen que ser disjuntos Y ninguno puede ser otro mas un
+     sufijo de variante (`ley-6` / `ley-6-dor`): el panel compara por prefijo. */
+  const ids = ['expansiones', 'leyenda', 'serie-dorada'].flatMap((f) =>
+    JSON.parse(fs.readFileSync(new URL('../public/data/' + f + '.json', import.meta.url), 'utf8')).expansiones.map((e) => e.id))
+  assert.equal(new Set(ids).size, ids.length)
+  for (const a of ids) for (const b of ids) if (a !== b) assert.ok(!b.startsWith(a + '-'), a + ' es prefijo de ' + b)
+})
+
+test('plainNumberRun: si un numero pelado cae en dos expansiones no hay corrida (Serie Dorada), y el boton no se ofrece', () => {
+  const dorada = JSON.parse(fs.readFileSync(new URL('../public/data/serie-dorada.json', import.meta.url), 'utf8')).expansiones
+  assert.equal(plainNumberRun(dorada), null, 'las dos van del 1 al 116: «5» son dos cartas')
+  const a = { id: 'a', desde: 1, hasta: 5 }
+  const b = { id: 'b', desde: 5, hasta: 9 }
+  assert.equal(plainNumberRun([a, b]), null, 'basta un solo numero repetido')
+  assert.deepEqual(plainNumberRun([a, { id: 'c', desde: 6, hasta: 9 }]), { min: 1, max: 9 })
 })

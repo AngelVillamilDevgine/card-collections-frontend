@@ -13,6 +13,7 @@
 export const COLLECTIONS = [
   { id: 'cromeros', name: 'Cromeros', file: 'data/expansiones.json' },
   { id: 'leyenda', name: 'Leyenda', file: 'data/leyenda.json' },
+  { id: 'serie-dorada', name: 'Serie Dorada', file: 'data/serie-dorada.json' },
 ]
 
 export const DEFAULT_COLLECTION = 'cromeros'
@@ -186,13 +187,20 @@ export function expansionForNumber(catalog, n, suffix = null) {
 
 /* De qué número a qué número va esa corrida de números pelados, para decirlo en el campo
    y en el error («van del 1 al 1936»). Null si el catálogo no tiene ninguna — ahí el
-   botón directamente no se dibuja. */
+   botón directamente no se dibuja.
+
+   Y null también si un número pelado cae en DOS expansiones (Serie Dorada: las dos van del
+   1 al 116): tipeado sin contexto, «5» son dos cartas y elegir una por el orden del
+   catálogo sería hacerlo en silencio. Ahí el botón no se ofrece y las cartas se tocan. */
 export function plainNumberRun(catalog) {
   let min = Infinity
   let max = -Infinity
+  const seen = new Set()
   for (const exp of catalog ?? []) {
     if (exp.prefijo || exp.sufijo) continue
     for (const n of exp.cardNumbers ?? numbersOf(exp)) {
+      if (seen.has(n)) return null
+      seen.add(n)
       if (n < min) min = n
       if (n > max) max = n
     }
