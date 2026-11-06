@@ -1,4 +1,5 @@
-// El catálogo de Leyenda: 1078 numeradas del 1 al 1078, más 10 cartas F y 9 limitadas.
+// El catálogo de Leyenda: 1078 numeradas del 1 al 1078, Guerreros Legendarios 1 (1088 a 1223),
+// 11 cartas F y 18 limitadas.
 //
 // Mismo motivo que `catalog.test.js`: este archivo se lee en caliente y se edita sin
 // recompilar nada, así que no hay build que lo mire. Pero acá hay DOS cosas más que
@@ -51,40 +52,51 @@ const CARD_KEY_PATTERN = /^[a-z0-9-]{1,34}:\d{1,5}$/
 const inRun = rawExpansions.filter((e) => !e.fuera)
 const outOfRun = rawExpansions.filter((e) => e.fuera)
 
-test('la corrida es exacta del 1 al 1078, sin duplicados ni huecos', () => {
+/* LA CORRIDA TIENE UN HUECO A PROPÓSITO: del 1079 al 1087. Es lo que queda de la «Expansión 7»
+   del tracker (952 a 1087 en los cortes viejos), de la que sólo salieron hasta la 1078 en
+   Personajes; ninguna fuente dice qué trae el resto. Si algún día se publica, se carga ahí. */
+const GAP = { from: 1079, to: 1087 }
+
+test('la corrida es exacta del 1 al 1078 y del 1088 al 1223, sin duplicados ni huecos', () => {
   const allNumbers = inRun.flatMap(numbersOf)
-  assert.equal(allNumbers.length, 1078, `son ${allNumbers.length} y tienen que ser 1078`)
+  assert.equal(allNumbers.length, 1078 + 136, `son ${allNumbers.length} y tienen que ser 1214`)
   const uniqueNumbers = new Set(allNumbers)
-  assert.equal(uniqueNumbers.size, 1078, 'hay números repetidos entre expansiones')
+  assert.equal(uniqueNumbers.size, allNumbers.length, 'hay números repetidos entre expansiones')
   assert.equal(Math.min(...allNumbers), 1)
-  assert.equal(Math.max(...allNumbers), 1078)
+  assert.equal(Math.max(...allNumbers), 1223)
+  for (let n = GAP.from; n <= GAP.to; n++) assert.ok(!uniqueNumbers.has(n), `la ${n} no está publicada`)
 })
 
 test('los rangos se tocan sin pisarse: cada uno arranca donde termina el anterior', () => {
   const sortedByStart = [...inRun].sort((a, b) => a.desde - b.desde)
   for (let i = 1; i < sortedByStart.length; i++) {
+    /* El único salto permitido es el hueco documentado de arriba. */
+    const expected = sortedByStart[i - 1].hasta === GAP.from - 1 ? GAP.to + 1 : sortedByStart[i - 1].hasta + 1
     assert.equal(
       sortedByStart[i].desde,
-      sortedByStart[i - 1].hasta + 1,
+      expected,
       `${sortedByStart[i].id} arranca en ${sortedByStart[i].desde} y ${sortedByStart[i - 1].id} termina en ${sortedByStart[i - 1].hasta}`
     )
   }
 })
 
-test('las que están fuera de la corrida son las 10 cartas F y las 9 limitadas', () => {
-  assert.equal(outOfRun.length, 2)
+test('las que están fuera de la corrida son las cartas F y las limitadas', () => {
+  assert.equal(outOfRun.length, 3)
   const f = outOfRun.find((e) => e.id === 'ley-f')
+  const fGl1 = outOfRun.find((e) => e.id === 'ley-gl1f')
   const u = outOfRun.find((e) => e.id === 'ley-unicas')
   assert.equal(numbersOf(f).length, 10, 'las cartas F son F504 a F513')
-  assert.equal(numbersOf(u).length, 9, 'las cartas únicas son Leyenda 1 a 9')
+  assert.deepEqual(numbersOf(fGl1), [1222], 'y la F1222, de Guerreros Legendarios 1')
+  assert.equal(numbersOf(u).length, 18, 'las cartas únicas son Leyenda 1 a 18')
   // Se dibujan y se exportan con prefijo, o «504» sería ambiguo contra la 504 de Expansión 4.
   assert.equal(f.prefijo, 'F')
+  assert.equal(fGl1.prefijo, 'F', 'sin prefijo, la F1222 sería la 1222 de Guerreros Legendarios 1')
   assert.ok(u.prefijo)
 })
 
-test('los huecos del álbum son 1097', () => {
+test('los huecos del álbum son 1243', () => {
   const total = rawExpansions.flatMap(numbersOf).length
-  assert.equal(total, 1097, 'son 1078 numeradas + 10 cartas F + 9 limitadas')
+  assert.equal(total, 1243, 'son 1078 + 136 numeradas + 11 cartas F + 18 limitadas')
 })
 
 test('cada expansión tiene id, nombre, corto y un color de verdad', () => {
@@ -181,12 +193,12 @@ test('una carta que no está en ninguna planilla NO tiene variantes', () => {
 
 test('cada carta ofrece lo que dice el dato, no el vocabulario del tramo entero', () => {
   /* La 957 es la que reporto Angel: «en la 957 la app tiene muchas mas variantes de las
-     que corresponde». Son siete, y no las trece que llego a ofrecer. */
+     que corresponde». Son nueve con el APK 8.0 (siete antes), y no las trece que llego a ofrecer. */
   assert.deepEqual(offeredVariantNames(rawExpansion('ley-personajes'), 957).sort(),
-    ['Azul', 'Azul viento', 'Cyan', 'Dorado', 'Holográfica', 'Naranja', 'Plateado'])
-  /* Y la 953, que es de la MISMA expansion, ofrece otras seis. Ese es todo el punto. */
+    ['Azul', 'Azul viento', 'Cyan', 'Dorado', 'Holográfica', 'Naranja', 'Plateado', 'Rosa', 'Tornasolado'])
+  /* Y la 953, que es de la MISMA expansion, ofrece otras ocho. Ese es todo el punto. */
   assert.deepEqual(offeredVariantNames(rawExpansion('ley-personajes'), 953).sort(),
-    ['Dorado', 'Fucsia', 'Holográfica', 'Naranja', 'Plateado', 'Verde'])
+    ['Azul', 'Dorado', 'Fucsia', 'Holográfica', 'Naranja', 'Plateado', 'Rojo', 'Verde'])
 })
 
 test('ningún grupo ofrece una sola respuesta posible', () => {
@@ -291,6 +303,9 @@ test('cuantas cartas tienen variantes en cada tramo', () => {
     .reduce((a, id) => a + cardsWithVariants(id), 0)
   assert.equal(total, 289)
   assert.equal(cardsWithVariants('ley-f'), 10, 'las diez F, desde el APK 7.3')
+  /* El APK 8.0 no sumó cartas con variantes a lo viejo: les sumó variantes a las que ya tenían. */
+  assert.equal(cardsWithVariants('ley-gl1'), 43, 'de las 136, seis son sólo «de caja» y no tienen variantes')
+  assert.equal(cardsWithVariants('ley-unicas'), 18)
 })
 
 /* LO QUE SUMÓ EL TRACKER EL 2026-10-05 (su APK 7.3, cuando el sitio quedó pausado), carta
@@ -318,6 +333,52 @@ test('lo que sumó el APK 7.8.6 del tracker, carta por carta', () => {
   assert.deepEqual(offeredIds('ley-4', 537), ['azu', 'com', 'dor', 'nar', 'pla'], '537')
 })
 
+/* LO QUE SUMÓ EL APK 8.0 (2026-11-06), carta por carta. SOLO SE AGREGÓ: lo que el 8.0 ya no
+   lista se queda (ver el test de abajo). */
+test('lo que sumó el APK 8.0 del tracker, carta por carta', () => {
+  const offeredIds = (expId, n) => variantsFor(appExpansion(expId), n).map((v) => v.id)
+  const has = (expId, n, ...ids) => {
+    const got = offeredIds(expId, n)
+    for (const id of ids) assert.ok(got.includes(id), `${expId}:${n} no ofrece ${id} (ofrece ${got})`)
+  }
+  /* Mazo inicial: Holo glitter y Tornasolado en 36 cartas. */
+  for (const n of [22, 42, 45, 55, 56, 59, 63, 91, 93, 99, 130, 131, 132, 134, 135, 143, 154, 155,
+    33, 36, 66, 78, 88, 102, 103, 119, 133, 136, 148, 149, 150, 152, 153, 160, 171, 175]) has('ley-inicial', n, 'hol', 'tor')
+  /* Personajes: Rose y Tornasolado en 18, Azul y Rojo en 15, y Rojo solo en tres. */
+  for (const n of [947, 957, 958, 975, 976, 977, 981, 993, 994, 1013, 1014, 1019, 1025, 1029, 1030, 1051, 1064, 1065])
+    has('ley-personajes', n, 'ros', 'tor')
+  for (const n of [953, 968, 969, 971, 972, 973, 978, 984, 986, 1006, 1008, 1012, 1016, 1021, 1037])
+    has('ley-personajes', n, 'azu', 'roj')
+  for (const n of [1053, 1055, 1056]) has('ley-personajes', n, 'roj')
+  /* Las ocho especiales de caja: colores nuevos. */
+  has('ley-inicial', 11, 'ver', 'pla', 'dor', 'ros', 'azu', 'tur', 'fuc', 'cel', 'vio', 'gri', 'cya')
+})
+
+test('Guerreros Legendarios 1: 136 cartas, 43 con variantes y las seis «de caja» sin ninguna', () => {
+  const gl1 = appExpansion('ley-gl1')
+  assert.equal(gl1.cardNumbers.length, 136)
+  assert.equal(gl1.cardNumbers[0], 1088)
+  assert.equal(gl1.cardNumbers.at(-1), 1223)
+  for (const n of [1093, 1104, 1112, 1119, 1153, 1187])
+    assert.deepEqual(variantsFor(gl1, n), [], `la ${n} es sólo de caja`)
+  /* Los acabados que el tracker trae por primera vez, con su nombre. */
+  const names = new Set(gl1.variantes.map((v) => v.nombre))
+  for (const name of ['Rojo efecto', 'Rosa efecto', 'Matrix azul', 'Super gridito', 'Psycho', 'PixelGlitter dorado', 'Diamantes', 'Azul hielo'])
+    assert.ok(names.has(name), `falta ${name}`)
+  /* La F1222 es otra carta que la 1222: no comparten casillero. */
+  assert.equal(appExpansion('ley-gl1f').prefijo, 'F')
+  assert.ok(variantsFor(appExpansion('ley-gl1f'), 1222).some((v) => v.nombre === 'Holo glitter dorado'))
+})
+
+/* LO QUE EL 8.0 YA NO LISTA Y SE QUEDA: la Naranja de ocho cartas de Personajes y el Común de
+   las especiales de caja. Mismo criterio que la Azul: lo que Angel marcó pesa más que el tracker. */
+test('la Naranja de las ocho de Personajes y el Común de las especiales se quedan', () => {
+  for (const n of [906, 916, 917, 928, 929, 930, 931, 944])
+    assert.ok(variantsFor(appExpansion('ley-personajes'), n).some((v) => v.id === 'nar'), `la ${n} perdió la Naranja`)
+  for (const n of [11, 12, 14, 20, 23])
+    assert.ok(variantsFor(appExpansion('ley-inicial'), n).some((v) => v.id === 'com'), `la ${n} perdió el Común`)
+})
+
 /* LO QUE EL TRACKER SACÓ Y ACÁ SE QUEDA. La 7.3 le sacó la Azul a 21 cartas de Personajes, y
    en producción hay una cuenta con Azul en 947, 975 y 981. Angel, 2026-10-05: «si alguien la
    marcó es porque existe». Sincronizar con el tracker sin mirar esto la borraría del diálogo. */
@@ -342,9 +403,13 @@ test('las ocho que Angel corrigio con sus propias cartas', () => {
     25: ['Naranja', 'Violeta', 'Rojo'],
     27: ['Dorado', 'Naranja', 'Violeta', 'Verde manzana', 'Rojo'],
   }
-  for (const [n, wanted] of Object.entries(expected))
-    assert.deepEqual(offeredVariantNames(rawExpansion('ley-inicial'), Number(n)).sort(), [...wanted].sort(),
-      `la ${n} no ofrece lo que Angel tiene en la mano`)
+  /* Un PISO y no la lista entera: el APK 8.0 les sumó colores (verde, plata, dorado, rosa, azul,
+     turquesa…), pero lo que Angel tiene en la mano no se puede perder. */
+  for (const [n, wanted] of Object.entries(expected)) {
+    const offered = offeredVariantNames(rawExpansion('ley-inicial'), Number(n))
+    for (const name of wanted)
+      assert.ok(offered.includes(name), `la ${n} dejó de ofrecer «${name}», que Angel tiene en la mano`)
+  }
   /* La 22 NO se toca: Angel dijo que tiene variantes pero que solo tiene la comun, asi que
      no puede decir cuales son. Se queda con lo que traia el tracker. */
   assert.ok(offeredVariantNames(rawExpansion('ley-inicial'), 22).length > 1)
@@ -368,7 +433,7 @@ test('las Expansiones 2 y 3 tienen dos acabados y ninguna carta con version comu
    Nº / TOTAL, numeradas a mano— así que «Leyenda 3» es una etiqueta nuestra y lo que la
    identifica es el personaje. El dato salió del tracker de Ismael López, leído el
    2026-09-26. */
-test('las nueve únicas tienen nombre, y la tirada que las separa', () => {
+test('las dieciocho únicas tienen nombre, y la tirada donde se conoce', () => {
   const u = appExpansion('ley-unicas')
   assert.ok(u.detalle, 'sin esto la grilla vuelve a ser nueve cuadraditos con un número')
   assert.deepEqual(
@@ -379,11 +444,16 @@ test('las nueve únicas tienen nombre, y la tirada que las separa', () => {
   for (const n of u.cardNumbers) {
     const d = u.detalle[n]
     assert.ok(d.nombre && d.nombre.trim(), `Leyenda ${n}: sin nombre`)
-    assert.ok(Number.isInteger(d.copias) && d.copias > 0, `Leyenda ${n}: la tirada tiene que ser un entero`)
+    /* La tirada se conoce de las nueve primeras; de L10 a L18 el tracker no la trae y no se inventa. */
+    if (n <= 9) assert.ok(Number.isInteger(d.copias) && d.copias > 0, `Leyenda ${n}: la tirada tiene que ser un entero`)
+    else assert.equal(d.copias, undefined, `Leyenda ${n}: la tirada no se conoce`)
   }
   assert.equal(u.detalle[9].nombre, 'Shenron')
   assert.equal(u.detalle[9].copias, 500, 'Shenron es la única de 500; las otras ocho son de 1500')
-  assert.equal(new Set(u.cardNumbers.map((n) => u.detalle[n].nombre)).size, 9, 'no hay dos con el mismo nombre')
+  assert.equal(new Set(u.cardNumbers.map((n) => u.detalle[n].nombre)).size, 18, 'no hay dos con el mismo nombre')
+  assert.equal(u.detalle[18].nombre, 'Porunga')
+  /* Plata y dorado en las dieciocho, como las primeras. */
+  assert.deepEqual(offeredVariantNames(rawExpansion('ley-unicas'), 12).sort(), ['Dorado', 'Plateado'])
 })
 
 test('si una expansión trae detalle, lo trae para TODAS sus cartas', () => {

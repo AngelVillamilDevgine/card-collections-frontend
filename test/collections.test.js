@@ -522,7 +522,7 @@ test('cardLabel: el número va con el prefijo —o el sufijo— de su expansión
   assert.equal(cardLabel(null, 5), '5', 'sin expansión no revienta')
 })
 
-test('cardLabel: LOS 19 HUECOS QUE REPITEN NÚMERO quedan distinguidos', () => {
+test('cardLabel: LOS 29 HUECOS QUE REPITEN NÚMERO quedan distinguidos', () => {
   /* `ley-f` va de 504 a 513 sobre el tramo de `ley-4`, y `ley-unicas` de 1 a 9 sobre el de
      `ley-inicial`. Sin prefijo, la etiqueta hablada y el título del diálogo decían lo
      mismo para dos cartas distintas. Se lee del catálogo de verdad: el día que alguien le
@@ -536,7 +536,9 @@ test('cardLabel: LOS 19 HUECOS QUE REPITEN NÚMERO quedan distinguidos', () => {
     if (a.id >= b.id) continue
     for (const n of a.cardNumbers) if (b.cardNumbers.includes(n)) collisions.push([a, b, n])
   }
-  assert.equal(collisions.length, 19, 'son 19 huecos con dos cartas cada uno')
+  /* 19 de antes (504 a 513 y 1 a 9) más las nueve únicas nuevas, L10 a L18, sobre la 10 a la 18
+     del Mazo inicial, y la F1222 sobre la 1222 de Guerreros Legendarios 1. */
+  assert.equal(collisions.length, 29, 'son 29 huecos con dos cartas cada uno')
   for (const [a, b, n] of collisions)
     assert.notEqual(cardLabel(a, n), cardLabel(b, n),
       `${a.id} y ${b.id} llaman igual a la ${n}: hablado no hay banda que los separe`)
