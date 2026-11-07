@@ -2500,3 +2500,50 @@ body.with-install-bar { padding-bottom: var(--install-height, 150px); }
 /* «Deshacer» es lo que necesita ver alguien que se equivocó: con borde, no como un texto gris suelto. */
 .bulk .undo { min-height: 44px; margin-bottom: 10px; border: 1px solid var(--line2); border-radius: 6px; color: var(--ink); font-weight: 600; }
 .bulk .undo:hover { border-color: var(--accent); }
+
+/* ----------------------- acabados: vista previa y tabla (Leyenda) ----------------------- */
+
+/* La miniatura de un acabado: foto de 112 px dibujada chica, cuadrado de color, o sus letras. */
+.finish-thumb {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  border: 1px solid var(--line2);
+  object-fit: cover;
+  background: var(--paper);
+}
+.finish-thumb.plain { font-size: 11px; font-weight: 700; color: var(--ink2); }
+
+/* En el diálogo de qué variante tenés, la miniatura va a la izquierda y el contador a la derecha. */
+.dialog .option.with-thumb { display: flex; align-items: center; gap: 12px; }
+.dialog .option.with-thumb .option-name { flex: 1; min-width: 0; }
+.dialog .option.with-thumb b { float: none; margin-left: auto; }
+
+/* La tabla: una grilla de cuadrados que reparte el ancho que haya, sin saltos a mano. */
+.finish-section h4 { margin: 14px 0 8px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink2); }
+.finish-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(84px, 100%), 1fr));
+  gap: 10px;
+}
+.finish-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 6px;
+  border: 1px solid var(--line2);
+  border-radius: 8px;
+  background: var(--paper);
+  text-align: center;
+}
+.finish-tile .finish-thumb { width: 56px; height: 56px; border-radius: 8px; font-size: 14px; }
+.finish-tile b { font-size: 13px; line-height: 1.2; color: var(--ink); }
+.finish-tile small { font-size: 12px; color: var(--ink2); }

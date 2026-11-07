@@ -103,7 +103,16 @@ export function withVariants(e, raw) {
      así fue como el nombre de `vcl` divergió una vez. Un acabado sin color en el
      registro queda sin color y se dibuja sin teñir — Glitter u Holográfica no SON un
      color, y un catálogo viejo en caché tampoco trae el registro. */
-  const colorOf = (v) => (raw.acabados?.[v.id] && !v.color ? { ...v, color: raw.acabados[v.id] } : v)
+  /* Lo mismo vale para la FOTO (`fotos`, id → imagen): el APK del tracker trae un ícono por
+     cada acabado con dibujo, y se muestra al elegir la variante y en la tabla de acabados.
+     Los colores lisos no tienen foto, y un acabado sin ninguna de las dos se dibuja con sus
+     letras. Va por id y en el registro, no repetida por grupo, por la misma razón que el color. */
+  const colorOf = (v) => {
+    const color = raw.acabados?.[v.id]
+    const foto = raw.fotos?.[v.id]
+    if ((!color || v.color) && (!foto || v.foto)) return v
+    return { ...v, ...(color && !v.color ? { color } : {}), ...(foto && !v.foto ? { foto } : {}) }
+  }
   const groups = (e.grupos ?? []).map((g) => ({
     variantes: (g.variantes ?? []).map(colorOf),
     cartas: new Set(g.cartas ?? []),
@@ -120,6 +129,49 @@ export function withVariants(e, raw) {
   for (const g of groups) for (const v of g.variantes) if (!byId.has(v.id)) byId.set(v.id, v)
 
   return { ...e, cardNumbers: numbersOf(e), grupos: groups, looseVariants, variantes: [...byId.values()] }
+}
+
+/* LA TABLA DE ACABADOS: cada acabado que declara el catálogo, una sola vez, con cómo se ve
+ * (foto, color o sus letras) y cuántas cartas lo tienen. Sale de lo que ya está cargado —no hay
+ * una lista aparte que se pueda desincronizar— y sirve para reconocer el de la carta que
+ * tenés en la mano. El nombre es el MÁS USADO: el mismo acabado se llama «Verde manzana» en las
+ * ocho especiales de caja y «Verde claro» en el resto, y la tabla dice el general.
+ * Orden: primero los que tienen dibujo, después los colores, después los que sólo tienen
+ * letras; adentro de cada tramo, por nombre. */
+export function finishGuide(expansions) {
+  const byId = new Map()
+  const touch = (v, exp, numbers) => {
+    let f = byId.get(v.id)
+    if (!f) {
+      f = { id: v.id, corto: v.corto, color: null, foto: null, cartas: new Set(), expansiones: new Set(), nombres: new Map() }
+      byId.set(v.id, f)
+    }
+    f.color ??= v.color ?? null
+    f.foto ??= v.foto ?? null
+    let fresh = 0
+    for (const n of numbers) {
+      const k = `${exp.id}:${n}`
+      if (!f.cartas.has(k)) { f.cartas.add(k); fresh++ }
+    }
+    f.expansiones.add(exp.nombre)
+    f.nombres.set(v.nombre, (f.nombres.get(v.nombre) ?? 0) + fresh)
+  }
+  for (const exp of expansions ?? []) {
+    for (const g of exp.grupos ?? []) for (const v of g.variantes ?? []) touch(v, exp, g.cartas)
+    for (const v of exp.looseVariants ?? []) touch(v, exp, exp.cardNumbers ?? numbersOf(exp))
+  }
+  const rank = (f) => (f.foto ? 0 : f.color ? 1 : 2)
+  return [...byId.values()]
+    .map((f) => ({
+      id: f.id,
+      corto: f.corto,
+      color: f.color,
+      foto: f.foto,
+      nombre: [...f.nombres].sort((a, b) => b[1] - a[1])[0][0],
+      cartas: f.cartas.size,
+      expansiones: [...f.expansiones],
+    }))
+    .sort((a, b) => rank(a) - rank(b) || a.nombre.localeCompare(b.nombre, 'es'))
 }
 
 /* Las variantes que ESTA carta puede tener: lo que decide si se pregunta y qué se ofrece.

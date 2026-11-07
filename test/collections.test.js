@@ -15,7 +15,7 @@ import {
   parseNumberList, bulkTargets, bulkPlan, expansionRangeText,
   COLLECTIONS, DEFAULT_COLLECTION, readCollection, readHiddenCollections, rememberHiddenCollections, visibleCollections, albumNames, cardLabel, cardDetail, listLabel, albumPercent,
   withVariants, variantsFor, slotKey, slotsOf, missingVariantsOf, albumTally, closestToComplete, drawableVariants, pointsToASlot, numbersOf,
-  slotOf, slotName, orphanName, completionBy, countsInTally, expansionForNumber, plainNumberRun,
+  slotOf, slotName, orphanName, completionBy, countsInTally, expansionForNumber, plainNumberRun, finishGuide,
 } from '../src/collections.js'
 
 /* Una expansión como sale de un json, para no depender de los catálogos de verdad: lo que
@@ -520,6 +520,31 @@ test('cardLabel: el número va con el prefijo —o el sufijo— de su expansión
      igual que siempre: son 28 personas que ya leen ese formato. */
   assert.equal(cardLabel({ id: 'exp-1' }, 5), '5')
   assert.equal(cardLabel(null, 5), '5', 'sin expansión no revienta')
+})
+
+/* LA TABLA DE ACABADOS: sale de lo declarado, una vez por acabado. */
+test('finishGuide: cada acabado una vez, con su aspecto y cuántas cartas lo tienen', () => {
+  const raw = JSON.parse(fs.readFileSync(new URL('../public/data/leyenda.json', import.meta.url), 'utf8'))
+  const exps = raw.expansiones.map((e) => withVariants(e, raw))
+  const guide = finishGuide(exps)
+  assert.equal(new Set(guide.map((f) => f.id)).size, guide.length, 'un acabado aparece una sola vez')
+  const byId = Object.fromEntries(guide.map((f) => [f.id, f]))
+  /* El nombre general, no el de las ocho especiales: «Verde claro» y no «Verde manzana». */
+  assert.equal(byId.vcl.nombre, 'Verde claro')
+  assert.equal(byId.psy.nombre, 'Círculos dorados')
+  /* Primero los que tienen dibujo, después los colores lisos, y al final los que sólo tienen letras. */
+  const rank = (f) => (f.foto ? 0 : f.color ? 1 : 2)
+  assert.deepEqual(guide.map(rank), [...guide.map(rank)].sort((a, b) => a - b))
+  assert.ok(guide.some((f) => rank(f) === 0) && guide.some((f) => rank(f) === 1) && guide.some((f) => rank(f) === 2))
+  /* Cuentan cartas distintas: la Dorada sale en todas las únicas (18) y en muchas más. */
+  assert.ok(byId.dor.cartas > 18)
+  assert.equal(byId.fue.cartas, 44, 'Fucsia efecto: las 44 holográficas de Guerreros Legendarios 1')
+})
+
+test('finishGuide: sin acabados no hay tabla', () => {
+  assert.deepEqual(finishGuide([]), [])
+  assert.deepEqual(finishGuide(null), [])
+  assert.deepEqual(finishGuide([{ id: 'x', nombre: 'X', cardNumbers: [1] }]), [])
 })
 
 test('cardLabel: LOS 29 HUECOS QUE REPITEN NÚMERO quedan distinguidos', () => {

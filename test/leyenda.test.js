@@ -363,11 +363,51 @@ test('Guerreros Legendarios 1: 136 cartas, 43 con variantes y las seis «de caja
     assert.deepEqual(variantsFor(gl1, n), [], `la ${n} es sólo de caja`)
   /* Los acabados que el tracker trae por primera vez, con su nombre. */
   const names = new Set(gl1.variantes.map((v) => v.nombre))
-  for (const name of ['Rojo efecto', 'Rosa efecto', 'Matrix azul', 'Super gridito', 'Psycho', 'PixelGlitter dorado', 'Diamantes', 'Azul hielo'])
+  for (const name of ['Rojo efecto', 'Rosa efecto', 'Matrix azul', 'Super gridito', 'Círculos dorados', 'PixelGlitter dorado', 'Diamantes', 'Azul hielo',
+    'Fucsia efecto', 'Arcoiris', 'Tornasolado'])
     assert.ok(names.has(name), `falta ${name}`)
   /* La F1222 es otra carta que la 1222: no comparten casillero. */
   assert.equal(appExpansion('ley-gl1f').prefijo, 'F')
   assert.ok(variantsFor(appExpansion('ley-gl1f'), 1222).some((v) => v.nombre === 'Holo glitter dorado'))
+})
+
+/* LO QUE SUMÓ EL APK 8.1 (2026-11-07), todo en Guerreros Legendarios 1: Fucsia efecto (nuevo), Arcoiris y
+   Tornasolado en las 44 holográficas, y «Psycho» renombrado a «Círculos dorados». Un acabado «Ocular» NO
+   existe en el 8.0 ni en el 8.1: se buscó porque Angel lo mencionó, y no está. */
+test('lo que sumó el APK 8.1 del tracker, en Guerreros Legendarios 1', () => {
+  const gl1 = appExpansion('ley-gl1')
+  const idsOf = (n) => variantsFor(gl1, n).map((v) => v.id)
+  for (const n of [1088, 1090, 1091, 1092, 1094, 1098]) for (const id of ['fue', 'arc', 'tor'])
+    assert.ok(idsOf(n).includes(id), `la ${n} no ofrece ${id}`)
+  assert.equal(gl1.variantes.find((v) => v.id === 'psy').nombre, 'Círculos dorados', 'el 8.1 lo renombró; el id no cambia')
+  assert.ok(!gl1.variantes.some((v) => v.nombre === 'Psycho'), 'no quedó ninguna con el nombre viejo')
+  /* La 1184 pierde en el tracker el Holo glitter dorado a favor del PixelGlitter dorado; acá quedan los dos. */
+  assert.ok(idsOf(1184).includes('hgd') && idsOf(1184).includes('pxd'))
+  assert.ok(!rawExpansions.flatMap(declaredVariants).some((v) => /ocular/i.test(v.nombre)), 'ningún acabado Ocular')
+})
+
+/* LAS FOTOS DE LOS ACABADOS. El registro `fotos` liga un id de acabado con su ícono (112 px, del APK del
+   tracker). Lo que se rompe en silencio: una ruta que no existe (la miniatura sale rota) o un id que ya
+   nadie declara (una foto que no se ve en ningún lado). */
+test('el registro de fotos apunta a archivos que existen y a acabados declarados', () => {
+  const declared = new Set(rawExpansions.flatMap(declaredVariants).map((v) => v.id))
+  assert.ok(Object.keys(rawCatalog.fotos).length >= 16)
+  for (const [id, path] of Object.entries(rawCatalog.fotos)) {
+    assert.ok(declared.has(id), `hay foto para ${id} y ninguna expansión declara ese acabado`)
+    assert.match(path, /^acabados\/[a-z0-9]{1,3}\.webp$/, `ruta rara: ${path}`)
+    assert.ok(fs.existsSync(new URL(`../public/${path}`, import.meta.url)), `falta el archivo ${path}`)
+  }
+})
+
+test('withVariants le pega la foto a cada variante, sin pisar la que ya trae', () => {
+  const gl1 = appExpansion('ley-gl1')
+  assert.equal(gl1.variantes.find((v) => v.id === 'tor').foto, 'acabados/tor.webp')
+  /* Un color liso no tiene foto, y la tiene de color. */
+  const roj = gl1.variantes.find((v) => v.id === 'roj')
+  assert.equal(roj.foto, undefined)
+  assert.ok(roj.color)
+  const fake = { id: 'x', grupos: [{ variantes: [{ id: 'tor', nombre: 'Tornasolado', foto: 'otra.webp' }], cartas: [1] }], desde: 1, hasta: 1 }
+  assert.equal(withVariants(fake, rawCatalog).variantes[0].foto, 'otra.webp')
 })
 
 /* LO QUE EL 8.0 YA NO LISTA Y SE QUEDA: la Naranja de ocho cartas de Personajes y el Común de

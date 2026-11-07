@@ -7,6 +7,7 @@ import ExportDialog from './ExportDialog'
 import Celebration from './Celebration'
 import Sidebar from './Sidebar'
 import BulkLoad from './BulkLoad'
+import FinishGuide, { FinishThumb } from './FinishGuide'
 /* El panel del administrador se baja aparte y recién cuando se abre.
 
    Lo ven 1 de 40 cuentas, y estaba en el chunk principal: las otras 39 se bajaban el
@@ -364,12 +365,21 @@ function AskVariant({ label, variants, counts, onPick, onClose }) {
   useCloseOnEscape(onClose)
   useEffect(() => trapFocus(box.current, prevFocus.current), [])
 
-  const renderOption = (id, optionLabel, autoFocus) => (
-    <button key={id ?? 'base'} className="option simple" onClick={() => onPick(id)} autoFocus={autoFocus}>
-      {optionLabel}
-      {(counts[id ?? ''] ?? 0) > 0 && <b>{counts[id ?? '']}</b>}
-    </button>
-  )
+  /* Con la vista previa del acabado al lado —foto o cuadrado de color— si el catálogo sabe
+     cómo se ve: es lo que hace la app de Ismael, y sirve para reconocer cuál es la tuya. */
+  /* Si el diálogo tiene alguna miniatura, TODAS las opciones llevan una —las que no tienen foto ni
+     color, sus letras—: una sola sin ella desalinearía el nombre del resto. */
+  const anyThumb = variants.some((v) => v.foto || v.color)
+  const renderOption = (id, optionLabel, autoFocus, variant) => {
+    const thumb = anyThumb && variant
+    return (
+      <button key={id ?? 'base'} className={`option simple${thumb ? ' with-thumb' : ''}`} onClick={() => onPick(id)} autoFocus={autoFocus}>
+        {thumb && <FinishThumb finish={variant} />}
+        <span className="option-name">{optionLabel}</span>
+        {(counts[id ?? ''] ?? 0) > 0 && <b>{counts[id ?? '']}</b>}
+      </button>
+    )
+  }
 
   return (
     <div className="overlay" onClick={onClose}>
@@ -377,7 +387,7 @@ function AskVariant({ label, variants, counts, onPick, onClose }) {
            ref={box} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
         <h3>Carta {label}</h3>
         <p>¿Cuál tenés?</p>
-        {variants.map((v, i) => renderOption(v.id, v.nombre, i === 0))}
+        {variants.map((v, i) => renderOption(v.id, v.nombre, i === 0, v))}
         <p className="exits">
           <button className="cancel" onClick={onClose}>Cancelar</button>
         </p>
@@ -902,6 +912,7 @@ export default function App() {
   const [collectionsOpen, setCollectionsOpen] = useState(false)
   // La carga masiva (sólo Cromeros): marcar muchas cartas de una vez.
   const [bulkOpen, setBulkOpen] = useState(false)
+  const [finishGuideOpen, setFinishGuideOpen] = useState(false)
   // Las colecciones que ESTE aparato esconde del selector (ver `visibleCollections`).
   const [hiddenCollections, setHiddenCollections] = useState(readHiddenCollections)
   const menuButtonRef = useRef(null)
@@ -919,7 +930,7 @@ export default function App() {
      —el telón se come los clicks de atrás— así que alcanza con «hay alguno» y «cerrá el
      que sea». Si algún día se pueden apilar, esto pasa a ser uno por diálogo. */
   const isDialogOpen =
-    menuOpen || collectionsOpen || bulkOpen || exportOpen || passwordDialogOpen || profileOpen || orphansDialogOpen || !!addByNumberPrompt ||
+    menuOpen || collectionsOpen || bulkOpen || finishGuideOpen || exportOpen || passwordDialogOpen || profileOpen || orphansDialogOpen || !!addByNumberPrompt ||
     !!conditionPrompt || !!variantPrompt || !!pendingRestore || !!celebration
   const closeDialogs = useCallback(() => {
     setExportOpen(false)
@@ -928,6 +939,7 @@ export default function App() {
     setMenuOpen(false)
     setCollectionsOpen(false)
     setBulkOpen(false)
+    setFinishGuideOpen(false)
     setOrphansDialogOpen(false)
     setAddByNumberPrompt(null)
     setConditionPrompt(null)
@@ -2437,6 +2449,18 @@ export default function App() {
                     Carga masiva
                   </button>
                 )}
+                {/* «ACABADOS», sólo donde el catálogo trae fotos (hoy Leyenda): la tabla de cuadrados para
+                    reconocer cuál es el de tu carta. Lo enciende el DATO y no el id de la colección. */}
+                {album?.fotos && (
+                  <button type="button" className="add-number" onClick={() => setFinishGuideOpen(true)}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+                      <rect x="4" y="4" width="7" height="7" rx="1.5" /><rect x="13" y="4" width="7" height="7" rx="1.5" />
+                      <rect x="4" y="13" width="7" height="7" rx="1.5" /><rect x="13" y="13" width="7" height="7" rx="1.5" />
+                    </svg>
+                    Acabados
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -2919,6 +2943,10 @@ export default function App() {
           onUndo={bulkUnmark}
           onClose={() => setBulkOpen(false)}
         />
+      )}
+
+      {finishGuideOpen && album && (
+        <FinishGuide expansions={album.expansiones} onClose={() => setFinishGuideOpen(false)} />
       )}
 
       {collectionsOpen && (
