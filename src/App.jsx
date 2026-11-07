@@ -244,18 +244,38 @@ const Card = memo(function Card({ cardKey, number, label, detail, variant, condi
     : label
   const accessibleName = variant ? `Carta ${displayName}, ${variant.nombre}` : `Carta ${displayName}`
 
+  /* EL CUADRO SE PINTA CON LA VARIANTE (pedido de Angel, 2026-11-08): así como en Cromeros el estado se
+     lee por el color del cuadro, en Leyenda se lee cuál variante tenés — la foto del acabado, o su
+     color si es liso. Antes era un violeta parejo con el rótulo chico en la esquina, y la decisión
+     escrita era «es texto, no un color, porque el color ya dice si la tenés»; Angel la volteó. «La
+     tengo» lo sigue diciendo el relleno mismo (un cuadro vacío es «me falta»), y la base sin variante
+     queda violeta, que es lo que la distingue.
+
+     Sólo con algo que tengas: al restar la última el mantenido anuncia el cuadro vacío
+     (`shownQuantity` 0) y el estilo en línea taparía ese aviso. Un acabado sin foto ni color —Común—
+     se queda como siempre. Va en `style` y no en una clase por acabado: son 40 colores y fotos que
+     salen del catálogo, que se edita sin recompilar. */
+  const fill = variant && shownQuantity > 0 && (variant.foto || variant.color) ? variant : null
+  const fillStyle = fill
+    ? fill.foto
+      ? { backgroundImage: `url("${fill.foto}")`, backgroundSize: 'cover', backgroundPosition: 'center' }
+      : { backgroundColor: fill.color }
+    : undefined
+
   /* Sin `title`: decía lo mismo que el aria-label, y varios lectores de pantalla leen la
      etiqueta y después la descripción, o sea «Carta 5. Me falta. Me falta» — 1936 veces.
      Lo que el title aportaba a la vista ya está pintado en la carta: el color es el
      estado y el número chico de la esquina es la cantidad. */
   return (
     <button
-      className={`card ${conditionClass(shownCondition, shownQuantity)}${unsaved ? ' unsaved' : ''}${variant ? ' variant' : ''}${subtracting ? ' subtracting' : ''}${detail?.imagen ? ' with-photo' : ''}`}
+      className={`card ${conditionClass(shownCondition, shownQuantity)}${unsaved ? ' unsaved' : ''}${variant ? ' variant' : ''}${fill ? ' filled' : ''}${subtracting ? ' subtracting' : ''}${detail?.imagen ? ' with-photo' : ''}`}
       aria-label={`${accessibleName}. ${statusText}${unsaved ? '. Sin guardar' : ''}`}
       /* La forma estándar de anunciar un atajo de teclado. Restar con Backspace no
          estaba dicho en ningún lado: ni en la ayuda, ni en la etiqueta. Para quien usa
          el teclado, el camino era invisible. */
-      aria-keyshortcuts="Backspace" 
+      aria-keyshortcuts="Backspace"
+      style={fillStyle}
+
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
@@ -291,7 +311,7 @@ const Card = memo(function Card({ cardKey, number, label, detail, variant, condi
           <span className="detail-name">{detail.nombre ?? label}</span>
           {detail.copias > 0 && <span className="backup-detail">{detail.copias.toLocaleString('es-AR')} copias</span>}
         </>
-      ) : number}
+      ) : fill ? <span className="face-number">{number}</span> : number}
       {variant && <b className="variant-mark">{variant.corto ?? variant.id.toUpperCase()}</b>}
       {shownQuantity > 1 && <b className="dupes">{shownQuantity}</b>}
     </button>

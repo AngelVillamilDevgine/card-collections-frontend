@@ -2547,3 +2547,21 @@ body.with-install-bar { padding-bottom: var(--install-height, 150px); }
 .finish-tile .finish-thumb { width: 56px; height: 56px; border-radius: 8px; font-size: 14px; }
 .finish-tile b { font-size: 13px; line-height: 1.2; color: var(--ink); }
 .finish-tile small { font-size: 12px; color: var(--ink2); }
+
+/* El cuadro de una carta que tenés EN UNA VARIANTE: lleva la foto o el color del acabado (el relleno va
+   en línea, viene del catálogo). El número y el rótulo van sobre una chapita clara, que es lo que
+   los deja leerse sobre cualquier foto — hay 16 y ninguna se puede medir de antemano. Borde
+   sólido y no punteado: el relleno ya dice «otra versión» mejor que el trazo. */
+.card.variant.filled { border-style: solid; border-color: rgba(32, 29, 26, 0.35); }
+.card .face-number,
+.card.filled .variant-mark {
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--ink);
+  border-radius: 4px;
+}
+.card .face-number { padding: 0 5px; line-height: 1.4; font-weight: 600; }
+.card.filled .variant-mark { padding: 1px 3px; bottom: 3px; left: 3px; }
+/* En las fichas anchas (las únicas) el texto va sobre el relleno liso: lo mismo de arriba, para que se lea. */
+.grid.detailed .card.filled .detail-name,
+.grid.detailed .card.filled .detail-label,
+.grid.detailed .card.filled .backup-detail { background: rgba(255, 255, 255, 0.9); color: var(--ink); border-radius: 4px; padding: 0 5px; align-self: flex-start; }
