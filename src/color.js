@@ -54,3 +54,23 @@ export function inkOn(hex, background) {
   }
   return out
 }
+
+/* LA COLUMNA DE UN ACABADO EN LA PLANILLA, igual que la guía de acabados (pedido de Angel, 2026-11-08):
+   si el acabado tiene FOTO —Holográfica, Tornasolado, Matrix…— el encabezado es la foto y las celdas la
+   llevan tenue de fondo; si es un color liso, el tinte de siempre (encabezado al 50%, celdas al 15%,
+   tinta oscurecida hasta pasar 4.5:1). La foto manda sobre el color cuando hay las dos, que es el orden
+   de la guía. Una foto que no cargó (`loaded === false`) o un catálogo sin `fotos` cae al color, y sin
+   color queda sin teñir (Común, Glitter círculos).
+
+   `loaded` se compara con `false` y no es «verdadero/falso»: esto se llamó una vez con `cols.map(
+   columnStyleOf)`, que le pasa el ÍNDICE como segundo argumento, y la primera columna (el 0) caía al
+   color en silencio. Sobre la foto el texto va en tinta oscura: el rótulo en una chapita clara y las
+   tildes sobre un fondo que es casi blanco, así se lee con cualquiera sin medirlas una por una. */
+export const CELL_WASH = 0.72
+export function columnStyleOf(v, loaded = true) {
+  if (v.foto && loaded !== false) return { photo: v.foto, headInk: '#1a1a1a', cellInk: '#1a1a1a' }
+  if (!v.color) return null
+  const head = tintOf(v.color, 0.5)
+  const cell = tintOf(v.color, 0.15)
+  return { head, cell, headInk: inkOn(v.color, head), cellInk: inkOn(v.color, cell) }
+}

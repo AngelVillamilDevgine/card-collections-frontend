@@ -8,7 +8,7 @@ import { trapFocus, useCloseOnEscape } from './dialog'
 import { slotsOf, missingVariantsOf, cardLabel, variantsFor, slotKey } from './collections'
 import { CONDITIONS } from './conditions'
 import { downloadBlob } from './api'
-import { tintOf, inkOn } from './color'
+import { columnStyleOf, CELL_WASH } from './color'
 
 const LIST_OPTIONS = [
   { id: 'missing',         label: 'Las que me faltan' },
@@ -265,21 +265,51 @@ function buildText(mode, selectedExpansions, catalog, quantities, heading, varia
    regla anotada en el propio catálogo. */
 const variantShort = (v) => v.corto ?? v.id.toUpperCase()
 
-/* La columna de cada acabado va TEÑIDA de su color («que toda esa fila sea color
-   naranja»): encabezado al 50% y celdas al 15%, con la tinta oscurecida hasta pasar
-   4.5:1 (`inkOn`) — el mismo vidrio de las bandas, así cualquier color del registro
-   pasa contraste solo. Un acabado sin color (Común, Glitter, Holográfica — no SON un
-   color) queda sin teñir, que es el dato. */
-const columnStyleOf = (v) => {
-  if (!v.color) return null
-  const head = tintOf(v.color, 0.5)
-  const cell = tintOf(v.color, 0.15)
-  return { head, cell, headInk: inkOn(v.color, head), cellInk: inkOn(v.color, cell) }
+/* La columna de cada acabado lleva su foto o su color: `columnStyleOf`, en `color.js`. */
+/* Las fotos del canvas: se cargan una vez por dirección y se guardan. Una que falla resuelve null y
+   la columna cae al color — no tumba la imagen entera. Es el mismo origen que la página, así que el
+   canvas no queda «contaminado» y `toBlob` anda. */
+const finishImageCache = new Map()
+function loadFinishImage(url) {
+  if (!finishImageCache.has(url)) {
+    finishImageCache.set(url, new Promise((resolve) => {
+      const img = new Image()
+      img.onload = () => resolve(img)
+      img.onerror = () => resolve(null)
+      img.src = url
+    }))
+  }
+  return finishImageCache.get(url)
+}
+async function loadSheetImages(cols) {
+  const images = new Map()
+  await Promise.all(cols.filter((v) => v.foto).map(async (v) => {
+    const img = await loadFinishImage(v.foto)
+    if (img) images.set(v.id, img)
+  }))
+  return images
 }
 
-function sheetImageCanvas(table, legendDate) {
+/* Lo mismo en la vista previa de pantalla, en CSS: la foto de fondo del encabezado y, en las celdas,
+   la foto bajo el mismo velo blanco que el canvas. */
+const headStyle = (s) => (s.photo
+  ? { backgroundImage: `url("${s.photo}")`, backgroundSize: 'cover', backgroundPosition: 'center', color: s.headInk }
+  : { background: s.head, color: s.headInk })
+const cellStyle = (s) => (s.photo
+  ? { backgroundImage: `linear-gradient(rgba(255,255,255,${CELL_WASH}), rgba(255,255,255,${CELL_WASH})), url("${s.photo}")`, backgroundSize: 'cover', backgroundPosition: 'center', color: s.cellInk }
+  : { background: s.cell, color: s.cellInk })
+
+/* Dibuja la imagen llenando el rectángulo y recortando lo que sobra, sin deformarla. */
+function drawCover(ctx, img, x, y, w, h) {
+  const scale = Math.max(w / img.width, h / img.height)
+  const sw = w / scale
+  const sh = h / scale
+  ctx.drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, x, y, w, h)
+}
+
+function sheetImageCanvas(table, legendDate, images = new Map()) {
   const { exp, cols, rows, offeredCells, ownedCells } = table
-  const styles = cols.map(columnStyleOf)
+  const styles = cols.map((v) => columnStyleOf(v, images.has(v.id)))
 
   /* Medición en un contexto descartable: el ancho de la columna de la carta lo manda el
      rótulo más largo (las únicas llevan nombre), y el de cada columna, su corto. */
@@ -338,14 +368,31 @@ function sheetImageCanvas(table, legendDate) {
   cols.forEach((v, i) => {
     const s = styles[i]
     const x = left + cardW + i * colW
-    if (s) {
+    const img = s?.photo ? images.get(v.id) : null
+    if (img) {
+      /* El encabezado ES la foto; cada celda la lleva debajo de un velo blanco, para que la tilde se lea. */
+      drawCover(ctx, img, x, top, colW, headH)
+      for (let ri = 0; ri < rows.length; ri++) {
+        const y = top + headH + ri * rowH
+        drawCover(ctx, img, x, y, colW, rowH)
+        ctx.fillStyle = `rgba(255, 255, 255, ${CELL_WASH})`
+        ctx.fillRect(x, y, colW, rowH)
+      }
+    } else if (s) {
       ctx.fillStyle = s.head
       ctx.fillRect(x, top, colW, headH)
       ctx.fillStyle = s.cell
       ctx.fillRect(x, top + headH, colW, rows.length * rowH)
     }
-    ctx.fillStyle = s ? s.headInk : '#1a1a1a'
     ctx.font = '600 11px system-ui, sans-serif'
+    if (img) {
+      /* El rótulo en una chapita clara: sobre una foto no hay un color de texto que se lea siempre. */
+      const tw = ctx.measureText(variantShort(v)).width
+      const cw = Math.min(colW - 2, tw + 8)
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'
+      ctx.fillRect(x + (colW - cw) / 2, top + headH / 2 - 8, cw, 16)
+    }
+    ctx.fillStyle = s ? s.headInk : '#1a1a1a'
     ctx.fillText(variantShort(v), x + colW / 2, top + headH / 2 + 1)
   })
 
@@ -429,13 +476,20 @@ function VariantsSheet({ catalog, quantities, heading, onClose }) {
      muerto y se lo vuelve a tocar. Pasó de verdad cuando convivía con el de PDF. */
   function downloadImage() {
     if (!tables.length) return
-    sheetImageCanvas(tables[0], legendDate).toBlob((blob) => {
-      if (!blob) return
+    buildSheetBlob(tables[0]).then((blob) => {
       downloadBlob(blob, `planilla-${tables[0].exp.id}.png`)
       setImageStatus('Descargada ✓')
       clearTimeout(imageTimerRef.current)
       imageTimerRef.current = setTimeout(() => setImageStatus(null), 4000)
-    }, 'image/png')
+    }).catch(() => {})
+  }
+
+  /* El PNG de una tabla, esperando antes a las fotos de sus acabados: dibujar con una que todavía no
+     bajó la dejaría en blanco. Una promesa, así sirve también al portapapeles. */
+  async function buildSheetBlob(table) {
+    const images = await loadSheetImages(table.cols)
+    const canvas = sheetImageCanvas(table, legendDate, images)
+    return new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('sin blob'))), 'image/png'))
   }
 
   /* Copiar la imagen al portapapeles, para pegarla directo en el chat sin pasar por
@@ -444,9 +498,7 @@ function VariantsSheet({ catalog, quantities, heading, onClose }) {
      el gesto — esperar primero y escribir después falla justo ahí. */
   function copyImage() {
     if (!tables.length) return
-    const blob = new Promise((resolve, reject) =>
-      sheetImageCanvas(tables[0], legendDate).toBlob((b) => (b ? resolve(b) : reject(new Error('sin blob'))), 'image/png')
-    )
+    const blob = buildSheetBlob(tables[0])
     const note = (text) => {
       setCopyStatus(text)
       clearTimeout(copyTimerRef.current)
@@ -509,7 +561,7 @@ function VariantsSheet({ catalog, quantities, heading, onClose }) {
           · {legendDate}
         </p>
         {tables.map(({ exp, cols, rows, offeredCells, ownedCells }) => {
-          const styles = cols.map(columnStyleOf)
+          const styles = cols.map((v) => columnStyleOf(v))
           return (
           <section key={exp.id} className="print-table">
             <h2>{exp.nombre} <span>{ownedCells} de {offeredCells} variantes</span></h2>
@@ -529,9 +581,9 @@ function VariantsSheet({ catalog, quantities, heading, onClose }) {
                     <th
                       key={v.id}
                       title={v.nombre}
-                      style={styles[i] ? { background: styles[i].head, color: styles[i].headInk } : undefined}
+                      style={styles[i] ? headStyle(styles[i]) : undefined}
                     >
-                      <span>{variantShort(v)}</span>
+                      <span className={styles[i]?.photo ? 'on-photo' : undefined}>{variantShort(v)}</span>
                     </th>
                   ))}
                 </tr>
@@ -549,7 +601,7 @@ function VariantsSheet({ catalog, quantities, heading, onClose }) {
                       <td
                         key={cols[i].id}
                         className={c ? (c.owned ? 'owned' : '') : 'absent'}
-                        style={c && styles[i] ? { background: styles[i].cell, color: styles[i].cellInk } : undefined}
+                        style={c && styles[i] ? cellStyle(styles[i]) : undefined}
                       >
                         {c ? (c.owned ? '✓' : '') : '—'}
                       </td>

@@ -2565,3 +2565,6 @@ body.with-install-bar { padding-bottom: var(--install-height, 150px); }
 .grid.detailed .card.filled .detail-name,
 .grid.detailed .card.filled .detail-label,
 .grid.detailed .card.filled .backup-detail { background: rgba(255, 255, 255, 0.9); color: var(--ink); border-radius: 4px; padding: 0 5px; align-self: flex-start; }
+
+/* El rótulo del encabezado sobre una foto: chapita clara, como en la imagen que se comparte. */
+.print-table th span.on-photo { background: rgba(255, 255, 255, 0.9); color: #1a1a1a; border-radius: 3px; padding: 0 3px; }

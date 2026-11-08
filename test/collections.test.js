@@ -17,6 +17,7 @@ import {
   withVariants, variantsFor, slotKey, slotsOf, missingVariantsOf, albumTally, closestToComplete, drawableVariants, pointsToASlot, numbersOf,
   slotOf, slotName, orphanName, completionBy, countsInTally, expansionForNumber, plainNumberRun, finishGuide, holeOwned,
 } from '../src/collections.js'
+import { columnStyleOf, tintOf } from '../src/color.js'
 
 /* Una expansión como sale de un json, para no depender de los catálogos de verdad: lo que
    se prueba acá es el código, y tiene que seguir andando el día que los datos cambien. */
@@ -539,6 +540,28 @@ test('finishGuide: cada acabado una vez, con su aspecto y cuántas cartas lo tie
   /* Cuentan cartas distintas: la Dorada sale en todas las únicas (18) y en muchas más. */
   assert.ok(byId.dor.cartas > 18)
   assert.equal(byId.fue.cartas, 44, 'Fucsia efecto: las 44 holográficas de Guerreros Legendarios 1')
+})
+
+test('columnStyleOf: la foto manda sobre el color y cada caso cae donde tiene que caer', () => {
+  const both = { id: 'avi', foto: 'acabados/avi.webp', color: '#7fa8d9' }
+  assert.deepEqual(columnStyleOf(both), { photo: 'acabados/avi.webp', headInk: '#1a1a1a', cellInk: '#1a1a1a' }, 'foto y color: gana la foto')
+  /* Una foto que no cargó cae al color. */
+  const fallback = columnStyleOf(both, false)
+  assert.equal(fallback.photo, undefined)
+  assert.equal(fallback.head, tintOf('#7fa8d9', 0.5))
+  assert.equal(fallback.cell, tintOf('#7fa8d9', 0.15))
+  /* Sólo color: el tinte de siempre. Sin nada: sin teñir. */
+  assert.equal(columnStyleOf({ id: 'nar', color: '#f4a11d' }).head, tintOf('#f4a11d', 0.5))
+  assert.equal(columnStyleOf({ id: 'com' }), null)
+  assert.equal(columnStyleOf({ id: 'x', foto: 'f.webp' }, false), null, 'foto sin cargar y sin color: sin teñir')
+})
+
+test('columnStyleOf usado con map no pierde la primera columna (el índice no es «loaded»)', () => {
+  /* El bug que hubo: `cols.map(columnStyleOf)` pasaba 0 como `loaded` y la columna 0 caía al color. */
+  const cols = [{ id: 'avi', foto: 'a.webp', color: '#7fa8d9' }, { id: 'tor', foto: 't.webp' }]
+  const styles = cols.map(columnStyleOf)
+  assert.equal(styles[0].photo, 'a.webp')
+  assert.equal(styles[1].photo, 't.webp')
 })
 
 test('finishGuide: sin acabados no hay tabla', () => {
