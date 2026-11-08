@@ -307,7 +307,8 @@ export function expansionRangeText(exp) {
 
 /* QUÉ CARTAS ALCANZA UNA CARGA MASIVA. `spec` es lo que eligió la persona:
  *   { scope: 'expansion', expansionId }       una expansión entera
- *   { scope: 'range', from, to }              un tramo de números pelados (1 a 1936 en Cromeros)
+ *   { scope: 'range', from, to }              un tramo de números pelados (1 a 1936 en Cromeros;
+ *                                             en las colecciones donde un número se repite, no hay)
  *   { scope: 'all' }                          todo el álbum que cuenta (sin los manuales)
  * más `except`, opcional: las que NO tiene, escritas como las escribiría cualquiera.
  *
@@ -394,14 +395,29 @@ export function bulkTargets(catalog, spec) {
 /* Qué haría de verdad la carga: sólo se marcan las que NO tenés. Las que ya tenés quedan como
    están —nunca se les cambia el estado ni la cantidad—, y las que están a medio guardar
    (`isBusy`) también se saltan, para no pisar un toque que todavía está viajando. */
+/* ¿Tenés ALGO de este hueco? La base o cualquier variante declarada. Es la misma cuenta que
+   hace el avance: en Leyenda, tener sólo la variante azul también es tenerla, y mirando sólo
+   la base la carga masiva te la ofrecía como «para marcar». En Cromeros no hay variantes y
+   es la base de siempre. */
+export function holeOwned(exp, n, quantities) {
+  if ((quantities[slotKey(exp.id, n)] ?? 0) > 0) return true
+  return (exp.variantes ?? []).some((v) => (quantities[slotKey(exp.id, n, v.id)] ?? 0) > 0)
+}
+
+/* Con variantes (Leyenda) hay una cuarta respuesta: `skipped`, las cartas que ofrecen
+   acabados. NO se marcan: marcar la base sería decir «la tengo» sin decir cuál, que es justo
+   lo que el diálogo de variantes pregunta, y la carga masiva no puede preguntar mil veces.
+   Se cuentan aparte para decírselo a la persona: tocalas una por una y elegí el acabado. */
 export function bulkPlan(targets, quantities, isBusy = () => false) {
   const toMark = []
   const owned = []
+  const skipped = []
   for (const t of targets) {
-    if ((quantities[t.cardKey] ?? 0) > 0) owned.push(t)
+    if (holeOwned(t.exp, t.n, quantities)) owned.push(t)
+    else if (variantsFor(t.exp, t.n).length) skipped.push(t)
     else if (!isBusy(t.cardKey)) toMark.push(t)
   }
-  return { toMark, owned }
+  return { toMark, owned, skipped }
 }
 
 /* De qué número a qué número va esa corrida de números pelados, para decirlo en el campo

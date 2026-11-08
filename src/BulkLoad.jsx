@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { trapFocus, useCloseOnEscape } from './dialog'
 import { CONDITIONS, conditionLabel } from './conditions'
-import { bulkTargets, bulkPlan, expansionRangeText, countsInTally } from './collections'
+import { bulkTargets, bulkPlan, expansionRangeText, countsInTally, plainNumberRun, holeOwned } from './collections'
 
 /* CARGA MASIVA: marcar muchas cartas de una vez, en vez de tocarlas una por una.
  *
@@ -17,7 +17,13 @@ import { bulkTargets, bulkPlan, expansionRangeText, countsInTally } from './coll
  *
  * Lo que garantiza, y por qué no asusta: sólo marca las que NO tenés (nunca cambia el estado ni
  * la cantidad de una que ya cargaste), todo entra o no entra nada, y se puede deshacer.
- * Sólo va en Cromeros. */
+ *
+ * Va en las TRES colecciones, y se adapta a lo que cada una tiene:
+ *   · sin estado (Leyenda) no pregunta en qué estado están;
+ *   · con variantes (Leyenda) NO marca las cartas con acabados —eso es elegir cuál tenés— y se
+ *     lo dice, para que las toque una por una;
+ *   · donde un número se repite (Serie Dorada: la 5 es de las dos expansiones) no hay tramo, y
+ *     «todo el álbum» no deja escribir excepciones por número, que serían ambiguas. */
 
 const CONDITION_HINTS = {
   bien: 'La carta está bien, aunque tenga algo de uso.',
@@ -44,7 +50,7 @@ function scopeSentence(scope, text) {
 const plural = (n, one, many) => (n === 1 ? one : many)
 const fmt = (n) => n.toLocaleString('es-AR')
 
-export default function BulkLoad({ catalog, quantities, isBusy, onApply, onUndo, onClose }) {
+export default function BulkLoad({ catalog, hasCondition, quantities, isBusy, onApply, onUndo, onClose }) {
   const box = useRef(null)
   const prevFocus = useRef(document.activeElement)
   const [step, setStep] = useState('scope')
@@ -55,7 +61,7 @@ export default function BulkLoad({ catalog, quantities, isBusy, onApply, onUndo,
   const [except, setExcept] = useState('')
   const [condition, setCondition] = useState('bien')
   const [error, setError] = useState(null)
-  const [result, setResult] = useState(null)   // { keys, completed } de lo que se marcó
+  const [result, setResult] = useState(null)   // { keys, completed, skipped } de lo que se marcó
   const [undone, setUndone] = useState(false)
   const [undoError, setUndoError] = useState(null)
   const working = step === 'working'
@@ -63,17 +69,18 @@ export default function BulkLoad({ catalog, quantities, isBusy, onApply, onUndo,
   useCloseOnEscape(() => { if (!working) onClose() })
   useEffect(() => trapFocus(box.current, prevFocus.current), [])
 
-  const run = useMemo(() => {
-    let min = Infinity, max = -Infinity
-    for (const exp of catalog) {
-      if (exp.prefijo || exp.sufijo) continue
-      for (const n of exp.cardNumbers) { if (n < min) min = n; if (n > max) max = n }
-    }
-    return max < min ? null : { min, max }
-  }, [catalog])
+  /* Sin estado el valor que viaja es null, y el de «Deshacer» tiene que ser el mismo. */
+  const chosen = hasCondition ? condition : null
+  const run = useMemo(() => plainNumberRun(catalog), [catalog])
+  const hasVariants = useMemo(() => catalog.some((exp) => exp.grupos?.length), [catalog])
+  const hasUncounted = useMemo(() => catalog.some((exp) => !countsInTally(exp)), [catalog])
+  /* Con un número que se repite entre expansiones, escribir «5» no dice de cuál: sólo se acepta
+     elegida UNA expansión. */
+  const exceptAllowed = !(scope === 'all' && !run)
+  const scopes = SCOPES.filter((s) => s.id !== 'range' || run)
 
-  const ownedIn = (exp) => exp.cardNumbers.filter((n) => (quantities[`${exp.id}:${n}`] ?? 0) > 0).length
-  const spec = { scope, expansionId, from, to, except }
+  const ownedIn = (exp) => exp.cardNumbers.filter((n) => holeOwned(exp, n, quantities)).length
+  const spec = { scope, expansionId, from, to, except: exceptAllowed ? except : '' }
   const resolved = useMemo(
     () => (step === 'confirm' ? bulkTargets(catalog, spec) : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -95,7 +102,7 @@ export default function BulkLoad({ catalog, quantities, isBusy, onApply, onUndo,
     const before = quantities
     setStep('working')
     try {
-      const { markedKeys } = await onApply(plan.toMark.map((t) => t.cardKey), condition)
+      const { markedKeys } = await onApply(plan.toMark.map((t) => t.cardKey), chosen)
       // Qué expansiones se completaron con esta carga, para decírselo.
       const marked = new Set(markedKeys)
       const touched = new Map(plan.toMark.map((t) => [t.exp.id, t.exp]))
@@ -104,7 +111,7 @@ export default function BulkLoad({ catalog, quantities, isBusy, onApply, onUndo,
           && exp.cardNumbers.every((n) => (before[`${exp.id}:${n}`] ?? 0) > 0 || marked.has(`${exp.id}:${n}`))
           && exp.cardNumbers.some((n) => marked.has(`${exp.id}:${n}`)))
         .map((exp) => exp.nombre)
-      setResult({ keys: markedKeys, completed })
+      setResult({ keys: markedKeys, completed, skipped: plan.skipped.length })
       setUndone(false)
       setUndoError(null)
       setStep('done')
@@ -118,7 +125,7 @@ export default function BulkLoad({ catalog, quantities, isBusy, onApply, onUndo,
     if (working) return
     setUndoError(null)
     try {
-      await onUndo(result.keys, condition)
+      await onUndo(result.keys, chosen)
       setUndone(true)
     } catch (e) {
       setUndoError(e?.message || 'No se pudo deshacer.')
@@ -137,7 +144,10 @@ export default function BulkLoad({ catalog, quantities, isBusy, onApply, onUndo,
         {step === 'scope' && (
           <>
             <p>Marcá muchas cartas de una sola vez, en vez de tocarlas una por una. Las que ya tenés marcadas no se tocan.</p>
-            {SCOPES.map((s) => (
+            {hasVariants && (
+              <p className="bulk-tip">Las cartas que vienen en distintos acabados (variantes) no se marcan acá: tenés que elegir cuál tenés, así que esas se tocan una por una.</p>
+            )}
+            {scopes.map((s) => (
               <button key={s.id} type="button" className="option bulk-choice"
                       onClick={() => {
                         setScope(s.id); setError(null); setStep('details')
@@ -146,7 +156,7 @@ export default function BulkLoad({ catalog, quantities, isBusy, onApply, onUndo,
                 <small>{s.hint}</small>
               </button>
             ))}
-            <p className="bulk-tip">¿Tenés pocas? Es más fácil tocar cada carta, o usar «Agregar por número».</p>
+            <p className="bulk-tip">¿Tenés pocas? Es más fácil tocar cada carta{hasCondition ? ', o usar «Agregar por número»' : ''}.</p>
             <p className="exits"><button type="button" className="cancel" onClick={onClose}>Cancelar</button></p>
           </>
         )}
@@ -192,9 +202,10 @@ export default function BulkLoad({ catalog, quantities, isBusy, onApply, onUndo,
             )}
 
             {scope === 'all' && (
-              <p className="bulk-all">Se van a marcar <b>todas las cartas del álbum</b> que todavía no tengas marcadas (sin los manuales).</p>
+              <p className="bulk-all">Se van a marcar <b>todas las cartas del álbum</b> que todavía no tengas marcadas{hasUncounted ? ' (sin los manuales)' : ''}.</p>
             )}
 
+            {exceptAllowed ? (
             <fieldset className="bulk-group">
               <legend>¿Hay alguna que NO tengas? <span>(opcional)</span></legend>
               <label className="bulk-except">
@@ -202,9 +213,13 @@ export default function BulkLoad({ catalog, quantities, isBusy, onApply, onUndo,
                 <input type="text" autoComplete="off" placeholder="Ej: 5, 17, 20-22"
                        value={except} onChange={(e) => { setExcept(e.target.value); setError(null) }} />
               </label>
-              <small className="bulk-hint">Si no falta ninguna, dejalo vacío. Si falta alguna, escribí sus números separados por coma y esas se quedan sin marcar. Si alguna está en otro estado, ponela acá y después la cargás aparte.</small>
+              <small className="bulk-hint">Si no falta ninguna, dejalo vacío. Si falta alguna, escribí sus números separados por coma y esas se quedan sin marcar. {hasCondition ? ' Si alguna está en otro estado, ponela acá y después la cargás aparte.' : ''}</small>
             </fieldset>
+            ) : (
+              <p className="bulk-hint">Para dejar alguna sin marcar, elegí una expansión en vez de todo el álbum: así los números no se confunden.</p>
+            )}
 
+            {hasCondition && (
             <fieldset className="bulk-group">
               <legend>¿En qué estado están?</legend>
               <div role="radiogroup" aria-label="Estado de las cartas">
@@ -220,6 +235,7 @@ export default function BulkLoad({ catalog, quantities, isBusy, onApply, onUndo,
               </div>
               <small className="bulk-hint">Si no sabés, dejá «Buen estado».</small>
             </fieldset>
+            )}
 
             <div className="bulk-actions">
               {error && <p className="error" role="alert">{error}</p>}
@@ -237,17 +253,24 @@ export default function BulkLoad({ catalog, quantities, isBusy, onApply, onUndo,
             {plan.toMark.length === 0 ? (
               <>
                 <p className="bulk-big">No hay nada para marcar.</p>
-                <p>Ya tenías marcadas todas esas cartas. No se cambia ninguna.</p>
+                <p>
+                  {plan.skipped.length > 0
+                    ? `Las que faltan tienen variantes (acabados): tocalas una por una para elegir cuál tenés.`
+                    : 'Ya tenías marcadas todas esas cartas. No se cambia ninguna.'}
+                </p>
               </>
             ) : (
               <>
                 <p className="bulk-big">
-                  Vas a marcar <b>{fmt(plan.toMark.length)}</b> {plural(plan.toMark.length, 'carta', 'cartas')} como <b>{conditionLabel(condition, 1)}</b>.
+                  Vas a marcar <b>{fmt(plan.toMark.length)}</b> {plural(plan.toMark.length, 'carta', 'cartas')}{hasCondition && <> como <b>{conditionLabel(condition, 1)}</b></>}.
                 </p>
                 <ul className="bulk-facts">
                   <li>{scopeSentence(scope, resolved.scopeText)}</li>
                   {plan.owned.length > 0 && (
                     <li><b>{fmt(plan.owned.length)}</b> {plural(plan.owned.length, 'ya la tenías marcada', 'ya las tenías marcadas')}: {plural(plan.owned.length, 'esa no cambia', 'esas no cambian')}.</li>
+                  )}
+                  {plan.skipped.length > 0 && (
+                    <li><b>{fmt(plan.skipped.length)}</b> {plural(plan.skipped.length, 'tiene variantes (acabados) y no se marca', 'tienen variantes (acabados) y no se marcan')}: {plural(plan.skipped.length, 'tocala', 'tocalas')} {plural(plan.skipped.length, 'y elegí', 'una por una y elegí')} cuál tenés.</li>
                   )}
                   {resolved.excludedCount > 0 && (
                     <li>{plural(resolved.excludedCount, 'La', 'Las')} <b>{fmt(resolved.excludedCount)}</b> que dijiste que NO {plural(resolved.excludedCount, 'tenés queda', 'tenés quedan')} sin marcar.</li>
@@ -293,6 +316,9 @@ export default function BulkLoad({ catalog, quantities, isBusy, onApply, onUndo,
                   <p className="bulk-celebrate">🎉 {result.completed.length > 3 ? <>Completaste <b>{result.completed.length} expansiones</b>.</> : <>Completaste: <b>{result.completed.join(', ')}</b>.</>}</p>
                 )}
                 <p>Cada carta quedó con 1. Si tenés repetidas, tocá la carta para sumar otra.</p>
+                {result.skipped > 0 && (
+                  <p>Quedaron <b>{fmt(result.skipped)}</b> sin marcar porque {plural(result.skipped, 'tiene variantes', 'tienen variantes')}: tocalas para elegir el acabado.</p>
+                )}
                 <p>¿Te equivocaste? Tocá «Deshacer» y quedan como estaban. Después, para sacar una carta suelta, mantenela apretada.</p>
                 {undoError && <p className="error" role="alert">{undoError}</p>}
                 <button type="button" className="secondary undo" onClick={undo}>Deshacer</button>

@@ -15,7 +15,7 @@ import {
   parseNumberList, bulkTargets, bulkPlan, expansionRangeText,
   COLLECTIONS, DEFAULT_COLLECTION, readCollection, readHiddenCollections, rememberHiddenCollections, visibleCollections, albumNames, cardLabel, cardDetail, listLabel, albumPercent,
   withVariants, variantsFor, slotKey, slotsOf, missingVariantsOf, albumTally, closestToComplete, drawableVariants, pointsToASlot, numbersOf,
-  slotOf, slotName, orphanName, completionBy, countsInTally, expansionForNumber, plainNumberRun, finishGuide,
+  slotOf, slotName, orphanName, completionBy, countsInTally, expansionForNumber, plainNumberRun, finishGuide, holeOwned,
 } from '../src/collections.js'
 
 /* Una expansión como sale de un json, para no depender de los catálogos de verdad: lo que
@@ -932,6 +932,74 @@ test('bulkPlan: sólo se marcan las que NO tenés, y las que están a medio guar
   // Con todas ya marcadas no hay nada para hacer.
   const all = Object.fromEntries(targets.map((x) => [x.cardKey, 1]))
   assert.equal(bulkPlan(targets, all).toMark.length, 0)
+})
+
+/* LA CARGA MASIVA EN LAS OTRAS DOS COLECCIONES. Leyenda no tiene estado y sí variantes; Serie Dorada tiene
+   estado pero repite los números de una expansión a la otra. */
+const leyendaRaw = JSON.parse(fs.readFileSync(new URL('../public/data/leyenda.json', import.meta.url), 'utf8'))
+const leyenda = leyendaRaw.expansiones.map((e) => withVariants(e, leyendaRaw))
+const doradaRaw = JSON.parse(fs.readFileSync(new URL('../public/data/serie-dorada.json', import.meta.url), 'utf8'))
+const dorada = doradaRaw.expansiones.map((e) => withVariants(e, doradaRaw))
+
+test('holeOwned: la base o cualquier variante cuenta como tenerla', () => {
+  const exp = leyenda.find((e) => e.id === 'ley-personajes')
+  assert.equal(holeOwned(exp, 957, {}), false)
+  assert.equal(holeOwned(exp, 957, { 'ley-personajes:957': 1 }), true)
+  assert.equal(holeOwned(exp, 957, { 'ley-personajes-azu:957': 1 }), true, 'sólo la azul también es tenerla')
+  assert.equal(holeOwned(exp, 957, { 'ley-personajes-azu:958': 1 }), false, 'la azul de OTRA carta no cuenta')
+  assert.equal(holeOwned(cromeros.find((e) => e.id === 'exp-1'), 5, { 'exp-1:5': 2 }), true)
+})
+
+test('bulkPlan en Leyenda: las cartas con variantes NO se marcan y se cuentan aparte', () => {
+  const targets = bulkTargets(leyenda, { scope: 'expansion', expansionId: 'ley-personajes' }).targets
+  assert.equal(targets.length, 176)
+  const plan = bulkPlan(targets, {})
+  assert.equal(plan.skipped.length, 44, 'las 44 de Personajes que tienen acabados')
+  assert.equal(plan.toMark.length, 176 - 44)
+  assert.equal(plan.owned.length, 0)
+  assert.ok(plan.skipped.every((t) => variantsFor(t.exp, t.n).length > 0))
+  assert.ok(plan.toMark.every((t) => variantsFor(t.exp, t.n).length === 0), 'sólo se marcan las que no tienen variantes')
+  /* Las tres piezas cierran: ninguna carta cae en dos, y no se pierde ninguna. */
+  assert.equal(plan.toMark.length + plan.skipped.length + plan.owned.length, targets.length)
+  /* Una con variante que ya tenés en azul es «ya la tenías», no «con variantes». */
+  const withBlue = bulkPlan(targets, { 'ley-personajes-azu:957': 1 })
+  assert.equal(withBlue.owned.length, 1)
+  assert.equal(withBlue.skipped.length, 43)
+  /* Y una sin variantes que ya tenés se salta como siempre. */
+  const loose = plan.toMark[0]
+  assert.equal(bulkPlan(targets, { [loose.cardKey]: 1 }).owned.length, 1)
+})
+
+test('bulkPlan en Cromeros no cambia: no hay variantes, así que nada se salta', () => {
+  const targets = bulkTargets(cromeros, { scope: 'all' }).targets
+  const plan = bulkPlan(targets, {})
+  assert.equal(plan.skipped.length, 0)
+  assert.equal(plan.toMark.length, 1946)
+})
+
+test('bulkTargets en Leyenda: el álbum entero son los 1243 huecos, y el tramo usa sólo números pelados', () => {
+  assert.equal(bulkTargets(leyenda, { scope: 'all' }).targets.length, 1243)
+  const range = bulkTargets(leyenda, { scope: 'range', from: '1070', to: '1100' })
+  /* 1070 a 1078 y 1088 a 1100: la 1079 a 1087 no está publicada y no se inventa. */
+  assert.equal(range.targets.length, 9 + 13)
+  assert.ok(!range.targets.some((t) => t.exp.id === 'ley-f' || t.exp.id === 'ley-unicas'), 'las F y las únicas no entran por número pelado')
+  assert.match(bulkTargets(leyenda, { scope: 'range', from: '1', to: '2000' }).error, /1223/)
+  /* Las F y las únicas sí se cargan eligiendo su expansión. */
+  assert.equal(bulkTargets(leyenda, { scope: 'expansion', expansionId: 'ley-unicas' }).targets.length, 18)
+  assert.equal(bulkTargets(leyenda, { scope: 'expansion', expansionId: 'ley-f' }).targets.length, 10)
+})
+
+test('Serie Dorada: no hay tramo porque 1–116 se repite, pero sí una expansión o todo el álbum', () => {
+  assert.equal(plainNumberRun(dorada), null)
+  assert.match(bulkTargets(dorada, { scope: 'range', from: '1', to: '5' }).error, /no se puede cargar por tramo/)
+  assert.equal(bulkTargets(dorada, { scope: 'expansion', expansionId: 'dor-1' }).targets.length, 116)
+  assert.equal(bulkTargets(dorada, { scope: 'all' }).targets.length, 232)
+  /* En UNA expansión los números sí se entienden: «5» es de esa. */
+  const menos = bulkTargets(dorada, { scope: 'expansion', expansionId: 'dor-2', except: '5, 10-12' })
+  assert.equal(menos.targets.length, 116 - 4)
+  assert.ok(!menos.targets.some((t) => t.cardKey === 'dor-2:5') && menos.targets.some((t) => t.cardKey === 'dor-1:5') === false)
+  /* Ninguna de las dos expansiones tiene variantes: todo se marca. */
+  assert.equal(bulkPlan(bulkTargets(dorada, { scope: 'all' }).targets, {}).toMark.length, 232)
 })
 
 test('expansionRangeText: usa el mismo rótulo que el resto', () => {

@@ -1604,7 +1604,7 @@ export default function App() {
     const keys = cardKeys.filter((k) => !(live.cantidades[k] > 0) && !isBusyCard(k))
     if (!keys.length) return { markedKeys: [] }
     try {
-      await saveBatch(Object.fromEntries(keys.map((k) => [k, { cantidad: 1, estado: condition }])))
+      await saveBatch(Object.fromEntries(keys.map((k) => [k, { cantidad: 1, estado: condition ?? null }])))
     } catch (e) {
       if (e?.sessionExpired) handleSessionExpired()
       throw e
@@ -1613,7 +1613,7 @@ export default function App() {
     const d = liveRef.current
     const cantidades = { ...d.cantidades }
     const estados = { ...d.estados }
-    for (const k of keys) { cantidades[k] = 1; estados[k] = condition }
+    for (const k of keys) { cantidades[k] = 1; if (condition) estados[k] = condition }
     liveRef.current = { estados, cantidades }
     setCollectionData(liveRef.current)
     return { markedKeys: keys }
@@ -1623,7 +1623,8 @@ export default function App() {
      cantidad de 1 con el mismo estado). Si alguna ya la tocaste de nuevo, se respeta lo tuyo. */
   async function bulkUnmark(cardKeys, condition) {
     const live = liveRef.current
-    const keys = cardKeys.filter((k) => live.cantidades[k] === 1 && live.estados[k] === condition && !isBusyCard(k))
+    /* `?? null`: sin estado (Leyenda) la carta no tiene la clave, y «sin estado» es null. */
+    const keys = cardKeys.filter((k) => live.cantidades[k] === 1 && (live.estados[k] ?? null) === condition && !isBusyCard(k))
     if (!keys.length) return
     try {
       await saveBatch(Object.fromEntries(keys.map((k) => [k, { cantidad: 0 }])))
@@ -2460,7 +2461,7 @@ export default function App() {
                 )}
                 {/* CARGA MASIVA, al lado de «Agregar por número» y sólo en Cromeros (pedido de Angel). Con
                     la misma condición que el de al lado: hace falta el estado y los números pelados. */}
-                {shownCollectionId === DEFAULT_COLLECTION && album?.condicion && numberRun && (
+                {album && (
                   <button type="button" className="add-number" onClick={() => setBulkOpen(true)}>
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                          strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
@@ -2957,6 +2958,7 @@ export default function App() {
       {bulkOpen && catalog && (
         <BulkLoad
           catalog={catalog}
+          hasCondition={!!album?.condicion}
           quantities={quantities}
           isBusy={isBusyCard}
           onApply={bulkMark}
