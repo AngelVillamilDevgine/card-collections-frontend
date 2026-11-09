@@ -4,6 +4,7 @@
   "anios": "2025-2026",
   "condicion": false,
   "notas": [
+    "GLITTER QUE FALTABA, de las cartas de Angel (2026-11-09): en el Mazo inicial, 23 cartas salen tambien en Glitter (57, 58, 62, 64, 68, 70, 72, 73, 75, 77, 112, 129, 137, 139, 141, 163 a 168, 172 y 176) y en la Expansion 4, 17 en Glitter circulos (403, 405, 407, 417, 419, 422, 424, 434, 453, 467, 469, 475, 480, 483, 491, 494 y 496). Ninguna tenia variantes: se cargan como Comun + el acabado, que es el patron del resto del Mazo inicial y de la Expansion 4. El tracker de Ismael no las lista: lo que Angel mira en la mano pesa mas.",
     "EL APK 8.1 DEL TRACKER (leido el 2026-11-07) SUMO en Guerreros Legendarios 1: un acabado nuevo, FUCSIA EFECTO (fue), Arcoiris (arc) y Tornasolado en las 44 holograficas, y el Normal en 25 cartas; y RENOMBRO «Psycho» a «Circulos Dorados» (psy; el id es nuestro y no cambia). El 8.1 le cambia el Holo glitter dorado de la 1184 por el PixelGlitter dorado: aca se quedan los dos, solo se suma. No existe ningun acabado «Ocular» en el 8.0 ni en el 8.1. LAS FOTOS: el registro del APK trae un icono de 112 px por cada acabado con dibujo (los colores lisos no tienen); estan en public/acabados/ y el registro «fotos» de este json las liga por id. PixelGlitter dorado usa el mismo icono que Holo glitter dorado: asi viene en el APK.",
     "EL APK 8.0 DEL TRACKER (leido el 2026-11-06) SUMO: las nueve unicas L10 a L18 (plata y dorado; su tirada no se conoce, asi que no llevan copias), la expansion GUERREROS LEGENDARIOS 1 (1088 a 1223, mas la F1222; Angel confirmo que ya salio), Holo glitter y Tornasolado en 36 cartas del Mazo inicial, Rose y Tornasolado en 18 de Personajes, Azul y Rojo en otras 17 de Personajes, y los colores de las ocho especiales de caja del Mazo inicial. SOLO SE AGREGO: lo que el 8.0 ya no lista (la Azul y la Naranja de Personajes, el Comun de las especiales, la plata y el dorado de las unicas 1 a 8) se queda por la misma regla de siempre. Dos nombres son de este catalogo y no del tracker: Rojo efecto y Rosa efecto se llaman asi tal cual (Azul viento es el Azul Efecto del tracker). El 8.0 trae para Guerreros Legendarios 1 el lanzamiento como «2027»: es un dato del tracker que no calza con haber salido, no se uso.",
     "LA AZUL DE PERSONAJES SE QUEDA aunque el tracker de Ismael se la saco a 21 cartas en su APK 7.3 (947, 957, 958, 975, 976, 977, 981, 993, 994, 1013, 1014, 1019, 1025, 1029, 1030, 1051, 1053, 1055, 1056, 1064, 1065). Lo decidio Angel el 2026-10-05: si alguien la marco es porque existe, y en produccion hay una cuenta con Azul en 947, 975 y 981. Un dato que marco un usuario pesa mas que el tracker. Hay un test que la sostiene.",
@@ -301,6 +302,38 @@
             { "id": "vio", "corto": "Vio", "nombre": "Violeta" }
           ],
           "cartas": [4]
+        },
+        {
+          "_de": "las cartas de Angel, 2026-11-09",
+          "variantes": [
+            { "id": "com", "corto": "Com", "nombre": "Común" },
+            { "id": "gli", "corto": "Gli", "nombre": "Glitter" }
+          ],
+          "cartas": [
+            57,
+            58,
+            62,
+            64,
+            68,
+            70,
+            72,
+            73,
+            75,
+            77,
+            112,
+            129,
+            137,
+            139,
+            141,
+            163,
+            164,
+            165,
+            166,
+            167,
+            168,
+            172,
+            176
+          ]
         }
       ]
     },
@@ -495,6 +528,32 @@
             { "id": "gli", "corto": "Gli", "nombre": "Glitter" }
           ],
           "cartas": [385, 386, 388, 394, 395, 397, 398, 399, 400, 401]
+        },
+        {
+          "_de": "las cartas de Angel, 2026-11-09",
+          "variantes": [
+            { "id": "com", "corto": "Com", "nombre": "Común" },
+            { "id": "gci", "corto": "Gci", "nombre": "Glitter círculos" }
+          ],
+          "cartas": [
+            403,
+            405,
+            407,
+            417,
+            419,
+            422,
+            424,
+            434,
+            453,
+            467,
+            469,
+            475,
+            480,
+            483,
+            491,
+            494,
+            496
+          ]
         }
       ]
     },

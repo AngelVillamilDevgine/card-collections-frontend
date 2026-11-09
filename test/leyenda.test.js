@@ -292,16 +292,16 @@ test('las variantes que Angel ya cargo siguen estando ofrecidas', () => {
    en la mano, esa es la fuente. */
 test('cuantas cartas tienen variantes en cada tramo', () => {
   const cardsWithVariants = (id) => (rawExpansion(id).grupos ?? []).reduce((a, g) => a + g.cartas.length, 0)
-  assert.equal(cardsWithVariants('ley-inicial'), 48, '40 del tracker + las 8 que Angel corrigio con sus cartas')
+  assert.equal(cardsWithVariants('ley-inicial'), 71, '40 del tracker + las 8 que Angel corrigio + las 23 de Glitter que Angel sumo el 2026-11-09')
   assert.equal(cardsWithVariants('ley-2-3'), 52)
-  assert.equal(cardsWithVariants('ley-4'), 57, '47 + las diez que el APK 7.3 del tracker sumó el 2026-10-05')
+  assert.equal(cardsWithVariants('ley-4'), 74, '47 + las diez del APK 7.3 + las 17 de Glitter círculos que Angel sumó el 2026-11-09')
   assert.equal(cardsWithVariants('ley-5'), 44)
   assert.equal(cardsWithVariants('ley-6'), 44)
   assert.equal(cardsWithVariants('ley-personajes'), 44)
-  /* De las 1078 numeradas, 289: lo normal sigue siendo que una carta NO tenga variantes. */
+  /* De las 1078 numeradas, 329 (289 con el tracker + 40 que Angel sumó el 2026-11-09): lo normal sigue siendo que una carta NO tenga variantes. */
   const total = ['ley-inicial', 'ley-2-3', 'ley-4', 'ley-5', 'ley-6', 'ley-personajes']
     .reduce((a, id) => a + cardsWithVariants(id), 0)
-  assert.equal(total, 289)
+  assert.equal(total, 329)
   assert.equal(cardsWithVariants('ley-f'), 10, 'las diez F, desde el APK 7.3')
   /* El APK 8.0 no sumó cartas con variantes a lo viejo: les sumó variantes a las que ya tenían. */
   assert.equal(cardsWithVariants('ley-gl1'), 43, 'de las 136, seis son sólo «de caja» y no tienen variantes')
@@ -417,6 +417,19 @@ test('la Naranja de las ocho de Personajes y el Común de las especiales se qued
     assert.ok(variantsFor(appExpansion('ley-personajes'), n).some((v) => v.id === 'nar'), `la ${n} perdió la Naranja`)
   for (const n of [11, 12, 14, 20, 23])
     assert.ok(variantsFor(appExpansion('ley-inicial'), n).some((v) => v.id === 'com'), `la ${n} perdió el Común`)
+})
+
+/* LAS 40 QUE ANGEL SUMÓ MIRANDO SUS CARTAS (2026-11-09): el Glitter del Mazo inicial y el Glitter círculos de la
+   Expansión 4, que el tracker no lista. Ninguna tenía variantes; salen como Común + el acabado. */
+test('el Glitter y el Glitter círculos que Angel sumó con sus cartas', () => {
+  const names = (id, n) => offeredVariantNames(rawExpansion(id), n).sort()
+  for (const n of [57, 58, 62, 64, 68, 70, 72, 73, 75, 77, 112, 129, 137, 139, 141, 163, 164, 165, 166, 167, 168, 172, 176])
+    assert.deepEqual(names('ley-inicial', n), ['Común', 'Glitter'], `la ${n}`)
+  for (const n of [403, 405, 407, 417, 419, 422, 424, 434, 453, 467, 469, 475, 480, 483, 491, 494, 496])
+    assert.deepEqual(names('ley-4', n), ['Común', 'Glitter círculos'], `la ${n}`)
+  /* Y las vecinas que NO estaban en la lista siguen sin variantes. */
+  assert.deepEqual(names('ley-inicial', 60), [])
+  assert.deepEqual(names('ley-4', 404), [])
 })
 
 /* LO QUE EL TRACKER SACÓ Y ACÁ SE QUEDA. La 7.3 le sacó la Azul a 21 cartas de Personajes, y
