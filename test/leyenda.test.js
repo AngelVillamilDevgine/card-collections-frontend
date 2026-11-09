@@ -525,3 +525,14 @@ test('si una expansión trae detalle, lo trae para TODAS sus cartas', () => {
 test('esta colección no usa la condición: lo que se pregunta es la variante', () => {
   assert.equal(rawCatalog.condicion, false)
 })
+
+test('la Común va siempre primera en lo que se ofrece y en lo que se dibuja', () => {
+  for (const exp of appExpansions) {
+    const drawn = exp.variantes.map((v) => v.id)
+    if (drawn.includes('com')) assert.equal(drawn[0], 'com', `${exp.id}: variantes dibujadas`)
+    for (const n of exp.cardNumbers) {
+      const ids = variantsFor(exp, n).map((v) => v.id)
+      if (ids.includes('com')) assert.equal(ids[0], 'com', `${exp.id}:${n}`)
+    }
+  }
+})

@@ -96,6 +96,10 @@ export function visibleCollections(all, hidden) {
  * planillas distintas — y ahí sus variantes son la unión. Una expansión con `variantes`
  * sueltas y sin grupos se lee como «todas sus cartas, estas variantes»; sin ninguna de
  * las dos no tiene variantes, que es todo Cromeros. */
+/* La común va siempre primera, en el diálogo y en los casilleros; el resto conserva el orden
+   del catálogo (estable), que es el de la planilla y no el alfabético. */
+const commonFirst = (list) => [...list.filter((v) => v.id === 'com'), ...list.filter((v) => v.id !== 'com')]
+
 export function withVariants(e, raw) {
   /* El COLOR de cada acabado («la columna de Naranja va naranja», en la planilla) vive
      UNA sola vez en el registro `acabados` del catálogo y se pega acá, en vez de
@@ -128,7 +132,7 @@ export function withVariants(e, raw) {
   for (const v of looseVariants) byId.set(v.id, v)
   for (const g of groups) for (const v of g.variantes) if (!byId.has(v.id)) byId.set(v.id, v)
 
-  return { ...e, cardNumbers: numbersOf(e), grupos: groups, looseVariants, variantes: [...byId.values()] }
+  return { ...e, cardNumbers: numbersOf(e), grupos: groups, looseVariants, variantes: commonFirst([...byId.values()]) }
 }
 
 /* LA TABLA DE ACABADOS: cada acabado que declara el catálogo, una sola vez, con cómo se ve
@@ -179,7 +183,7 @@ export function finishGuide(expansions) {
    dibujar. Vacío quiere decir «esta carta no tiene variantes», y es el caso normal. */
 export function variantsFor(exp, n) {
   if (!exp) return []
-  if (!exp.grupos?.length) return exp.looseVariants ?? exp.variantes ?? []
+  if (!exp.grupos?.length) return commonFirst(exp.looseVariants ?? exp.variantes ?? [])
   const byId = new Map()
   for (const g of exp.grupos) {
     if (!g.cartas.has(n)) continue
@@ -187,7 +191,7 @@ export function variantsFor(exp, n) {
   }
   /* Las sueltas, si las hay, valen para todas las cartas de la expansión. */
   for (const v of exp.looseVariants ?? []) if (!byId.has(v.id)) byId.set(v.id, v)
-  return [...byId.values()]
+  return commonFirst([...byId.values()])
 }
 
 /* LA CLAVE DE UN CASILLERO, y acá está todo el diseño de las variantes.
