@@ -22,6 +22,12 @@ const ICONS = {
       <path d="M5 20v-7M12 20V5M19 20v-10" />
     </>
   ),
+  logout: (
+    <>
+      <path d="M9 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3" />
+      <path d="M16 8l4 4-4 4M20 12H9" />
+    </>
+  ),
   collections: (
     <>
       <rect x="3" y="7" width="13" height="14" rx="2.2" />
@@ -39,7 +45,7 @@ function Icon({ name }) {
   )
 }
 
-export default function Sidebar({ open, onClose, returnFocusTo, username, isAdmin, panelActive, panelAlert, panelLabel, onProfile, onPanel, onCollections }) {
+export default function Sidebar({ open, onClose, returnFocusTo, username, isAdmin, panelActive, panelAlert, panelLabel, onProfile, onPanel, onCollections, onLogout, loggingOut }) {
   const box = useRef(null)
   useCloseOnEscape(() => { if (open) onClose() })
   // En el cajón (teléfono) el foco queda adentro mientras está abierto; en escritorio `open` nunca se prende.
@@ -81,6 +87,13 @@ export default function Sidebar({ open, onClose, returnFocusTo, username, isAdmi
               <Icon name="collections" /><span>Colecciones</span>
             </button>
           </li>
+          {onLogout && (
+            <li>
+              <button type="button" className="sidebar-item" onClick={onLogout} disabled={loggingOut}>
+                <Icon name="logout" /><span>{loggingOut ? 'Saliendo…' : 'Cerrar sesión'}</span>
+              </button>
+            </li>
+          )}
         </ul>
 
         <div className="sidebar-user">

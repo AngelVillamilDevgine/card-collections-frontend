@@ -2263,6 +2263,8 @@ export default function App() {
         panelLabel={staleItems.length ? `Panel · revisá ${staleText(staleItems)}` : 'Panel'}
         onProfile={() => { setMenuOpen(false); setProfileOpen(true) }}
         onCollections={() => { setMenuOpen(false); setCollectionsOpen(true) }}
+        onLogout={() => { setMenuOpen(false); handleLogout() }}
+        loggingOut={loggingOut}
         onPanel={() => {
           /* Cerrando el cajón se saca su entrada del historial con un back() asíncrono; el
              panel empuja la suya recién cuando eso termina, o el back() se llevaría puesta
