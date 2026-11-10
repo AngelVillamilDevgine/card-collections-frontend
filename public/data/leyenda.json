@@ -922,29 +922,8 @@
       ]
     },
     {
-      "id": "ley-f",
-      "nombre": "Cartas F",
-      "corto": "F",
-      "color": "#2f5597",
-      "desde": 504,
-      "hasta": 513,
-      "prefijo": "F",
-      "fuera": true,
-      "grupos": [
-        {
-          "_de": "el tracker de Ismael, APK 7.3, 2026-10-05",
-          "variantes": [
-            { "id": "com", "corto": "Com", "nombre": "Común" },
-            { "id": "gci", "corto": "Gci", "nombre": "Glitter círculos" },
-            { "id": "gli", "corto": "Gli", "nombre": "Glitter" }
-          ],
-          "cartas": [504, 505, 506, 507, 508, 509, 510, 511, 512, 513]
-        }
-      ]
-    },
-    {
       "id": "ley-gl1f",
-      "nombre": "Carta F de Guerreros Legendarios 1",
+      "nombre": "Ataque Final Full Background",
       "corto": "F",
       "color": "#2f5597",
       "desde": 1222,
@@ -980,6 +959,27 @@
             { "id": "vio", "corto": "Vio", "nombre": "Violeta" }
           ],
           "cartas": [1222]
+        }
+      ]
+    },
+    {
+      "id": "ley-f",
+      "nombre": "Cartas F",
+      "corto": "F",
+      "color": "#2f5597",
+      "desde": 504,
+      "hasta": 513,
+      "prefijo": "F",
+      "fuera": true,
+      "grupos": [
+        {
+          "_de": "el tracker de Ismael, APK 7.3, 2026-10-05",
+          "variantes": [
+            { "id": "com", "corto": "Com", "nombre": "Común" },
+            { "id": "gci", "corto": "Gci", "nombre": "Glitter círculos" },
+            { "id": "gli", "corto": "Gli", "nombre": "Glitter" }
+          ],
+          "cartas": [504, 505, 506, 507, 508, 509, 510, 511, 512, 513]
         }
       ]
     },
