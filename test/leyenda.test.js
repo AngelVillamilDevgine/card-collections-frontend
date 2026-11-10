@@ -369,7 +369,7 @@ test('Guerreros Legendarios 1: 136 cartas, 43 con variantes y las seis «de caja
   assert.ok(!names.has('Rosa efecto'), 'Rosa efecto se sacó (2026-11-10): sus marcas pasaron a Fucsia Viento')
   /* La F1222 es otra carta que la 1222: no comparten casillero. */
   assert.equal(appExpansion('ley-gl1f').prefijo, 'F')
-  assert.ok(variantsFor(appExpansion('ley-gl1f'), 1222).some((v) => v.nombre === 'Holo glitter dorado'))
+  assert.ok(variantsFor(appExpansion('ley-gl1f'), 1222).some((v) => v.nombre === 'PixelGlitter dorado'))
 })
 
 /* LO QUE SUMÓ EL APK 8.1 (2026-11-07), todo en Guerreros Legendarios 1: Fucsia Viento (nuevo), Arcoiris y
@@ -385,6 +385,8 @@ test('lo que sumó el APK 8.1 del tracker, en Guerreros Legendarios 1', () => {
   /* En el APK 8.0 la 1184 traía el Holo glitter dorado (id 46) y no el PixelGlitter dorado (52), que usan el
      mismo ícono; el 8.1 la corrigió cambiando el 46 por el 52. Era un error del tracker: acá sólo queda el 52. */
   assert.ok(!idsOf(1184).includes('hgd') && idsOf(1184).includes('pxd'))
+  /* La F1222 tenía el mismo error en el 8.1 (lista el 46 y el 52): Angel lo confirmó el 2026-11-10 y se sacó. `hgd` ya no existe. */
+  assert.ok(!rawExpansions.flatMap(declaredVariants).some((v) => v.id === 'hgd'), 'hgd se sacó entero')
 })
 
 /* LAS FOTOS DE LOS ACABADOS. El registro `fotos` liga un id de acabado con su ícono (112 px, del APK del
@@ -392,7 +394,7 @@ test('lo que sumó el APK 8.1 del tracker, en Guerreros Legendarios 1', () => {
    nadie declara (una foto que no se ve en ningún lado). */
 test('el registro de fotos apunta a archivos que existen y a acabados declarados', () => {
   const declared = new Set(rawExpansions.flatMap(declaredVariants).map((v) => v.id))
-  assert.ok(Object.keys(rawCatalog.fotos).length >= 15)
+  assert.ok(Object.keys(rawCatalog.fotos).length >= 14)
   for (const [id, path] of Object.entries(rawCatalog.fotos)) {
     assert.ok(declared.has(id), `hay foto para ${id} y ninguna expansión declara ese acabado`)
     assert.match(path, /^acabados\/[a-z0-9]{1,3}\.webp$/, `ruta rara: ${path}`)
