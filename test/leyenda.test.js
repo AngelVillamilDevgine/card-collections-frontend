@@ -195,7 +195,7 @@ test('cada carta ofrece lo que dice el dato, no el vocabulario del tramo entero'
   /* La 957 es la que reporto Angel: «en la 957 la app tiene muchas mas variantes de las
      que corresponde». Son nueve con el APK 8.0 (siete antes), y no las trece que llego a ofrecer. */
   assert.deepEqual(offeredVariantNames(rawExpansion('ley-personajes'), 957).sort(),
-    ['Azul', 'Azul viento', 'Cyan', 'Dorado', 'Holográfica', 'Naranja', 'Plateado', 'Rosa', 'Tornasolado'])
+    ['Azul', 'Azul Viento', 'Cyan', 'Dorado', 'Holográfica', 'Naranja', 'Plateado', 'Rosa', 'Tornasolado'])
   /* Y la 953, que es de la MISMA expansion, ofrece otras ocho. Ese es todo el punto. */
   assert.deepEqual(offeredVariantNames(rawExpansion('ley-personajes'), 953).sort(),
     ['Azul', 'Dorado', 'Fucsia', 'Holográfica', 'Naranja', 'Plateado', 'Rojo', 'Verde'])
@@ -363,27 +363,28 @@ test('Guerreros Legendarios 1: 136 cartas, 43 con variantes y las seis «de caja
     assert.deepEqual(variantsFor(gl1, n), [], `la ${n} es sólo de caja`)
   /* Los acabados que el tracker trae por primera vez, con su nombre. */
   const names = new Set(gl1.variantes.map((v) => v.nombre))
-  for (const name of ['Rojo efecto', 'Rosa efecto', 'Matrix azul', 'Super gridito', 'Círculos dorados', 'PixelGlitter dorado', 'Diamantes', 'Azul hielo',
-    'Fucsia efecto', 'Arcoiris', 'Tornasolado'])
+  for (const name of ['Rojo Viento', 'Azul Matrix', 'Super gridito', 'Ocular', 'PixelGlitter dorado', 'Diamantes', 'Azul hielo',
+    'Fucsia Viento', 'Arcoiris', 'Tornasolado'])
     assert.ok(names.has(name), `falta ${name}`)
+  assert.ok(!names.has('Rosa efecto'), 'Rosa efecto se sacó (2026-11-10): sus marcas pasaron a Fucsia Viento')
   /* La F1222 es otra carta que la 1222: no comparten casillero. */
   assert.equal(appExpansion('ley-gl1f').prefijo, 'F')
   assert.ok(variantsFor(appExpansion('ley-gl1f'), 1222).some((v) => v.nombre === 'Holo glitter dorado'))
 })
 
-/* LO QUE SUMÓ EL APK 8.1 (2026-11-07), todo en Guerreros Legendarios 1: Fucsia efecto (nuevo), Arcoiris y
-   Tornasolado en las 44 holográficas, y «Psycho» renombrado a «Círculos dorados». Un acabado «Ocular» NO
-   existe en el 8.0 ni en el 8.1: se buscó porque Angel lo mencionó, y no está. */
+/* LO QUE SUMÓ EL APK 8.1 (2026-11-07), todo en Guerreros Legendarios 1: Fucsia Viento (nuevo), Arcoiris y
+   Tornasolado en las 44 holográficas, y «Psycho» renombrado. El tracker NO tiene un acabado «Ocular»: es el
+   nombre que Angel le puso a nuestro `psy` el 2026-11-10, antes «Círculos dorados». */
 test('lo que sumó el APK 8.1 del tracker, en Guerreros Legendarios 1', () => {
   const gl1 = appExpansion('ley-gl1')
   const idsOf = (n) => variantsFor(gl1, n).map((v) => v.id)
   for (const n of [1088, 1090, 1091, 1092, 1094, 1098]) for (const id of ['fue', 'arc', 'tor'])
     assert.ok(idsOf(n).includes(id), `la ${n} no ofrece ${id}`)
-  assert.equal(gl1.variantes.find((v) => v.id === 'psy').nombre, 'Círculos dorados', 'el 8.1 lo renombró; el id no cambia')
+  assert.equal(gl1.variantes.find((v) => v.id === 'psy').nombre, 'Ocular', 'el id psy no cambia, sólo el nombre')
   assert.ok(!gl1.variantes.some((v) => v.nombre === 'Psycho'), 'no quedó ninguna con el nombre viejo')
-  /* La 1184 pierde en el tracker el Holo glitter dorado a favor del PixelGlitter dorado; acá quedan los dos. */
-  assert.ok(idsOf(1184).includes('hgd') && idsOf(1184).includes('pxd'))
-  assert.ok(!rawExpansions.flatMap(declaredVariants).some((v) => /ocular/i.test(v.nombre)), 'ningún acabado Ocular')
+  /* En el APK 8.0 la 1184 traía el Holo glitter dorado (id 46) y no el PixelGlitter dorado (52), que usan el
+     mismo ícono; el 8.1 la corrigió cambiando el 46 por el 52. Era un error del tracker: acá sólo queda el 52. */
+  assert.ok(!idsOf(1184).includes('hgd') && idsOf(1184).includes('pxd'))
 })
 
 /* LAS FOTOS DE LOS ACABADOS. El registro `fotos` liga un id de acabado con su ícono (112 px, del APK del
@@ -391,7 +392,7 @@ test('lo que sumó el APK 8.1 del tracker, en Guerreros Legendarios 1', () => {
    nadie declara (una foto que no se ve en ningún lado). */
 test('el registro de fotos apunta a archivos que existen y a acabados declarados', () => {
   const declared = new Set(rawExpansions.flatMap(declaredVariants).map((v) => v.id))
-  assert.ok(Object.keys(rawCatalog.fotos).length >= 16)
+  assert.ok(Object.keys(rawCatalog.fotos).length >= 15)
   for (const [id, path] of Object.entries(rawCatalog.fotos)) {
     assert.ok(declared.has(id), `hay foto para ${id} y ninguna expansión declara ese acabado`)
     assert.match(path, /^acabados\/[a-z0-9]{1,3}\.webp$/, `ruta rara: ${path}`)

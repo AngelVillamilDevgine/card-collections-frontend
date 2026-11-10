@@ -532,14 +532,14 @@ test('finishGuide: cada acabado una vez, con su aspecto y cuántas cartas lo tie
   const byId = Object.fromEntries(guide.map((f) => [f.id, f]))
   /* El nombre general, no el de las ocho especiales: «Verde claro» y no «Verde manzana». */
   assert.equal(byId.vcl.nombre, 'Verde claro')
-  assert.equal(byId.psy.nombre, 'Círculos dorados')
+  assert.equal(byId.psy.nombre, 'Ocular')
   /* Primero los que tienen dibujo, después los colores lisos, y al final los que sólo tienen letras. */
   const rank = (f) => (f.foto ? 0 : f.color ? 1 : 2)
   assert.deepEqual(guide.map(rank), [...guide.map(rank)].sort((a, b) => a - b))
   assert.ok(guide.some((f) => rank(f) === 0) && guide.some((f) => rank(f) === 1) && guide.some((f) => rank(f) === 2))
   /* Cuentan cartas distintas: la Dorada sale en todas las únicas (18) y en muchas más. */
   assert.ok(byId.dor.cartas > 18)
-  assert.equal(byId.fue.cartas, 44, 'Fucsia efecto: las 44 holográficas de Guerreros Legendarios 1')
+  assert.equal(byId.fue.cartas, 44, 'Fucsia Viento: las 44 holográficas de Guerreros Legendarios 1')
 })
 
 test('columnStyleOf: la foto manda sobre el color y cada caso cae donde tiene que caer', () => {
