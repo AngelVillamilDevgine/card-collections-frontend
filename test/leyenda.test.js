@@ -539,3 +539,17 @@ test('la Común va siempre primera en lo que se ofrece y en lo que se dibuja', (
     }
   }
 })
+
+/* Nueve cartas de Guerreros Legendarios 1 que, según Angel (2026-11-12), NO existen en variante común: el tracker
+   las lista con Común y es un error suyo. Siguen ofreciendo el resto de los acabados, y las demás conservan la Común. */
+test('Guerreros Legendarios 1: nueve cartas sin variante común', () => {
+  const gl1 = appExpansion('ley-gl1')
+  const sinComun = [1098, 1099, 1127, 1157, 1158, 1167, 1199, 1204, 1223]
+  for (const n of sinComun) {
+    const ids = variantsFor(gl1, n).map((v) => v.id)
+    assert.ok(!ids.includes('com'), `la ${n} no debería ofrecer Común`)
+    assert.ok(ids.includes('dor') && ids.includes('tor'), `la ${n} sigue ofreciendo el resto`)
+  }
+  assert.ok(variantsFor(gl1, 1088).some((v) => v.id === 'com'), 'la 1088 conserva la Común')
+  assert.ok(variantsFor(gl1, 1184).some((v) => v.id === 'com'), 'la 1184 conserva la Común')
+})
