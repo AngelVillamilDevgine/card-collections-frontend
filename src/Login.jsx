@@ -3,7 +3,7 @@
 //
 // No usa la clase .sheet del resto de la app: acá no hay contenido que fluya hacia
 // abajo, hay una sola cosa y va en el medio de la pantalla.
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { login, signup, pulse } from './api'
 import { albumNames } from './collections'
 import { whatsappTo, forgotPasswordText } from './contact'
@@ -19,6 +19,10 @@ import { whatsappTo, forgotPasswordText } from './contact'
    StrictMode tampoco. */
 const FROM = new Set(['hero', 'closing', 'hero-acct', 'closing-acct'])
 let arrivalSent = false
+
+/* El mismo mínimo que `MIN_PASSWORD_LENGTH` del backend (auth.js). El servidor es el que
+   manda; esto sólo evita un viaje para decir lo que ya se sabe. */
+const MIN_PASSWORD_LENGTH = 8
 
 /* Quien se olvida la clave no tiene ningún camino solo: no hay mail de recupero ni
    cambio de clave (la app no manda correo, y el servidor tampoco puede: rebota antes de
@@ -37,6 +41,8 @@ export default function Login({ onLogin, notice }) {
   })
   const [error, setError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const typedSent = useRef(false)
 
   useEffect(() => {
     if (arrivalSent) return
@@ -46,15 +52,35 @@ export default function Login({ onLogin, notice }) {
     pulse(FROM.has(f) ? `login:${f}` : 'login:direct')
   }, [])
 
+  /* DÓNDE SE CAE EL ALTA. Dos marcas, las dos sólo al crear la cuenta y con el visitante
+     anónimo de siempre (`login:*` lo cuenta por persona): `login:typed` la primera vez que
+     escribe algo —llegó al formulario y le interesó— y `login:error` cuando el alta le
+     contesta que no. Entre las dos y los «se anotaron» se ve si se van sin escribir (la
+     propuesta no convenció) o si escriben y algo los frena (fricción). */
+  function markTyped() {
+    if (!isSignup || typedSent.current) return
+    typedSent.current = true
+    pulse('login:typed')
+  }
+
   async function handleSubmit(ev) {
     ev.preventDefault()
     setError(null)
+    /* La regla de largo se dice ANTES de viajar: el servidor la repite y manda, pero ir y
+       volver para enterarse de que faltaba una letra es un viaje que en un teléfono con
+       datos son segundos. */
+    if (isSignup && password.length < MIN_PASSWORD_LENGTH) {
+      setError(`La clave necesita al menos ${MIN_PASSWORD_LENGTH} caracteres.`)
+      pulse('login:error')
+      return
+    }
     setSubmitting(true)
     try {
       onLogin(await (isSignup ? signup : login)(username.trim(), password))
     } catch (e) {
       setError(e.message)
       setSubmitting(false)
+      if (isSignup) pulse('login:error')
     }
   }
 
@@ -70,6 +96,17 @@ export default function Login({ onLogin, notice }) {
             tenía a dónde saltar. El peso lo tapa .login-tagline, así se ve igual. */}
         <h1 className="login-tagline">Mi colección · {albumNames()}</h1>
 
+        {/* Sólo al crear la cuenta: qué te da y cuánto cuesta. Lo que dice es verdad de
+            hoy —gratis, se guarda solo, y el mail no recibe nada porque el servidor no
+            manda correo—; si alguna deja de serlo, se saca el renglón. */}
+        {isSignup && (
+          <ul className="login-pitch">
+            <li>Marcá lo que tenés y lo que te falta, con un toque</li>
+            <li>Se guarda solo, y lo ves desde el celular y la compu</li>
+            <li>Gratis, y sin mails: tu mail es sólo tu usuario</li>
+          </ul>
+        )}
+
         <form className="login-form" onSubmit={handleSubmit}>
           <label>
             {isSignup ? 'Tu mail' : 'Mail o usuario'}
@@ -78,7 +115,7 @@ export default function Login({ onLogin, notice }) {
             <input
               type={isSignup ? 'email' : 'text'}
               value={username}
-              onChange={(ev) => setUsername(ev.target.value)}
+              onChange={(ev) => { markTyped(); setUsername(ev.target.value) }}
               autoComplete={isSignup ? 'email' : 'username'}
               autoCapitalize="none"
               autoCorrect="off"
@@ -90,14 +127,28 @@ export default function Login({ onLogin, notice }) {
 
           <label>
             Clave
-            <input
-              type="password"
-              value={password}
-              onChange={(ev) => setPassword(ev.target.value)}
-              autoComplete={isSignup ? 'new-password' : 'current-password'}
-              required
-            />
+            <span className="password-field">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(ev) => { markTyped(); setPassword(ev.target.value) }}
+                autoComplete={isSignup ? 'new-password' : 'current-password'}
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck="false"
+                required
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword(!showPassword)}
+                aria-pressed={showPassword}
+              >
+                {showPassword ? 'Ocultar' : 'Ver'}
+              </button>
+            </span>
           </label>
+          {isSignup && <p className="login-hint">Al menos {MIN_PASSWORD_LENGTH} caracteres.</p>}
 
           {/* Si llegaste acá porque se venció la sesión, que se diga: si no, la
               colección entera desaparece de golpe y sin ninguna explicación. */}

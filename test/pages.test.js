@@ -159,6 +159,15 @@ test('el parámetro que pone la landing es el que lee Login.jsx', () => {
   assert.equal(formParam, landingParam)
 })
 
+test('Login.jsx manda las marcas del alta que el backend tiene en su lista blanca', () => {
+  /* `PULSE_KEYS` (backend/src/pulse.js) descarta en silencio lo que no conoce, así que una
+     marca que se renombra de un solo lado deja de contar sin ningún error. Los literales
+     tienen que ser estos dos, y el backend los lista en el mismo orden de ideas. */
+  const form = read('src/Login.jsx')
+  for (const key of ['login:typed', 'login:error'])
+    assert.ok(form.includes(`pulse('${key}')`), `Login.jsx no manda ${key}`)
+})
+
 // ------------------------------------------- los contratos entre archivos sueltos
 
 test('resume.js redirige a las MISMAS rutas que declara routes.js', () => {

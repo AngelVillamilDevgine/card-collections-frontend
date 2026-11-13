@@ -1152,6 +1152,43 @@ button { cursor: pointer; }
 }
 .secondary:hover { color: var(--accent); }
 
+/* LA PROMESA DEL ALTA: tres renglones de por qué vale la pena, arriba del formulario y sólo
+   al crear la cuenta. Quien llegó con un click y se encuentra con dos campos pelados duda;
+   esto contesta «¿qué me da y cuánto me cuesta?» antes de pedirle el mail. */
+.login-pitch {
+  list-style: none;
+  margin: 0 0 18px;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  text-align: left;
+  font-size: 14px;
+  color: var(--ink2);
+}
+.login-pitch li { display: flex; gap: 8px; align-items: baseline; }
+.login-pitch li::before { content: '✓'; color: var(--accent); font-weight: 700; flex: none; }
+
+.login-hint { margin: -6px 0 0; font-size: 12.5px; color: var(--ink3); }
+
+/* El campo de la clave con su «Ver»: un mail mal tipeado o una clave con una letra de más
+   son los errores más comunes en el teléfono, y a ciegas no hay cómo notarlos. */
+.password-field { position: relative; display: block; }
+.login-form .password-field input { padding-right: 64px; }
+.password-toggle {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  min-width: 56px;
+  min-height: 40px;
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 /* Un enlace y no un botón: lleva a otro lado (WhatsApp), no hace algo acá. Discreto a
    propósito — es el camino de excepción, no una de las dos acciones de la pantalla. */
 .login-form .forgot {
@@ -2341,6 +2378,10 @@ body.with-install-bar { padding-bottom: var(--install-height, 150px); }
 
 @media (min-width: 1024px) {
   body { padding-left: 248px; }
+  /* La pantalla de entrada comparte body con la app pero NO tiene barra lateral: sin esto
+     quedaba corrida 124 px a la derecha del centro. El margen negativo cancela el relleno
+     del body y, a diferencia de una clase puesta desde JS, no parpadea al cargar. */
+  .login { margin-left: -248px; }
   .menu-button { display: none; }
 }
 @media (max-width: 1023px) {
