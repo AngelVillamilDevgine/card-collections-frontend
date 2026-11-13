@@ -209,6 +209,10 @@ test('ningún grupo ofrece una sola respuesta posible', () => {
      marcan de un toque en el casillero base, que ES la comun. */
   for (const e of rawExpansions) {
     for (const g of e.grupos ?? []) {
+      /* Excepción pedida por Angel (2026-11-13): las únicas L10 a L18 sólo salen Tornasolado, y la
+         marca tiene que caer en la variante y no en la base. Abre un diálogo de una opción: un toque
+         de más, y a cambio la carta se pinta con su acabado. */
+      if (e.id === 'ley-unicas') continue
       assert.ok(g.variantes.length > 1,
         `${e.id}: un grupo con una sola variante (${g.variantes.map((v) => v.nombre)}) abre un dialogo de una opcion`)
       assert.ok(!(g.variantes.length === 1 && g.variantes[0].id === 'com'),
@@ -500,16 +504,19 @@ test('las dieciocho únicas tienen nombre, y la tirada donde se conoce', () => {
   for (const n of u.cardNumbers) {
     const d = u.detalle[n]
     assert.ok(d.nombre && d.nombre.trim(), `Leyenda ${n}: sin nombre`)
-    /* La tirada se conoce de las nueve primeras; de L10 a L18 el tracker no la trae y no se inventa. */
-    if (n <= 9) assert.ok(Number.isInteger(d.copias) && d.copias > 0, `Leyenda ${n}: la tirada tiene que ser un entero`)
-    else assert.equal(d.copias, undefined, `Leyenda ${n}: la tirada no se conoce`)
+    assert.ok(Number.isInteger(d.copias) && d.copias > 0, `Leyenda ${n}: la tirada tiene que ser un entero`)
+    /* Angel (2026-11-13): L10 a L18 también son de 1500, aunque el tracker no la traiga. */
+    if (n >= 10) assert.equal(d.copias, 1500, `Leyenda ${n}: son de 1500`)
   }
   assert.equal(u.detalle[9].nombre, 'Shenron')
   assert.equal(u.detalle[9].copias, 500, 'Shenron es la única de 500; las otras ocho son de 1500')
   assert.equal(new Set(u.cardNumbers.map((n) => u.detalle[n].nombre)).size, 18, 'no hay dos con el mismo nombre')
   assert.equal(u.detalle[18].nombre, 'Porunga')
-  /* Plata y dorado en las dieciocho, como las primeras. */
-  assert.deepEqual(offeredVariantNames(rawExpansion('ley-unicas'), 12).sort(), ['Dorado', 'Plateado'])
+  /* Plata y dorado en las nueve primeras; de L10 a L18 sólo Tornasolado (Angel, 2026-11-13). */
+  assert.deepEqual(offeredVariantNames(rawExpansion('ley-unicas'), 9).sort(), ['Dorado', 'Plateado'])
+  for (let n = 10; n <= 18; n++) {
+    assert.deepEqual(offeredVariantNames(rawExpansion('ley-unicas'), n), ['Tornasolado'], `Leyenda ${n}`)
+  }
 })
 
 test('si una expansión trae detalle, lo trae para TODAS sus cartas', () => {

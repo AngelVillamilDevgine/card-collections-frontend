@@ -1052,31 +1052,40 @@
           "copias": 500
         },
         "10": {
-          "nombre": "Gohan del Futuro"
+          "nombre": "Gohan del Futuro",
+          "copias": 1500
         },
         "11": {
-          "nombre": "Goku Super Saiyajin 3"
+          "nombre": "Goku Super Saiyajin 3",
+          "copias": 1500
         },
         "12": {
-          "nombre": "Majin Buu"
+          "nombre": "Majin Buu",
+          "copias": 1500
         },
         "13": {
-          "nombre": "Cell"
+          "nombre": "Cell",
+          "copias": 1500
         },
         "14": {
-          "nombre": "Freezer"
+          "nombre": "Freezer",
+          "copias": 1500
         },
         "15": {
-          "nombre": "Broly"
+          "nombre": "Broly",
+          "copias": 1500
         },
         "16": {
-          "nombre": "A-18"
+          "nombre": "A-18",
+          "copias": 1500
         },
         "17": {
-          "nombre": "Gogeta"
+          "nombre": "Gogeta",
+          "copias": 1500
         },
         "18": {
-          "nombre": "Porunga"
+          "nombre": "Porunga",
+          "copias": 1500
         }
       },
       "fuera": true,
@@ -1086,7 +1095,11 @@
             { "id": "pla", "corto": "Pla", "nombre": "Plateado" },
             { "id": "dor", "corto": "Dor", "nombre": "Dorado" }
           ],
-          "cartas": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
+          "cartas": [1, 2, 3, 4, 5, 6, 7, 8, 9]
+        },
+        {
+          "variantes": [{ "id": "tor", "corto": "Tor", "nombre": "Tornasolado" }],
+          "cartas": [10, 11, 12, 13, 14, 15, 16, 17, 18]
         }
       ]
     }
