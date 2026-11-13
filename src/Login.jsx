@@ -103,7 +103,7 @@ export default function Login({ onLogin, notice }) {
           <ul className="login-pitch">
             <li>Marcá lo que tenés y lo que te falta, con un toque</li>
             <li>Se guarda solo, y lo ves desde el celular y la compu</li>
-            <li>Gratis, y sin mails: tu mail es sólo tu usuario</li>
+            <li>Gratis, tu email es tu usuario</li>
           </ul>
         )}
 
