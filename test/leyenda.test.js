@@ -195,7 +195,7 @@ test('cada carta ofrece lo que dice el dato, no el vocabulario del tramo entero'
   /* La 957 es la que reporto Angel: «en la 957 la app tiene muchas mas variantes de las
      que corresponde». Son nueve con el APK 8.0 (siete antes), y no las trece que llego a ofrecer. */
   assert.deepEqual(offeredVariantNames(rawExpansion('ley-personajes'), 957).sort(),
-    ['Azul', 'Azul Viento', 'Cyan', 'Dorado', 'Holográfica', 'Naranja', 'Plateado', 'Rosa', 'Tornasolado'])
+    ['Azul', 'Azul Viento', 'Cyan', 'Dorado', 'Holográfica', 'Naranja', 'Plateado', 'Rosa cobre', 'Tornasolado'])
   /* Y la 953, que es de la MISMA expansion, ofrece otras ocho. Ese es todo el punto. */
   assert.deepEqual(offeredVariantNames(rawExpansion('ley-personajes'), 953).sort(),
     ['Azul', 'Dorado', 'Fucsia', 'Holográfica', 'Naranja', 'Plateado', 'Rojo', 'Verde'])
@@ -559,4 +559,16 @@ test('Guerreros Legendarios 1: nueve cartas sin variante común', () => {
   }
   assert.ok(variantsFor(gl1, 1088).some((v) => v.id === 'com'), 'la 1088 conserva la Común')
   assert.ok(variantsFor(gl1, 1184).some((v) => v.id === 'com'), 'la 1184 conserva la Común')
+})
+
+test('Rosa cobre (el Rose del tracker, id ros) sale en todas las de GL1 con variantes y en la F1222', () => {
+  const gl1 = appExpansion('ley-gl1')
+  const withVars = gl1.cardNumbers.filter((n) => variantsFor(gl1, n).length > 0)
+  assert.equal(withVars.length, 43)
+  for (const n of withVars) {
+    const ros = variantsFor(gl1, n).find((v) => v.id === 'ros')
+    assert.equal(ros?.nombre, 'Rosa cobre', `la ${n} ofrece Rosa cobre`)
+  }
+  const f = variantsFor(appExpansion('ley-gl1f'), 1222).find((v) => v.id === 'ros')
+  assert.equal(f?.nombre, 'Rosa cobre', 'la F1222 también')
 })
