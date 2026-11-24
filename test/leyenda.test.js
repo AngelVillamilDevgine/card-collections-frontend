@@ -367,7 +367,7 @@ test('Guerreros Legendarios 1: 136 cartas, 43 con variantes y las seis «de caja
     assert.deepEqual(variantsFor(gl1, n), [], `la ${n} es sólo de caja`)
   /* Los acabados que el tracker trae por primera vez, con su nombre. */
   const names = new Set(gl1.variantes.map((v) => v.nombre))
-  for (const name of ['Rojo Viento', 'Azul Matrix', 'Super gridito', 'Ocular', 'PixelGlitter dorado', 'Diamantes', 'Azul hielo',
+  for (const name of ['Rojo Viento', 'Azul Matrix', 'Hippie', 'Ocular', 'PixelGlitter dorado', 'Diamantes', 'Azul hielo',
     'Fucsia Viento', 'Arcoiris', 'Tornasolado'])
     assert.ok(names.has(name), `falta ${name}`)
   assert.ok(!names.has('Rosa efecto'), 'Rosa efecto se sacó (2026-11-10): sus marcas pasaron a Fucsia Viento')
@@ -382,7 +382,7 @@ test('Guerreros Legendarios 1: 136 cartas, 43 con variantes y las seis «de caja
 test('lo que sumó el APK 8.1 del tracker, en Guerreros Legendarios 1', () => {
   const gl1 = appExpansion('ley-gl1')
   const idsOf = (n) => variantsFor(gl1, n).map((v) => v.id)
-  for (const n of [1088, 1090, 1091, 1092, 1094, 1098]) for (const id of ['fue', 'arc', 'tor'])
+  for (const n of [1088, 1090, 1091, 1092, 1094]) for (const id of ['fue', 'tor'])
     assert.ok(idsOf(n).includes(id), `la ${n} no ofrece ${id}`)
   assert.equal(gl1.variantes.find((v) => v.id === 'psy').nombre, 'Ocular', 'el id psy no cambia, sólo el nombre')
   assert.ok(!gl1.variantes.some((v) => v.nombre === 'Psycho'), 'no quedó ninguna con el nombre viejo')
@@ -555,20 +555,37 @@ test('Guerreros Legendarios 1: nueve cartas sin variante común', () => {
   for (const n of sinComun) {
     const ids = variantsFor(gl1, n).map((v) => v.id)
     assert.ok(!ids.includes('com'), `la ${n} no debería ofrecer Común`)
-    assert.ok(ids.includes('dor') && ids.includes('tor'), `la ${n} sigue ofreciendo el resto`)
+    assert.ok(ids.includes('dor') && ids.includes('fue'), `la ${n} sigue ofreciendo el resto`)
   }
   assert.ok(variantsFor(gl1, 1088).some((v) => v.id === 'com'), 'la 1088 conserva la Común')
   assert.ok(variantsFor(gl1, 1184).some((v) => v.id === 'com'), 'la 1184 conserva la Común')
 })
 
-test('Rosa cobre (el Rose del tracker, id ros) sale en todas las de GL1 con variantes y en la F1222', () => {
+/* LA TABLA DE ANGEL (2026-11-24): cada carta de GL1 ofrece EXACTAMENTE lo que dice su fila (un casillero negro es una
+   variante que no existe). Hay tres patrones de sobre y uno de caja; Hielo = Azul hielo y Cyan (el catálogo tenía las dos
+   y la tabla trae una). Las marcas que alguien ya tenga en una combinación que no existe NO se tocan: el diálogo deja de
+   ofrecerla y la carta la sigue dibujando. «Rosa cobre» es el Rose del tracker (id ros), que el APK 8.1 no lista en GL1. */
+test('Guerreros Legendarios 1: cada carta ofrece lo que dice la tabla de Angel', () => {
+  const A = ['dor', 'nar', 'roj', 'azh', 'cya', 'azu', 'ref', 'fue', 'dia', 'hol', 'pxd', 'maz', 'avi', 'tor']
+  const B = ['ros', 'pla', 'dor', 'nar', 'vcl', 'roj', 'azu', 'psy', 'fue', 'hol', 'pxd', 'maz', 'mtx', 'avi', 'sgr']
+  const CAJA = ['pla', 'dor', 'nar', 'vcl', 'vio', 'azh', 'cya', 'azu', 'hol', 'pxd', 'ref', 'avi', 'fue', 'maz', 'mtx', 'psy', 'dia', 'arc', 'sgr']
+  const SIN_COMUN = [1098, 1099, 1127, 1157, 1158, 1167, 1199, 1204, 1223]
+  const filas = [
+    [CAJA, [1108, 1109, 1111, 1127, 1140, 1158, 1178, 1197]],
+    [A, [1088, 1090, 1091, 1092, 1094, 1106, 1114, 1147, 1161, 1162, 1167, 1181, 1182, 1183, 1184, 1199, 1204]],
+    [B, [1098, 1099, 1107, 1115, 1123, 1125, 1129, 1146, 1150, 1151, 1157, 1159, 1168, 1193, 1207, 1221, 1222, 1223]],
+  ]
   const gl1 = appExpansion('ley-gl1')
-  const withVars = gl1.cardNumbers.filter((n) => variantsFor(gl1, n).length > 0)
-  assert.equal(withVars.length, 43)
-  for (const n of withVars) {
-    const ros = variantsFor(gl1, n).find((v) => v.id === 'ros')
-    assert.equal(ros?.nombre, 'Rosa cobre', `la ${n} ofrece Rosa cobre`)
+  assert.equal(filas.flatMap(([, ns]) => ns).length, 43)
+  for (const [ids, ns] of filas) for (const n of ns) {
+    const esperadas = SIN_COMUN.includes(n) ? ids : [...ids, 'com']
+    assert.deepEqual(variantsFor(gl1, n).map((v) => v.id).sort(), [...esperadas].sort(), `la ${n}`)
   }
-  const f = variantsFor(appExpansion('ley-gl1f'), 1222).find((v) => v.id === 'ros')
-  assert.equal(f?.nombre, 'Rosa cobre', 'la F1222 también')
+  /* La F1222 («1222 Full») sigue el patrón A, con común. */
+  assert.deepEqual(variantsFor(appExpansion('ley-gl1f'), 1222).map((v) => v.id).sort(), [...A, 'com'].sort())
+  /* Los nombres que pidió Angel, con el mismo id de siempre. */
+  const byId = Object.fromEntries(gl1.variantes.map((v) => [v.id, v.nombre]))
+  assert.equal(byId.ros, 'Rosa cobre')
+  assert.equal(byId.vcl, 'Verde oliva')
+  assert.equal(byId.sgr, 'Hippie')
 })

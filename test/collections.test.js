@@ -530,8 +530,8 @@ test('finishGuide: cada acabado una vez, con su aspecto y cuántas cartas lo tie
   const guide = finishGuide(exps)
   assert.equal(new Set(guide.map((f) => f.id)).size, guide.length, 'un acabado aparece una sola vez')
   const byId = Object.fromEntries(guide.map((f) => [f.id, f]))
-  /* El nombre general, no el de las ocho especiales: «Verde claro» y no «Verde manzana». */
-  assert.equal(byId.vcl.nombre, 'Verde claro')
+  /* El nombre general, no el de las ocho especiales: «Verde oliva» y no «Verde manzana». */
+  assert.equal(byId.vcl.nombre, 'Verde oliva')
   assert.equal(byId.psy.nombre, 'Ocular')
   /* Primero los que tienen dibujo, después los colores lisos, y al final los que sólo tienen letras. */
   const rank = (f) => (f.foto ? 0 : f.color ? 1 : 2)
