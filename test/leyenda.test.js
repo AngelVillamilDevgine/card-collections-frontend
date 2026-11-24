@@ -562,13 +562,13 @@ test('Guerreros Legendarios 1: nueve cartas sin variante común', () => {
 })
 
 /* LA TABLA DE ANGEL (2026-11-24): cada carta de GL1 ofrece EXACTAMENTE lo que dice su fila (un casillero negro es una
-   variante que no existe). Hay tres patrones de sobre y uno de caja; Hielo = Azul hielo y Cyan (el catálogo tenía las dos
+   variante que no existe). Hay tres patrones de sobre y uno de caja; Hielo = Azul hielo (Cyan se sacó de GL1 el 2026-11-24: eran lo mismo; el catálogo tenía las dos
    y la tabla trae una). Las marcas que alguien ya tenga en una combinación que no existe NO se tocan: el diálogo deja de
    ofrecerla y la carta la sigue dibujando. «Rosa cobre» es el Rose del tracker (id ros), que el APK 8.1 no lista en GL1. */
 test('Guerreros Legendarios 1: cada carta ofrece lo que dice la tabla de Angel', () => {
-  const A = ['dor', 'nar', 'roj', 'azh', 'cya', 'azu', 'ref', 'fue', 'dia', 'hol', 'pxd', 'maz', 'avi', 'tor']
+  const A = ['dor', 'nar', 'roj', 'azh', 'azu', 'ref', 'fue', 'dia', 'hol', 'pxd', 'maz', 'avi', 'tor']
   const B = ['ros', 'pla', 'dor', 'nar', 'vcl', 'roj', 'azu', 'psy', 'fue', 'hol', 'pxd', 'maz', 'mtx', 'avi', 'sgr']
-  const CAJA = ['pla', 'dor', 'nar', 'vcl', 'vio', 'azh', 'cya', 'azu', 'hol', 'pxd', 'ref', 'avi', 'fue', 'maz', 'mtx', 'psy', 'dia', 'arc', 'sgr']
+  const CAJA = ['pla', 'dor', 'nar', 'vcl', 'vio', 'azh', 'azu', 'hol', 'pxd', 'ref', 'avi', 'fue', 'maz', 'mtx', 'psy', 'dia', 'arc', 'sgr']
   const SIN_COMUN = [1098, 1099, 1127, 1157, 1158, 1167, 1199, 1204, 1223]
   const filas = [
     [CAJA, [1108, 1109, 1111, 1127, 1140, 1158, 1178, 1197]],
@@ -588,4 +588,5 @@ test('Guerreros Legendarios 1: cada carta ofrece lo que dice la tabla de Angel',
   assert.equal(byId.ros, 'Rosa cobre')
   assert.equal(byId.vcl, 'Verde oliva')
   assert.equal(byId.sgr, 'Hippie')
+  assert.ok(!byId.cya && !variantsFor(appExpansion('ley-gl1f'), 1222).some((v) => v.id === 'cya'), 'Cyan no existe en GL1: es Azul hielo')
 })
