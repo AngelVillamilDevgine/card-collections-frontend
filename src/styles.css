@@ -734,7 +734,7 @@ button { cursor: pointer; }
   bottom: 2px;
   left: 3px;
   font-size: 9.5px;
-  font-weight: 700;
+  font-weight: 800;
   line-height: 1;
   letter-spacing: 0.03em;
   opacity: 1;
@@ -2227,7 +2227,8 @@ body.with-install-bar { padding-bottom: var(--install-height, 150px); }
    planilla deja de ser alta por culpa de los nombres parados. El nombre entero vive en
    el `title` del th y en la línea de clave de arriba. */
 .print-table th span {
-  font-weight: 600;
+  font-weight: 800;
+  letter-spacing: 0.04em;
   white-space: nowrap;
 }
 /* La clave de los cortos («Nar Naranja · Roj Rojo…»), para quien recibe la imagen sin
@@ -2251,8 +2252,7 @@ body.with-install-bar { padding-bottom: var(--install-height, 150px); }
 }
 /* El gris de «no existe en ese fondo», con su «—» de texto: es un dato, no un hueco. */
 .print-table td.absent {
-  background: #d9d9d9;
-  color: #8a8a8a;
+  background: #9a9a9a;
 }
 .print-table td.owned { font-weight: 700; }
 
@@ -2557,7 +2557,7 @@ body.with-install-bar { padding-bottom: var(--install-height, 150px); }
   object-fit: cover;
   background: var(--paper);
 }
-.finish-thumb.plain { font-size: 11px; font-weight: 700; color: var(--ink2); }
+.finish-thumb.plain { font-size: 11px; font-weight: 800; letter-spacing: 0.04em; color: var(--ink2); }
 
 /* En el diálogo de qué variante tenés, la miniatura va a la izquierda y el contador a la derecha. */
 .dialog .option.with-thumb { display: flex; align-items: center; gap: 12px; }

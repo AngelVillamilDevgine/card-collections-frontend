@@ -22,7 +22,7 @@
     "El 'id' va CORTO, de una a tres letras, porque entra en la clave de cada carta y la columna es VARCHAR(40). La clave mas larga que este archivo puede generar es ley-personajes-xxx:1078, 23 caracteres.",
     "Podes editar este archivo para corregir rangos o agregar sets sin recompilar la app.",
     "'acabados' es el COLOR de cada acabado, para la planilla de variantes: la columna de Naranja va naranja (pedido de Angel, 2026-10-27). Solo tienen color los acabados que SON un color; Comun, Glitter, Glitter circulos y Holografica no llevan porque inventarles uno seria agregar un dato que no existe. Un acabado sin color se dibuja sin tenir, asi que agregar uno nuevo sin color no rompe nada.",
-    "El 'corto' de cada variante va en TRES letras, no dos — Angel, 2026-10-27: 'usa 3 letras no 2, no se entiende bien' — y es el id con la primera en mayuscula (nar -> Nar), que no puede chocar porque los ids son unicos. Lo muestran la esquina de cada carta y los encabezados de la planilla; si esto se regenera desde el tracker, sostener la regla."
+    "El 'corto' de cada variante son TRES LETRAS EN MAYUSCULA tomadas del NOMBRE de la variante (Ocular -> OCU, Naranja -> NAR); Angel, 2026-11-24: 'los diminutivos tienen que coincidir con el nombre, Psy es Ocular, nada que ver'. Si dos nombres chocan se usa la inicial de cada palabra (Azul Viento AVI, Fucsia Viento FVI, Rojo Viento RVI, Azul Matrix AMA, Verde Matrix VMA). Si se renombra una variante, se cambia tambien su corto. Lo muestran la esquina de cada carta y los encabezados de la planilla; si esto se regenera desde el tracker, sostener la regla."
   ],
   "acabados": {
     "nar": "#f4a11d",
@@ -60,178 +60,178 @@
         {
           "_de": "las cartas de Angel, 2026-09-28; y suma el APK 8.0 del tracker de Ismael, 2026-11-06",
           "variantes": [
-            { "id": "azu", "corto": "Azu", "nombre": "Azul" },
-            { "id": "cel", "corto": "Cel", "nombre": "Celeste" },
-            { "id": "com", "corto": "Com", "nombre": "Común" },
-            { "id": "cya", "corto": "Cya", "nombre": "Cyan" },
-            { "id": "dor", "corto": "Dor", "nombre": "Dorado" },
-            { "id": "fuc", "corto": "Fuc", "nombre": "Fucsia" },
-            { "id": "gri", "corto": "Gri", "nombre": "Gris" },
-            { "id": "nar", "corto": "Nar", "nombre": "Naranja" },
-            { "id": "pla", "corto": "Pla", "nombre": "Plateado" },
-            { "id": "roj", "corto": "Roj", "nombre": "Rojo" },
-            { "id": "ros", "corto": "Ros", "nombre": "Rosa cobre" },
-            { "id": "tur", "corto": "Tur", "nombre": "Turquesa" },
-            { "id": "vcl", "corto": "Vcl", "nombre": "Verde oliva" },
-            { "id": "ver", "corto": "Ver", "nombre": "Verde" },
-            { "id": "vio", "corto": "Vio", "nombre": "Violeta" }
+            { "id": "azu", "corto": "AZU", "nombre": "Azul" },
+            { "id": "cel", "corto": "CEL", "nombre": "Celeste" },
+            { "id": "com", "corto": "COM", "nombre": "Común" },
+            { "id": "cya", "corto": "CYA", "nombre": "Cyan" },
+            { "id": "dor", "corto": "DOR", "nombre": "Dorado" },
+            { "id": "fuc", "corto": "FUC", "nombre": "Fucsia" },
+            { "id": "gri", "corto": "GRI", "nombre": "Gris" },
+            { "id": "nar", "corto": "NAR", "nombre": "Naranja" },
+            { "id": "pla", "corto": "PLA", "nombre": "Plateado" },
+            { "id": "roj", "corto": "ROJ", "nombre": "Rojo" },
+            { "id": "ros", "corto": "ROS", "nombre": "Rosa cobre" },
+            { "id": "tur", "corto": "TUR", "nombre": "Turquesa" },
+            { "id": "vcl", "corto": "OLI", "nombre": "Verde oliva" },
+            { "id": "ver", "corto": "VER", "nombre": "Verde" },
+            { "id": "vio", "corto": "VIO", "nombre": "Violeta" }
           ],
           "cartas": [11]
         },
         {
           "_de": "las cartas de Angel, 2026-09-28; y suma el APK 8.0 del tracker de Ismael, 2026-11-06",
           "variantes": [
-            { "id": "azu", "corto": "Azu", "nombre": "Azul" },
-            { "id": "cel", "corto": "Cel", "nombre": "Celeste" },
-            { "id": "com", "corto": "Com", "nombre": "Común" },
-            { "id": "cya", "corto": "Cya", "nombre": "Cyan" },
-            { "id": "dor", "corto": "Dor", "nombre": "Dorado" },
-            { "id": "fuc", "corto": "Fuc", "nombre": "Fucsia" },
-            { "id": "gri", "corto": "Gri", "nombre": "Gris" },
-            { "id": "nar", "corto": "Nar", "nombre": "Naranja" },
-            { "id": "pla", "corto": "Pla", "nombre": "Plateado" },
-            { "id": "roj", "corto": "Roj", "nombre": "Rojo" },
-            { "id": "ros", "corto": "Ros", "nombre": "Rosa cobre" },
-            { "id": "tur", "corto": "Tur", "nombre": "Turquesa" },
-            { "id": "vcl", "corto": "Vcl", "nombre": "Verde manzana" },
-            { "id": "ver", "corto": "Ver", "nombre": "Verde" },
-            { "id": "vio", "corto": "Vio", "nombre": "Violeta" }
+            { "id": "azu", "corto": "AZU", "nombre": "Azul" },
+            { "id": "cel", "corto": "CEL", "nombre": "Celeste" },
+            { "id": "com", "corto": "COM", "nombre": "Común" },
+            { "id": "cya", "corto": "CYA", "nombre": "Cyan" },
+            { "id": "dor", "corto": "DOR", "nombre": "Dorado" },
+            { "id": "fuc", "corto": "FUC", "nombre": "Fucsia" },
+            { "id": "gri", "corto": "GRI", "nombre": "Gris" },
+            { "id": "nar", "corto": "NAR", "nombre": "Naranja" },
+            { "id": "pla", "corto": "PLA", "nombre": "Plateado" },
+            { "id": "roj", "corto": "ROJ", "nombre": "Rojo" },
+            { "id": "ros", "corto": "ROS", "nombre": "Rosa cobre" },
+            { "id": "tur", "corto": "TUR", "nombre": "Turquesa" },
+            { "id": "vcl", "corto": "MAN", "nombre": "Verde manzana" },
+            { "id": "ver", "corto": "VER", "nombre": "Verde" },
+            { "id": "vio", "corto": "VIO", "nombre": "Violeta" }
           ],
           "cartas": [12, 14]
         },
         {
           "_de": "las cartas de Angel, 2026-09-28; y suma el APK 8.0 del tracker de Ismael, 2026-11-06",
           "variantes": [
-            { "id": "azu", "corto": "Azu", "nombre": "Azul" },
-            { "id": "cel", "corto": "Cel", "nombre": "Celeste" },
-            { "id": "cya", "corto": "Cya", "nombre": "Cyan" },
-            { "id": "dor", "corto": "Dor", "nombre": "Dorado" },
-            { "id": "fuc", "corto": "Fuc", "nombre": "Fucsia" },
-            { "id": "gri", "corto": "Gri", "nombre": "Gris" },
-            { "id": "nar", "corto": "Nar", "nombre": "Naranja" },
-            { "id": "pla", "corto": "Pla", "nombre": "Plateado" },
-            { "id": "roj", "corto": "Roj", "nombre": "Rojo" },
-            { "id": "ros", "corto": "Ros", "nombre": "Rosa cobre" },
-            { "id": "tur", "corto": "Tur", "nombre": "Turquesa" },
-            { "id": "vcl", "corto": "Vcl", "nombre": "Verde manzana" },
-            { "id": "ver", "corto": "Ver", "nombre": "Verde" },
-            { "id": "vio", "corto": "Vio", "nombre": "Violeta" }
+            { "id": "azu", "corto": "AZU", "nombre": "Azul" },
+            { "id": "cel", "corto": "CEL", "nombre": "Celeste" },
+            { "id": "cya", "corto": "CYA", "nombre": "Cyan" },
+            { "id": "dor", "corto": "DOR", "nombre": "Dorado" },
+            { "id": "fuc", "corto": "FUC", "nombre": "Fucsia" },
+            { "id": "gri", "corto": "GRI", "nombre": "Gris" },
+            { "id": "nar", "corto": "NAR", "nombre": "Naranja" },
+            { "id": "pla", "corto": "PLA", "nombre": "Plateado" },
+            { "id": "roj", "corto": "ROJ", "nombre": "Rojo" },
+            { "id": "ros", "corto": "ROS", "nombre": "Rosa cobre" },
+            { "id": "tur", "corto": "TUR", "nombre": "Turquesa" },
+            { "id": "vcl", "corto": "MAN", "nombre": "Verde manzana" },
+            { "id": "ver", "corto": "VER", "nombre": "Verde" },
+            { "id": "vio", "corto": "VIO", "nombre": "Violeta" }
           ],
           "cartas": [18]
         },
         {
           "_de": "las cartas de Angel, 2026-09-28; y suma el APK 8.0 del tracker de Ismael, 2026-11-06",
           "variantes": [
-            { "id": "azu", "corto": "Azu", "nombre": "Azul" },
-            { "id": "cel", "corto": "Cel", "nombre": "Celeste" },
-            { "id": "com", "corto": "Com", "nombre": "Común" },
-            { "id": "cya", "corto": "Cya", "nombre": "Cyan" },
-            { "id": "dor", "corto": "Dor", "nombre": "Dorado" },
-            { "id": "fuc", "corto": "Fuc", "nombre": "Fucsia" },
-            { "id": "gri", "corto": "Gri", "nombre": "Gris" },
-            { "id": "nar", "corto": "Nar", "nombre": "Naranja" },
-            { "id": "pla", "corto": "Pla", "nombre": "Plateado" },
-            { "id": "roj", "corto": "Roj", "nombre": "Rojo" },
-            { "id": "ros", "corto": "Ros", "nombre": "Rosa cobre" },
-            { "id": "tur", "corto": "Tur", "nombre": "Turquesa" },
-            { "id": "vcl", "corto": "Vcl", "nombre": "Verde oliva" },
-            { "id": "ver", "corto": "Ver", "nombre": "Verde" },
-            { "id": "vio", "corto": "Vio", "nombre": "Violeta" }
+            { "id": "azu", "corto": "AZU", "nombre": "Azul" },
+            { "id": "cel", "corto": "CEL", "nombre": "Celeste" },
+            { "id": "com", "corto": "COM", "nombre": "Común" },
+            { "id": "cya", "corto": "CYA", "nombre": "Cyan" },
+            { "id": "dor", "corto": "DOR", "nombre": "Dorado" },
+            { "id": "fuc", "corto": "FUC", "nombre": "Fucsia" },
+            { "id": "gri", "corto": "GRI", "nombre": "Gris" },
+            { "id": "nar", "corto": "NAR", "nombre": "Naranja" },
+            { "id": "pla", "corto": "PLA", "nombre": "Plateado" },
+            { "id": "roj", "corto": "ROJ", "nombre": "Rojo" },
+            { "id": "ros", "corto": "ROS", "nombre": "Rosa cobre" },
+            { "id": "tur", "corto": "TUR", "nombre": "Turquesa" },
+            { "id": "vcl", "corto": "OLI", "nombre": "Verde oliva" },
+            { "id": "ver", "corto": "VER", "nombre": "Verde" },
+            { "id": "vio", "corto": "VIO", "nombre": "Violeta" }
           ],
           "cartas": [20]
         },
         {
           "_de": "las cartas de Angel, 2026-09-28; y suma el APK 8.0 del tracker de Ismael, 2026-11-06",
           "variantes": [
-            { "id": "azu", "corto": "Azu", "nombre": "Azul" },
-            { "id": "cel", "corto": "Cel", "nombre": "Celeste" },
-            { "id": "com", "corto": "Com", "nombre": "Común" },
-            { "id": "cya", "corto": "Cya", "nombre": "Cyan" },
-            { "id": "dor", "corto": "Dor", "nombre": "Dorado" },
-            { "id": "fuc", "corto": "Fuc", "nombre": "Fucsia" },
-            { "id": "gri", "corto": "Gri", "nombre": "Gris" },
-            { "id": "nar", "corto": "Nar", "nombre": "Naranja" },
-            { "id": "pla", "corto": "Pla", "nombre": "Plateado" },
-            { "id": "roj", "corto": "Roj", "nombre": "Rojo" },
-            { "id": "ros", "corto": "Ros", "nombre": "Rosa cobre" },
-            { "id": "tur", "corto": "Tur", "nombre": "Turquesa" },
-            { "id": "vcl", "corto": "Vcl", "nombre": "Verde oliva" },
-            { "id": "ver", "corto": "Ver", "nombre": "Verde" },
-            { "id": "vio", "corto": "Vio", "nombre": "Violeta" }
+            { "id": "azu", "corto": "AZU", "nombre": "Azul" },
+            { "id": "cel", "corto": "CEL", "nombre": "Celeste" },
+            { "id": "com", "corto": "COM", "nombre": "Común" },
+            { "id": "cya", "corto": "CYA", "nombre": "Cyan" },
+            { "id": "dor", "corto": "DOR", "nombre": "Dorado" },
+            { "id": "fuc", "corto": "FUC", "nombre": "Fucsia" },
+            { "id": "gri", "corto": "GRI", "nombre": "Gris" },
+            { "id": "nar", "corto": "NAR", "nombre": "Naranja" },
+            { "id": "pla", "corto": "PLA", "nombre": "Plateado" },
+            { "id": "roj", "corto": "ROJ", "nombre": "Rojo" },
+            { "id": "ros", "corto": "ROS", "nombre": "Rosa cobre" },
+            { "id": "tur", "corto": "TUR", "nombre": "Turquesa" },
+            { "id": "vcl", "corto": "OLI", "nombre": "Verde oliva" },
+            { "id": "ver", "corto": "VER", "nombre": "Verde" },
+            { "id": "vio", "corto": "VIO", "nombre": "Violeta" }
           ],
           "cartas": [23]
         },
         {
           "_de": "las cartas de Angel, 2026-09-28; y suma el APK 8.0 del tracker de Ismael, 2026-11-06",
           "variantes": [
-            { "id": "azu", "corto": "Azu", "nombre": "Azul" },
-            { "id": "cel", "corto": "Cel", "nombre": "Celeste" },
-            { "id": "cya", "corto": "Cya", "nombre": "Cyan" },
-            { "id": "dor", "corto": "Dor", "nombre": "Dorado" },
-            { "id": "fuc", "corto": "Fuc", "nombre": "Fucsia" },
-            { "id": "gri", "corto": "Gri", "nombre": "Gris" },
-            { "id": "nar", "corto": "Nar", "nombre": "Naranja" },
-            { "id": "pla", "corto": "Pla", "nombre": "Plateado" },
-            { "id": "roj", "corto": "Roj", "nombre": "Rojo" },
-            { "id": "ros", "corto": "Ros", "nombre": "Rosa cobre" },
-            { "id": "tur", "corto": "Tur", "nombre": "Turquesa" },
-            { "id": "vcl", "corto": "Vcl", "nombre": "Verde oliva" },
-            { "id": "ver", "corto": "Ver", "nombre": "Verde" },
-            { "id": "vio", "corto": "Vio", "nombre": "Violeta" }
+            { "id": "azu", "corto": "AZU", "nombre": "Azul" },
+            { "id": "cel", "corto": "CEL", "nombre": "Celeste" },
+            { "id": "cya", "corto": "CYA", "nombre": "Cyan" },
+            { "id": "dor", "corto": "DOR", "nombre": "Dorado" },
+            { "id": "fuc", "corto": "FUC", "nombre": "Fucsia" },
+            { "id": "gri", "corto": "GRI", "nombre": "Gris" },
+            { "id": "nar", "corto": "NAR", "nombre": "Naranja" },
+            { "id": "pla", "corto": "PLA", "nombre": "Plateado" },
+            { "id": "roj", "corto": "ROJ", "nombre": "Rojo" },
+            { "id": "ros", "corto": "ROS", "nombre": "Rosa cobre" },
+            { "id": "tur", "corto": "TUR", "nombre": "Turquesa" },
+            { "id": "vcl", "corto": "OLI", "nombre": "Verde oliva" },
+            { "id": "ver", "corto": "VER", "nombre": "Verde" },
+            { "id": "vio", "corto": "VIO", "nombre": "Violeta" }
           ],
           "cartas": [25]
         },
         {
           "_de": "las cartas de Angel, 2026-09-28; y suma el APK 8.0 del tracker de Ismael, 2026-11-06",
           "variantes": [
-            { "id": "azu", "corto": "Azu", "nombre": "Azul" },
-            { "id": "cel", "corto": "Cel", "nombre": "Celeste" },
-            { "id": "cya", "corto": "Cya", "nombre": "Cyan" },
-            { "id": "dor", "corto": "Dor", "nombre": "Dorado" },
-            { "id": "fuc", "corto": "Fuc", "nombre": "Fucsia" },
-            { "id": "gri", "corto": "Gri", "nombre": "Gris" },
-            { "id": "nar", "corto": "Nar", "nombre": "Naranja" },
-            { "id": "pla", "corto": "Pla", "nombre": "Plateado" },
-            { "id": "roj", "corto": "Roj", "nombre": "Rojo" },
-            { "id": "ros", "corto": "Ros", "nombre": "Rosa cobre" },
-            { "id": "tur", "corto": "Tur", "nombre": "Turquesa" },
-            { "id": "vcl", "corto": "Vcl", "nombre": "Verde manzana" },
-            { "id": "ver", "corto": "Ver", "nombre": "Verde" },
-            { "id": "vio", "corto": "Vio", "nombre": "Violeta" }
+            { "id": "azu", "corto": "AZU", "nombre": "Azul" },
+            { "id": "cel", "corto": "CEL", "nombre": "Celeste" },
+            { "id": "cya", "corto": "CYA", "nombre": "Cyan" },
+            { "id": "dor", "corto": "DOR", "nombre": "Dorado" },
+            { "id": "fuc", "corto": "FUC", "nombre": "Fucsia" },
+            { "id": "gri", "corto": "GRI", "nombre": "Gris" },
+            { "id": "nar", "corto": "NAR", "nombre": "Naranja" },
+            { "id": "pla", "corto": "PLA", "nombre": "Plateado" },
+            { "id": "roj", "corto": "ROJ", "nombre": "Rojo" },
+            { "id": "ros", "corto": "ROS", "nombre": "Rosa cobre" },
+            { "id": "tur", "corto": "TUR", "nombre": "Turquesa" },
+            { "id": "vcl", "corto": "MAN", "nombre": "Verde manzana" },
+            { "id": "ver", "corto": "VER", "nombre": "Verde" },
+            { "id": "vio", "corto": "VIO", "nombre": "Violeta" }
           ],
           "cartas": [27]
         },
         {
           "variantes": [
-            { "id": "azu", "corto": "Azu", "nombre": "Azul" },
-            { "id": "com", "corto": "Com", "nombre": "Común" },
-            { "id": "dor", "corto": "Dor", "nombre": "Dorado" },
-            { "id": "fuc", "corto": "Fuc", "nombre": "Fucsia" },
-            { "id": "gli", "corto": "Gli", "nombre": "Glitter" },
-            { "id": "hol", "corto": "Hol", "nombre": "Holográfica" },
-            { "id": "nar", "corto": "Nar", "nombre": "Naranja" },
-            { "id": "pla", "corto": "Pla", "nombre": "Plateado" },
-            { "id": "roj", "corto": "Roj", "nombre": "Rojo" },
-            { "id": "ros", "corto": "Ros", "nombre": "Rosa cobre" },
-            { "id": "tor", "corto": "Tor", "nombre": "Tornasolado" },
-            { "id": "tur", "corto": "Tur", "nombre": "Turquesa" }
+            { "id": "azu", "corto": "AZU", "nombre": "Azul" },
+            { "id": "com", "corto": "COM", "nombre": "Común" },
+            { "id": "dor", "corto": "DOR", "nombre": "Dorado" },
+            { "id": "fuc", "corto": "FUC", "nombre": "Fucsia" },
+            { "id": "gli", "corto": "GLI", "nombre": "Glitter" },
+            { "id": "hol", "corto": "HOL", "nombre": "Holográfica" },
+            { "id": "nar", "corto": "NAR", "nombre": "Naranja" },
+            { "id": "pla", "corto": "PLA", "nombre": "Plateado" },
+            { "id": "roj", "corto": "ROJ", "nombre": "Rojo" },
+            { "id": "ros", "corto": "ROS", "nombre": "Rosa cobre" },
+            { "id": "tor", "corto": "TOR", "nombre": "Tornasolado" },
+            { "id": "tur", "corto": "TUR", "nombre": "Turquesa" }
           ],
           "cartas": [22, 42, 45, 55, 56, 59, 63, 91, 93, 99, 130, 131, 132, 134, 135, 143, 154, 155],
           "_de": "el APK 8.0 del tracker de Ismael, 2026-11-06, sobre lo que ya había"
         },
         {
           "variantes": [
-            { "id": "azu", "corto": "Azu", "nombre": "Azul" },
-            { "id": "com", "corto": "Com", "nombre": "Común" },
-            { "id": "dor", "corto": "Dor", "nombre": "Dorado" },
-            { "id": "gli", "corto": "Gli", "nombre": "Glitter" },
-            { "id": "hol", "corto": "Hol", "nombre": "Holográfica" },
-            { "id": "nar", "corto": "Nar", "nombre": "Naranja" },
-            { "id": "pla", "corto": "Pla", "nombre": "Plateado" },
-            { "id": "roj", "corto": "Roj", "nombre": "Rojo" },
-            { "id": "ros", "corto": "Ros", "nombre": "Rosa cobre" },
-            { "id": "tor", "corto": "Tor", "nombre": "Tornasolado" },
-            { "id": "ver", "corto": "Ver", "nombre": "Verde" }
+            { "id": "azu", "corto": "AZU", "nombre": "Azul" },
+            { "id": "com", "corto": "COM", "nombre": "Común" },
+            { "id": "dor", "corto": "DOR", "nombre": "Dorado" },
+            { "id": "gli", "corto": "GLI", "nombre": "Glitter" },
+            { "id": "hol", "corto": "HOL", "nombre": "Holográfica" },
+            { "id": "nar", "corto": "NAR", "nombre": "Naranja" },
+            { "id": "pla", "corto": "PLA", "nombre": "Plateado" },
+            { "id": "roj", "corto": "ROJ", "nombre": "Rojo" },
+            { "id": "ros", "corto": "ROS", "nombre": "Rosa cobre" },
+            { "id": "tor", "corto": "TOR", "nombre": "Tornasolado" },
+            { "id": "ver", "corto": "VER", "nombre": "Verde" }
           ],
           "cartas": [
             33,
@@ -257,57 +257,57 @@
         },
         {
           "variantes": [
-            { "id": "azu", "corto": "Azu", "nombre": "Azul" },
-            { "id": "com", "corto": "Com", "nombre": "Común" },
-            { "id": "fuc", "corto": "Fuc", "nombre": "Fucsia" },
-            { "id": "gri", "corto": "Gri", "nombre": "Gris" },
-            { "id": "pla", "corto": "Pla", "nombre": "Plateado" },
-            { "id": "roj", "corto": "Roj", "nombre": "Rojo" },
-            { "id": "ros", "corto": "Ros", "nombre": "Rosa cobre" },
-            { "id": "tur", "corto": "Tur", "nombre": "Turquesa" },
-            { "id": "vcl", "corto": "Vcl", "nombre": "Verde oliva" },
-            { "id": "ver", "corto": "Ver", "nombre": "Verde" }
+            { "id": "azu", "corto": "AZU", "nombre": "Azul" },
+            { "id": "com", "corto": "COM", "nombre": "Común" },
+            { "id": "fuc", "corto": "FUC", "nombre": "Fucsia" },
+            { "id": "gri", "corto": "GRI", "nombre": "Gris" },
+            { "id": "pla", "corto": "PLA", "nombre": "Plateado" },
+            { "id": "roj", "corto": "ROJ", "nombre": "Rojo" },
+            { "id": "ros", "corto": "ROS", "nombre": "Rosa cobre" },
+            { "id": "tur", "corto": "TUR", "nombre": "Turquesa" },
+            { "id": "vcl", "corto": "OLI", "nombre": "Verde oliva" },
+            { "id": "ver", "corto": "VER", "nombre": "Verde" }
           ],
           "cartas": [1, 2]
         },
         {
           "variantes": [
-            { "id": "cel", "corto": "Cel", "nombre": "Celeste" },
-            { "id": "com", "corto": "Com", "nombre": "Común" },
-            { "id": "cya", "corto": "Cya", "nombre": "Cyan" },
-            { "id": "dor", "corto": "Dor", "nombre": "Dorado" },
-            { "id": "fuc", "corto": "Fuc", "nombre": "Fucsia" },
-            { "id": "hvi", "corto": "Hvi", "nombre": "Holo violeta" },
-            { "id": "nar", "corto": "Nar", "nombre": "Naranja" },
-            { "id": "pla", "corto": "Pla", "nombre": "Plateado" },
-            { "id": "roj", "corto": "Roj", "nombre": "Rojo" },
-            { "id": "tur", "corto": "Tur", "nombre": "Turquesa" },
-            { "id": "ver", "corto": "Ver", "nombre": "Verde" },
-            { "id": "vio", "corto": "Vio", "nombre": "Violeta" }
+            { "id": "cel", "corto": "CEL", "nombre": "Celeste" },
+            { "id": "com", "corto": "COM", "nombre": "Común" },
+            { "id": "cya", "corto": "CYA", "nombre": "Cyan" },
+            { "id": "dor", "corto": "DOR", "nombre": "Dorado" },
+            { "id": "fuc", "corto": "FUC", "nombre": "Fucsia" },
+            { "id": "hvi", "corto": "HVI", "nombre": "Holo violeta" },
+            { "id": "nar", "corto": "NAR", "nombre": "Naranja" },
+            { "id": "pla", "corto": "PLA", "nombre": "Plateado" },
+            { "id": "roj", "corto": "ROJ", "nombre": "Rojo" },
+            { "id": "tur", "corto": "TUR", "nombre": "Turquesa" },
+            { "id": "ver", "corto": "VER", "nombre": "Verde" },
+            { "id": "vio", "corto": "VIO", "nombre": "Violeta" }
           ],
           "cartas": [3]
         },
         {
           "variantes": [
-            { "id": "cel", "corto": "Cel", "nombre": "Celeste" },
-            { "id": "com", "corto": "Com", "nombre": "Común" },
-            { "id": "cya", "corto": "Cya", "nombre": "Cyan" },
-            { "id": "dor", "corto": "Dor", "nombre": "Dorado" },
-            { "id": "fuc", "corto": "Fuc", "nombre": "Fucsia" },
-            { "id": "hvi", "corto": "Hvi", "nombre": "Holo violeta" },
-            { "id": "nar", "corto": "Nar", "nombre": "Naranja" },
-            { "id": "pla", "corto": "Pla", "nombre": "Plateado" },
-            { "id": "tur", "corto": "Tur", "nombre": "Turquesa" },
-            { "id": "ver", "corto": "Ver", "nombre": "Verde" },
-            { "id": "vio", "corto": "Vio", "nombre": "Violeta" }
+            { "id": "cel", "corto": "CEL", "nombre": "Celeste" },
+            { "id": "com", "corto": "COM", "nombre": "Común" },
+            { "id": "cya", "corto": "CYA", "nombre": "Cyan" },
+            { "id": "dor", "corto": "DOR", "nombre": "Dorado" },
+            { "id": "fuc", "corto": "FUC", "nombre": "Fucsia" },
+            { "id": "hvi", "corto": "HVI", "nombre": "Holo violeta" },
+            { "id": "nar", "corto": "NAR", "nombre": "Naranja" },
+            { "id": "pla", "corto": "PLA", "nombre": "Plateado" },
+            { "id": "tur", "corto": "TUR", "nombre": "Turquesa" },
+            { "id": "ver", "corto": "VER", "nombre": "Verde" },
+            { "id": "vio", "corto": "VIO", "nombre": "Violeta" }
           ],
           "cartas": [4]
         },
         {
           "_de": "las cartas de Angel, 2026-11-09",
           "variantes": [
-            { "id": "com", "corto": "Com", "nombre": "Común" },
-            { "id": "gli", "corto": "Gli", "nombre": "Glitter" }
+            { "id": "com", "corto": "COM", "nombre": "Común" },
+            { "id": "gli", "corto": "GLI", "nombre": "Glitter" }
           ],
           "cartas": [
             57,
@@ -347,8 +347,8 @@
       "grupos": [
         {
           "variantes": [
-            { "id": "dor", "corto": "Dor", "nombre": "Dorado" },
-            { "id": "pla", "corto": "Pla", "nombre": "Plateado" }
+            { "id": "dor", "corto": "DOR", "nombre": "Dorado" },
+            { "id": "pla", "corto": "PLA", "nombre": "Plateado" }
           ],
           "cartas": [
             177,
@@ -417,13 +417,13 @@
       "grupos": [
         {
           "variantes": [
-            { "id": "dor", "corto": "Dor", "nombre": "Dorado" },
-            { "id": "gci", "corto": "Gci", "nombre": "Glitter círculos" },
-            { "id": "gli", "corto": "Gli", "nombre": "Glitter" },
-            { "id": "hol", "corto": "Hol", "nombre": "Holográfica" },
-            { "id": "nar", "corto": "Nar", "nombre": "Naranja" },
-            { "id": "roj", "corto": "Roj", "nombre": "Rojo" },
-            { "id": "ros", "corto": "Ros", "nombre": "Rosa cobre" }
+            { "id": "dor", "corto": "DOR", "nombre": "Dorado" },
+            { "id": "gci", "corto": "GCI", "nombre": "Glitter círculos" },
+            { "id": "gli", "corto": "GLI", "nombre": "Glitter" },
+            { "id": "hol", "corto": "HOL", "nombre": "Holográfica" },
+            { "id": "nar", "corto": "NAR", "nombre": "Naranja" },
+            { "id": "roj", "corto": "ROJ", "nombre": "Rojo" },
+            { "id": "ros", "corto": "ROS", "nombre": "Rosa cobre" }
           ],
           "cartas": [
             425,
@@ -448,92 +448,92 @@
         },
         {
           "variantes": [
-            { "id": "azu", "corto": "Azu", "nombre": "Azul" },
-            { "id": "dor", "corto": "Dor", "nombre": "Dorado" },
-            { "id": "gci", "corto": "Gci", "nombre": "Glitter círculos" },
-            { "id": "gli", "corto": "Gli", "nombre": "Glitter" },
-            { "id": "hol", "corto": "Hol", "nombre": "Holográfica" },
-            { "id": "nar", "corto": "Nar", "nombre": "Naranja" },
-            { "id": "pla", "corto": "Pla", "nombre": "Plateado" }
+            { "id": "azu", "corto": "AZU", "nombre": "Azul" },
+            { "id": "dor", "corto": "DOR", "nombre": "Dorado" },
+            { "id": "gci", "corto": "GCI", "nombre": "Glitter círculos" },
+            { "id": "gli", "corto": "GLI", "nombre": "Glitter" },
+            { "id": "hol", "corto": "HOL", "nombre": "Holográfica" },
+            { "id": "nar", "corto": "NAR", "nombre": "Naranja" },
+            { "id": "pla", "corto": "PLA", "nombre": "Plateado" }
           ],
           "cartas": [418, 449, 452, 454, 460, 470, 471, 472, 484, 485, 505]
         },
         {
           "variantes": [
-            { "id": "azu", "corto": "Azu", "nombre": "Azul" },
-            { "id": "dor", "corto": "Dor", "nombre": "Dorado" },
-            { "id": "gci", "corto": "Gci", "nombre": "Glitter círculos" },
-            { "id": "gli", "corto": "Gli", "nombre": "Glitter" },
-            { "id": "hol", "corto": "Hol", "nombre": "Holográfica" },
-            { "id": "nar", "corto": "Nar", "nombre": "Naranja" },
-            { "id": "pla", "corto": "Pla", "nombre": "Plateado" }
+            { "id": "azu", "corto": "AZU", "nombre": "Azul" },
+            { "id": "dor", "corto": "DOR", "nombre": "Dorado" },
+            { "id": "gci", "corto": "GCI", "nombre": "Glitter círculos" },
+            { "id": "gli", "corto": "GLI", "nombre": "Glitter" },
+            { "id": "hol", "corto": "HOL", "nombre": "Holográfica" },
+            { "id": "nar", "corto": "NAR", "nombre": "Naranja" },
+            { "id": "pla", "corto": "PLA", "nombre": "Plateado" }
           ],
           "cartas": [544, 545, 546, 547, 548, 549, 550]
         },
         {
           "variantes": [
-            { "id": "azu", "corto": "Azu", "nombre": "Azul" },
-            { "id": "dor", "corto": "Dor", "nombre": "Dorado" },
-            { "id": "nar", "corto": "Nar", "nombre": "Naranja" },
-            { "id": "pla", "corto": "Pla", "nombre": "Plateado" },
-            { "id": "roj", "corto": "Roj", "nombre": "Rojo" }
+            { "id": "azu", "corto": "AZU", "nombre": "Azul" },
+            { "id": "dor", "corto": "DOR", "nombre": "Dorado" },
+            { "id": "nar", "corto": "NAR", "nombre": "Naranja" },
+            { "id": "pla", "corto": "PLA", "nombre": "Plateado" },
+            { "id": "roj", "corto": "ROJ", "nombre": "Rojo" }
           ],
           "cartas": [387, 393, 396, 409, 411, 503]
         },
         {
           "variantes": [
-            { "id": "azu", "corto": "Azu", "nombre": "Azul" },
-            { "id": "com", "corto": "Com", "nombre": "Común" },
-            { "id": "dor", "corto": "Dor", "nombre": "Dorado" },
-            { "id": "roj", "corto": "Roj", "nombre": "Rojo" }
+            { "id": "azu", "corto": "AZU", "nombre": "Azul" },
+            { "id": "com", "corto": "COM", "nombre": "Común" },
+            { "id": "dor", "corto": "DOR", "nombre": "Dorado" },
+            { "id": "roj", "corto": "ROJ", "nombre": "Rojo" }
           ],
           "cartas": [539, 540]
         },
         {
           "variantes": [
-            { "id": "azu", "corto": "Azu", "nombre": "Azul" },
-            { "id": "com", "corto": "Com", "nombre": "Común" },
-            { "id": "dor", "corto": "Dor", "nombre": "Dorado" },
-            { "id": "nar", "corto": "Nar", "nombre": "Naranja" },
-            { "id": "pla", "corto": "Pla", "nombre": "Plateado" }
+            { "id": "azu", "corto": "AZU", "nombre": "Azul" },
+            { "id": "com", "corto": "COM", "nombre": "Común" },
+            { "id": "dor", "corto": "DOR", "nombre": "Dorado" },
+            { "id": "nar", "corto": "NAR", "nombre": "Naranja" },
+            { "id": "pla", "corto": "PLA", "nombre": "Plateado" }
           ],
           "cartas": [538]
         },
         {
           "variantes": [
-            { "id": "azu", "corto": "Azu", "nombre": "Azul" },
-            { "id": "com", "corto": "Com", "nombre": "Común" },
-            { "id": "dor", "corto": "Dor", "nombre": "Dorado" },
-            { "id": "nar", "corto": "Nar", "nombre": "Naranja" },
-            { "id": "pla", "corto": "Pla", "nombre": "Plateado" }
+            { "id": "azu", "corto": "AZU", "nombre": "Azul" },
+            { "id": "com", "corto": "COM", "nombre": "Común" },
+            { "id": "dor", "corto": "DOR", "nombre": "Dorado" },
+            { "id": "nar", "corto": "NAR", "nombre": "Naranja" },
+            { "id": "pla", "corto": "PLA", "nombre": "Plateado" }
           ],
           "cartas": [537]
         },
         {
           "variantes": [
-            { "id": "azu", "corto": "Azu", "nombre": "Azul" },
-            { "id": "dor", "corto": "Dor", "nombre": "Dorado" },
-            { "id": "gci", "corto": "Gci", "nombre": "Glitter círculos" },
-            { "id": "nar", "corto": "Nar", "nombre": "Naranja" },
-            { "id": "pla", "corto": "Pla", "nombre": "Plateado" },
-            { "id": "roj", "corto": "Roj", "nombre": "Rojo" }
+            { "id": "azu", "corto": "AZU", "nombre": "Azul" },
+            { "id": "dor", "corto": "DOR", "nombre": "Dorado" },
+            { "id": "gci", "corto": "GCI", "nombre": "Glitter círculos" },
+            { "id": "nar", "corto": "NAR", "nombre": "Naranja" },
+            { "id": "pla", "corto": "PLA", "nombre": "Plateado" },
+            { "id": "roj", "corto": "ROJ", "nombre": "Rojo" }
           ],
           "cartas": [426]
         },
         {
           "_de": "el tracker de Ismael, APK 7.3, 2026-10-05",
           "variantes": [
-            { "id": "com", "corto": "Com", "nombre": "Común" },
-            { "id": "gci", "corto": "Gci", "nombre": "Glitter círculos" },
-            { "id": "gli", "corto": "Gli", "nombre": "Glitter" }
+            { "id": "com", "corto": "COM", "nombre": "Común" },
+            { "id": "gci", "corto": "GCI", "nombre": "Glitter círculos" },
+            { "id": "gli", "corto": "GLI", "nombre": "Glitter" }
           ],
           "cartas": [385, 386, 388, 394, 395, 397, 398, 399, 400, 401]
         },
         {
           "_de": "las cartas de Angel, 2026-11-09",
           "variantes": [
-            { "id": "com", "corto": "Com", "nombre": "Común" },
-            { "id": "gci", "corto": "Gci", "nombre": "Glitter círculos" }
+            { "id": "com", "corto": "COM", "nombre": "Común" },
+            { "id": "gci", "corto": "GCI", "nombre": "Glitter círculos" }
           ],
           "cartas": [
             403,
@@ -567,11 +567,11 @@
       "grupos": [
         {
           "variantes": [
-            { "id": "azu", "corto": "Azu", "nombre": "Azul" },
-            { "id": "dor", "corto": "Dor", "nombre": "Dorado" },
-            { "id": "fuc", "corto": "Fuc", "nombre": "Fucsia" },
-            { "id": "hol", "corto": "Hol", "nombre": "Holográfica" },
-            { "id": "pla", "corto": "Pla", "nombre": "Plateado" }
+            { "id": "azu", "corto": "AZU", "nombre": "Azul" },
+            { "id": "dor", "corto": "DOR", "nombre": "Dorado" },
+            { "id": "fuc", "corto": "FUC", "nombre": "Fucsia" },
+            { "id": "hol", "corto": "HOL", "nombre": "Holográfica" },
+            { "id": "pla", "corto": "PLA", "nombre": "Plateado" }
           ],
           "cartas": [
             594,
@@ -596,11 +596,11 @@
         },
         {
           "variantes": [
-            { "id": "azu", "corto": "Azu", "nombre": "Azul" },
-            { "id": "dor", "corto": "Dor", "nombre": "Dorado" },
-            { "id": "nar", "corto": "Nar", "nombre": "Naranja" },
-            { "id": "pla", "corto": "Pla", "nombre": "Plateado" },
-            { "id": "ver", "corto": "Ver", "nombre": "Verde" }
+            { "id": "azu", "corto": "AZU", "nombre": "Azul" },
+            { "id": "dor", "corto": "DOR", "nombre": "Dorado" },
+            { "id": "nar", "corto": "NAR", "nombre": "Naranja" },
+            { "id": "pla", "corto": "PLA", "nombre": "Plateado" },
+            { "id": "ver", "corto": "VER", "nombre": "Verde" }
           ],
           "cartas": [
             580,
@@ -625,8 +625,8 @@
         },
         {
           "variantes": [
-            { "id": "dor", "corto": "Dor", "nombre": "Dorado" },
-            { "id": "pla", "corto": "Pla", "nombre": "Plateado" }
+            { "id": "dor", "corto": "DOR", "nombre": "Dorado" },
+            { "id": "pla", "corto": "PLA", "nombre": "Plateado" }
           ],
           "cartas": [554, 555, 558, 561, 562, 566, 574, 590]
         }
@@ -642,13 +642,13 @@
       "grupos": [
         {
           "variantes": [
-            { "id": "azu", "corto": "Azu", "nombre": "Azul" },
-            { "id": "dor", "corto": "Dor", "nombre": "Dorado" },
-            { "id": "hol", "corto": "Hol", "nombre": "Holográfica" },
-            { "id": "nar", "corto": "Nar", "nombre": "Naranja" },
-            { "id": "pla", "corto": "Pla", "nombre": "Plateado" },
-            { "id": "roj", "corto": "Roj", "nombre": "Rojo" },
-            { "id": "ver", "corto": "Ver", "nombre": "Verde" }
+            { "id": "azu", "corto": "AZU", "nombre": "Azul" },
+            { "id": "dor", "corto": "DOR", "nombre": "Dorado" },
+            { "id": "hol", "corto": "HOL", "nombre": "Holográfica" },
+            { "id": "nar", "corto": "NAR", "nombre": "Naranja" },
+            { "id": "pla", "corto": "PLA", "nombre": "Plateado" },
+            { "id": "roj", "corto": "ROJ", "nombre": "Rojo" },
+            { "id": "ver", "corto": "VER", "nombre": "Verde" }
           ],
           "cartas": [
             816,
@@ -691,15 +691,15 @@
         },
         {
           "variantes": [
-            { "id": "azu", "corto": "Azu", "nombre": "Azul" },
-            { "id": "cel", "corto": "Cel", "nombre": "Celeste" },
-            { "id": "dor", "corto": "Dor", "nombre": "Dorado" },
-            { "id": "hol", "corto": "Hol", "nombre": "Holográfica" },
-            { "id": "hvi", "corto": "Hvi", "nombre": "Holo violeta" },
-            { "id": "nar", "corto": "Nar", "nombre": "Naranja" },
-            { "id": "pla", "corto": "Pla", "nombre": "Plateado" },
-            { "id": "roj", "corto": "Roj", "nombre": "Rojo" },
-            { "id": "ver", "corto": "Ver", "nombre": "Verde" }
+            { "id": "azu", "corto": "AZU", "nombre": "Azul" },
+            { "id": "cel", "corto": "CEL", "nombre": "Celeste" },
+            { "id": "dor", "corto": "DOR", "nombre": "Dorado" },
+            { "id": "hol", "corto": "HOL", "nombre": "Holográfica" },
+            { "id": "hvi", "corto": "HVI", "nombre": "Holo violeta" },
+            { "id": "nar", "corto": "NAR", "nombre": "Naranja" },
+            { "id": "pla", "corto": "PLA", "nombre": "Plateado" },
+            { "id": "roj", "corto": "ROJ", "nombre": "Rojo" },
+            { "id": "ver", "corto": "VER", "nombre": "Verde" }
           ],
           "cartas": [729, 733, 755, 784, 787, 798, 799, 811]
         }
@@ -715,15 +715,15 @@
       "grupos": [
         {
           "variantes": [
-            { "id": "avi", "corto": "Avi", "nombre": "Azul Viento" },
-            { "id": "azu", "corto": "Azu", "nombre": "Azul" },
-            { "id": "cya", "corto": "Cya", "nombre": "Cyan" },
-            { "id": "dor", "corto": "Dor", "nombre": "Dorado" },
-            { "id": "hol", "corto": "Hol", "nombre": "Holográfica" },
-            { "id": "nar", "corto": "Nar", "nombre": "Naranja" },
-            { "id": "pla", "corto": "Pla", "nombre": "Plateado" },
-            { "id": "ros", "corto": "Ros", "nombre": "Rosa cobre" },
-            { "id": "tor", "corto": "Tor", "nombre": "Tornasolado" }
+            { "id": "avi", "corto": "AVI", "nombre": "Azul Viento" },
+            { "id": "azu", "corto": "AZU", "nombre": "Azul" },
+            { "id": "cya", "corto": "CYA", "nombre": "Cyan" },
+            { "id": "dor", "corto": "DOR", "nombre": "Dorado" },
+            { "id": "hol", "corto": "HOL", "nombre": "Holográfica" },
+            { "id": "nar", "corto": "NAR", "nombre": "Naranja" },
+            { "id": "pla", "corto": "PLA", "nombre": "Plateado" },
+            { "id": "ros", "corto": "ROS", "nombre": "Rosa cobre" },
+            { "id": "tor", "corto": "TOR", "nombre": "Tornasolado" }
           ],
           "cartas": [
             947,
@@ -749,14 +749,14 @@
         },
         {
           "variantes": [
-            { "id": "azu", "corto": "Azu", "nombre": "Azul" },
-            { "id": "dor", "corto": "Dor", "nombre": "Dorado" },
-            { "id": "fuc", "corto": "Fuc", "nombre": "Fucsia" },
-            { "id": "hol", "corto": "Hol", "nombre": "Holográfica" },
-            { "id": "nar", "corto": "Nar", "nombre": "Naranja" },
-            { "id": "pla", "corto": "Pla", "nombre": "Plateado" },
-            { "id": "roj", "corto": "Roj", "nombre": "Rojo" },
-            { "id": "ver", "corto": "Ver", "nombre": "Verde" }
+            { "id": "azu", "corto": "AZU", "nombre": "Azul" },
+            { "id": "dor", "corto": "DOR", "nombre": "Dorado" },
+            { "id": "fuc", "corto": "FUC", "nombre": "Fucsia" },
+            { "id": "hol", "corto": "HOL", "nombre": "Holográfica" },
+            { "id": "nar", "corto": "NAR", "nombre": "Naranja" },
+            { "id": "pla", "corto": "PLA", "nombre": "Plateado" },
+            { "id": "roj", "corto": "ROJ", "nombre": "Rojo" },
+            { "id": "ver", "corto": "VER", "nombre": "Verde" }
           ],
           "cartas": [
             953,
@@ -779,30 +779,30 @@
         },
         {
           "variantes": [
-            { "id": "azu", "corto": "Azu", "nombre": "Azul" },
-            { "id": "dor", "corto": "Dor", "nombre": "Dorado" },
-            { "id": "hol", "corto": "Hol", "nombre": "Holográfica" },
-            { "id": "mar", "corto": "Mar", "nombre": "Marrón" },
-            { "id": "mtx", "corto": "Mtx", "nombre": "Verde Matrix" },
-            { "id": "nar", "corto": "Nar", "nombre": "Naranja" },
-            { "id": "neg", "corto": "Neg", "nombre": "Negro (error)" },
-            { "id": "pla", "corto": "Pla", "nombre": "Plateado" },
-            { "id": "rsd", "corto": "Rsd", "nombre": "Rosado" }
+            { "id": "azu", "corto": "AZU", "nombre": "Azul" },
+            { "id": "dor", "corto": "DOR", "nombre": "Dorado" },
+            { "id": "hol", "corto": "HOL", "nombre": "Holográfica" },
+            { "id": "mar", "corto": "MAR", "nombre": "Marrón" },
+            { "id": "mtx", "corto": "VMA", "nombre": "Verde Matrix" },
+            { "id": "nar", "corto": "NAR", "nombre": "Naranja" },
+            { "id": "neg", "corto": "NEG", "nombre": "Negro (error)" },
+            { "id": "pla", "corto": "PLA", "nombre": "Plateado" },
+            { "id": "rsd", "corto": "RSD", "nombre": "Rosado" }
           ],
           "cartas": [906, 916, 917, 928, 929, 930, 931, 944]
         },
         {
           "variantes": [
-            { "id": "avi", "corto": "Avi", "nombre": "Azul Viento" },
-            { "id": "azu", "corto": "Azu", "nombre": "Azul" },
-            { "id": "cya", "corto": "Cya", "nombre": "Cyan" },
-            { "id": "dor", "corto": "Dor", "nombre": "Dorado" },
-            { "id": "fuc", "corto": "Fuc", "nombre": "Fucsia" },
-            { "id": "hol", "corto": "Hol", "nombre": "Holográfica" },
-            { "id": "nar", "corto": "Nar", "nombre": "Naranja" },
-            { "id": "pla", "corto": "Pla", "nombre": "Plateado" },
-            { "id": "roj", "corto": "Roj", "nombre": "Rojo" },
-            { "id": "ver", "corto": "Ver", "nombre": "Verde" }
+            { "id": "avi", "corto": "AVI", "nombre": "Azul Viento" },
+            { "id": "azu", "corto": "AZU", "nombre": "Azul" },
+            { "id": "cya", "corto": "CYA", "nombre": "Cyan" },
+            { "id": "dor", "corto": "DOR", "nombre": "Dorado" },
+            { "id": "fuc", "corto": "FUC", "nombre": "Fucsia" },
+            { "id": "hol", "corto": "HOL", "nombre": "Holográfica" },
+            { "id": "nar", "corto": "NAR", "nombre": "Naranja" },
+            { "id": "pla", "corto": "PLA", "nombre": "Plateado" },
+            { "id": "roj", "corto": "ROJ", "nombre": "Rojo" },
+            { "id": "ver", "corto": "VER", "nombre": "Verde" }
           ],
           "cartas": [1053, 1055, 1056],
           "_de": "el APK 8.0 del tracker de Ismael, 2026-11-06, sobre lo que ya había"
@@ -820,25 +820,25 @@
         {
           "_de": "Angel, 2026-11-24, tabla de variantes: De caja, con comun",
           "variantes": [
-            { "id": "arc", "corto": "Arc", "nombre": "Arcoiris" },
-            { "id": "avi", "corto": "Avi", "nombre": "Azul Viento" },
-            { "id": "azh", "corto": "Azh", "nombre": "Azul hielo" },
-            { "id": "azu", "corto": "Azu", "nombre": "Azul" },
-            { "id": "com", "corto": "Com", "nombre": "Común" },
-            { "id": "dia", "corto": "Dia", "nombre": "Diamantes" },
-            { "id": "dor", "corto": "Dor", "nombre": "Dorado" },
-            { "id": "fue", "corto": "Fue", "nombre": "Fucsia Viento" },
-            { "id": "hol", "corto": "Hol", "nombre": "Holográfica" },
-            { "id": "maz", "corto": "Maz", "nombre": "Azul Matrix" },
-            { "id": "mtx", "corto": "Mtx", "nombre": "Verde Matrix" },
-            { "id": "nar", "corto": "Nar", "nombre": "Naranja" },
-            { "id": "pla", "corto": "Pla", "nombre": "Plateado" },
-            { "id": "psy", "corto": "Psy", "nombre": "Ocular" },
-            { "id": "pxd", "corto": "Pxd", "nombre": "PixelGlitter dorado" },
-            { "id": "ref", "corto": "Ref", "nombre": "Rojo Viento" },
-            { "id": "sgr", "corto": "Sgr", "nombre": "Hippie" },
-            { "id": "vcl", "corto": "Vcl", "nombre": "Verde oliva" },
-            { "id": "vio", "corto": "Vio", "nombre": "Violeta" }
+            { "id": "arc", "corto": "ARC", "nombre": "Arcoiris" },
+            { "id": "avi", "corto": "AVI", "nombre": "Azul Viento" },
+            { "id": "azh", "corto": "AHI", "nombre": "Azul hielo" },
+            { "id": "azu", "corto": "AZU", "nombre": "Azul" },
+            { "id": "com", "corto": "COM", "nombre": "Común" },
+            { "id": "dia", "corto": "DIA", "nombre": "Diamantes" },
+            { "id": "dor", "corto": "DOR", "nombre": "Dorado" },
+            { "id": "fue", "corto": "FVI", "nombre": "Fucsia Viento" },
+            { "id": "hol", "corto": "HOL", "nombre": "Holográfica" },
+            { "id": "maz", "corto": "AMA", "nombre": "Azul Matrix" },
+            { "id": "mtx", "corto": "VMA", "nombre": "Verde Matrix" },
+            { "id": "nar", "corto": "NAR", "nombre": "Naranja" },
+            { "id": "pla", "corto": "PLA", "nombre": "Plateado" },
+            { "id": "psy", "corto": "OCU", "nombre": "Ocular" },
+            { "id": "pxd", "corto": "PIX", "nombre": "PixelGlitter dorado" },
+            { "id": "ref", "corto": "RVI", "nombre": "Rojo Viento" },
+            { "id": "sgr", "corto": "HIP", "nombre": "Hippie" },
+            { "id": "vcl", "corto": "OLI", "nombre": "Verde oliva" },
+            { "id": "vio", "corto": "VIO", "nombre": "Violeta" }
           ],
           "cartas": [
             1108,
@@ -852,24 +852,24 @@
         {
           "_de": "Angel, 2026-11-24, tabla de variantes: De caja, sin comun",
           "variantes": [
-            { "id": "arc", "corto": "Arc", "nombre": "Arcoiris" },
-            { "id": "avi", "corto": "Avi", "nombre": "Azul Viento" },
-            { "id": "azh", "corto": "Azh", "nombre": "Azul hielo" },
-            { "id": "azu", "corto": "Azu", "nombre": "Azul" },
-            { "id": "dia", "corto": "Dia", "nombre": "Diamantes" },
-            { "id": "dor", "corto": "Dor", "nombre": "Dorado" },
-            { "id": "fue", "corto": "Fue", "nombre": "Fucsia Viento" },
-            { "id": "hol", "corto": "Hol", "nombre": "Holográfica" },
-            { "id": "maz", "corto": "Maz", "nombre": "Azul Matrix" },
-            { "id": "mtx", "corto": "Mtx", "nombre": "Verde Matrix" },
-            { "id": "nar", "corto": "Nar", "nombre": "Naranja" },
-            { "id": "pla", "corto": "Pla", "nombre": "Plateado" },
-            { "id": "psy", "corto": "Psy", "nombre": "Ocular" },
-            { "id": "pxd", "corto": "Pxd", "nombre": "PixelGlitter dorado" },
-            { "id": "ref", "corto": "Ref", "nombre": "Rojo Viento" },
-            { "id": "sgr", "corto": "Sgr", "nombre": "Hippie" },
-            { "id": "vcl", "corto": "Vcl", "nombre": "Verde oliva" },
-            { "id": "vio", "corto": "Vio", "nombre": "Violeta" }
+            { "id": "arc", "corto": "ARC", "nombre": "Arcoiris" },
+            { "id": "avi", "corto": "AVI", "nombre": "Azul Viento" },
+            { "id": "azh", "corto": "AHI", "nombre": "Azul hielo" },
+            { "id": "azu", "corto": "AZU", "nombre": "Azul" },
+            { "id": "dia", "corto": "DIA", "nombre": "Diamantes" },
+            { "id": "dor", "corto": "DOR", "nombre": "Dorado" },
+            { "id": "fue", "corto": "FVI", "nombre": "Fucsia Viento" },
+            { "id": "hol", "corto": "HOL", "nombre": "Holográfica" },
+            { "id": "maz", "corto": "AMA", "nombre": "Azul Matrix" },
+            { "id": "mtx", "corto": "VMA", "nombre": "Verde Matrix" },
+            { "id": "nar", "corto": "NAR", "nombre": "Naranja" },
+            { "id": "pla", "corto": "PLA", "nombre": "Plateado" },
+            { "id": "psy", "corto": "OCU", "nombre": "Ocular" },
+            { "id": "pxd", "corto": "PIX", "nombre": "PixelGlitter dorado" },
+            { "id": "ref", "corto": "RVI", "nombre": "Rojo Viento" },
+            { "id": "sgr", "corto": "HIP", "nombre": "Hippie" },
+            { "id": "vcl", "corto": "OLI", "nombre": "Verde oliva" },
+            { "id": "vio", "corto": "VIO", "nombre": "Violeta" }
           ],
           "cartas": [
             1127,
@@ -879,20 +879,20 @@
         {
           "_de": "Angel, 2026-11-24, tabla de variantes: De sobres: no existen en rosa cobre, plateado, verde oliva, ocular, verde matrix ni hippie",
           "variantes": [
-            { "id": "avi", "corto": "Avi", "nombre": "Azul Viento" },
-            { "id": "azh", "corto": "Azh", "nombre": "Azul hielo" },
-            { "id": "azu", "corto": "Azu", "nombre": "Azul" },
-            { "id": "com", "corto": "Com", "nombre": "Común" },
-            { "id": "dia", "corto": "Dia", "nombre": "Diamantes" },
-            { "id": "dor", "corto": "Dor", "nombre": "Dorado" },
-            { "id": "fue", "corto": "Fue", "nombre": "Fucsia Viento" },
-            { "id": "hol", "corto": "Hol", "nombre": "Holográfica" },
-            { "id": "maz", "corto": "Maz", "nombre": "Azul Matrix" },
-            { "id": "nar", "corto": "Nar", "nombre": "Naranja" },
-            { "id": "pxd", "corto": "Pxd", "nombre": "PixelGlitter dorado" },
-            { "id": "ref", "corto": "Ref", "nombre": "Rojo Viento" },
-            { "id": "roj", "corto": "Roj", "nombre": "Rojo" },
-            { "id": "tor", "corto": "Tor", "nombre": "Tornasolado" }
+            { "id": "avi", "corto": "AVI", "nombre": "Azul Viento" },
+            { "id": "azh", "corto": "AHI", "nombre": "Azul hielo" },
+            { "id": "azu", "corto": "AZU", "nombre": "Azul" },
+            { "id": "com", "corto": "COM", "nombre": "Común" },
+            { "id": "dia", "corto": "DIA", "nombre": "Diamantes" },
+            { "id": "dor", "corto": "DOR", "nombre": "Dorado" },
+            { "id": "fue", "corto": "FVI", "nombre": "Fucsia Viento" },
+            { "id": "hol", "corto": "HOL", "nombre": "Holográfica" },
+            { "id": "maz", "corto": "AMA", "nombre": "Azul Matrix" },
+            { "id": "nar", "corto": "NAR", "nombre": "Naranja" },
+            { "id": "pxd", "corto": "PIX", "nombre": "PixelGlitter dorado" },
+            { "id": "ref", "corto": "RVI", "nombre": "Rojo Viento" },
+            { "id": "roj", "corto": "ROJ", "nombre": "Rojo" },
+            { "id": "tor", "corto": "TOR", "nombre": "Tornasolado" }
           ],
           "cartas": [
             1088,
@@ -914,19 +914,19 @@
         {
           "_de": "Angel, 2026-11-24, tabla de variantes: De sobres (como el anterior, y sin comun)",
           "variantes": [
-            { "id": "avi", "corto": "Avi", "nombre": "Azul Viento" },
-            { "id": "azh", "corto": "Azh", "nombre": "Azul hielo" },
-            { "id": "azu", "corto": "Azu", "nombre": "Azul" },
-            { "id": "dia", "corto": "Dia", "nombre": "Diamantes" },
-            { "id": "dor", "corto": "Dor", "nombre": "Dorado" },
-            { "id": "fue", "corto": "Fue", "nombre": "Fucsia Viento" },
-            { "id": "hol", "corto": "Hol", "nombre": "Holográfica" },
-            { "id": "maz", "corto": "Maz", "nombre": "Azul Matrix" },
-            { "id": "nar", "corto": "Nar", "nombre": "Naranja" },
-            { "id": "pxd", "corto": "Pxd", "nombre": "PixelGlitter dorado" },
-            { "id": "ref", "corto": "Ref", "nombre": "Rojo Viento" },
-            { "id": "roj", "corto": "Roj", "nombre": "Rojo" },
-            { "id": "tor", "corto": "Tor", "nombre": "Tornasolado" }
+            { "id": "avi", "corto": "AVI", "nombre": "Azul Viento" },
+            { "id": "azh", "corto": "AHI", "nombre": "Azul hielo" },
+            { "id": "azu", "corto": "AZU", "nombre": "Azul" },
+            { "id": "dia", "corto": "DIA", "nombre": "Diamantes" },
+            { "id": "dor", "corto": "DOR", "nombre": "Dorado" },
+            { "id": "fue", "corto": "FVI", "nombre": "Fucsia Viento" },
+            { "id": "hol", "corto": "HOL", "nombre": "Holográfica" },
+            { "id": "maz", "corto": "AMA", "nombre": "Azul Matrix" },
+            { "id": "nar", "corto": "NAR", "nombre": "Naranja" },
+            { "id": "pxd", "corto": "PIX", "nombre": "PixelGlitter dorado" },
+            { "id": "ref", "corto": "RVI", "nombre": "Rojo Viento" },
+            { "id": "roj", "corto": "ROJ", "nombre": "Rojo" },
+            { "id": "tor", "corto": "TOR", "nombre": "Tornasolado" }
           ],
           "cartas": [
             1167,
@@ -937,22 +937,22 @@
         {
           "_de": "Angel, 2026-11-24, tabla de variantes: De sobres: no existen en azul hielo, rojo viento, diamantes ni tornasolado",
           "variantes": [
-            { "id": "avi", "corto": "Avi", "nombre": "Azul Viento" },
-            { "id": "azu", "corto": "Azu", "nombre": "Azul" },
-            { "id": "com", "corto": "Com", "nombre": "Común" },
-            { "id": "dor", "corto": "Dor", "nombre": "Dorado" },
-            { "id": "fue", "corto": "Fue", "nombre": "Fucsia Viento" },
-            { "id": "hol", "corto": "Hol", "nombre": "Holográfica" },
-            { "id": "maz", "corto": "Maz", "nombre": "Azul Matrix" },
-            { "id": "mtx", "corto": "Mtx", "nombre": "Verde Matrix" },
-            { "id": "nar", "corto": "Nar", "nombre": "Naranja" },
-            { "id": "pla", "corto": "Pla", "nombre": "Plateado" },
-            { "id": "psy", "corto": "Psy", "nombre": "Ocular" },
-            { "id": "pxd", "corto": "Pxd", "nombre": "PixelGlitter dorado" },
-            { "id": "roj", "corto": "Roj", "nombre": "Rojo" },
-            { "id": "ros", "corto": "Ros", "nombre": "Rosa cobre" },
-            { "id": "sgr", "corto": "Sgr", "nombre": "Hippie" },
-            { "id": "vcl", "corto": "Vcl", "nombre": "Verde oliva" }
+            { "id": "avi", "corto": "AVI", "nombre": "Azul Viento" },
+            { "id": "azu", "corto": "AZU", "nombre": "Azul" },
+            { "id": "com", "corto": "COM", "nombre": "Común" },
+            { "id": "dor", "corto": "DOR", "nombre": "Dorado" },
+            { "id": "fue", "corto": "FVI", "nombre": "Fucsia Viento" },
+            { "id": "hol", "corto": "HOL", "nombre": "Holográfica" },
+            { "id": "maz", "corto": "AMA", "nombre": "Azul Matrix" },
+            { "id": "mtx", "corto": "VMA", "nombre": "Verde Matrix" },
+            { "id": "nar", "corto": "NAR", "nombre": "Naranja" },
+            { "id": "pla", "corto": "PLA", "nombre": "Plateado" },
+            { "id": "psy", "corto": "OCU", "nombre": "Ocular" },
+            { "id": "pxd", "corto": "PIX", "nombre": "PixelGlitter dorado" },
+            { "id": "roj", "corto": "ROJ", "nombre": "Rojo" },
+            { "id": "ros", "corto": "ROS", "nombre": "Rosa cobre" },
+            { "id": "sgr", "corto": "HIP", "nombre": "Hippie" },
+            { "id": "vcl", "corto": "OLI", "nombre": "Verde oliva" }
           ],
           "cartas": [
             1107,
@@ -974,21 +974,21 @@
         {
           "_de": "Angel, 2026-11-24, tabla de variantes: De sobres (como el anterior, y sin comun)",
           "variantes": [
-            { "id": "avi", "corto": "Avi", "nombre": "Azul Viento" },
-            { "id": "azu", "corto": "Azu", "nombre": "Azul" },
-            { "id": "dor", "corto": "Dor", "nombre": "Dorado" },
-            { "id": "fue", "corto": "Fue", "nombre": "Fucsia Viento" },
-            { "id": "hol", "corto": "Hol", "nombre": "Holográfica" },
-            { "id": "maz", "corto": "Maz", "nombre": "Azul Matrix" },
-            { "id": "mtx", "corto": "Mtx", "nombre": "Verde Matrix" },
-            { "id": "nar", "corto": "Nar", "nombre": "Naranja" },
-            { "id": "pla", "corto": "Pla", "nombre": "Plateado" },
-            { "id": "psy", "corto": "Psy", "nombre": "Ocular" },
-            { "id": "pxd", "corto": "Pxd", "nombre": "PixelGlitter dorado" },
-            { "id": "roj", "corto": "Roj", "nombre": "Rojo" },
-            { "id": "ros", "corto": "Ros", "nombre": "Rosa cobre" },
-            { "id": "sgr", "corto": "Sgr", "nombre": "Hippie" },
-            { "id": "vcl", "corto": "Vcl", "nombre": "Verde oliva" }
+            { "id": "avi", "corto": "AVI", "nombre": "Azul Viento" },
+            { "id": "azu", "corto": "AZU", "nombre": "Azul" },
+            { "id": "dor", "corto": "DOR", "nombre": "Dorado" },
+            { "id": "fue", "corto": "FVI", "nombre": "Fucsia Viento" },
+            { "id": "hol", "corto": "HOL", "nombre": "Holográfica" },
+            { "id": "maz", "corto": "AMA", "nombre": "Azul Matrix" },
+            { "id": "mtx", "corto": "VMA", "nombre": "Verde Matrix" },
+            { "id": "nar", "corto": "NAR", "nombre": "Naranja" },
+            { "id": "pla", "corto": "PLA", "nombre": "Plateado" },
+            { "id": "psy", "corto": "OCU", "nombre": "Ocular" },
+            { "id": "pxd", "corto": "PIX", "nombre": "PixelGlitter dorado" },
+            { "id": "roj", "corto": "ROJ", "nombre": "Rojo" },
+            { "id": "ros", "corto": "ROS", "nombre": "Rosa cobre" },
+            { "id": "sgr", "corto": "HIP", "nombre": "Hippie" },
+            { "id": "vcl", "corto": "OLI", "nombre": "Verde oliva" }
           ],
           "cartas": [
             1098,
@@ -1012,20 +1012,20 @@
         {
           "_de": "Angel, 2026-11-24, tabla de variantes: De sobres, 1222 Full: igual que el patron A (sin rosa cobre, plateado, verde oliva, ocular, verde matrix ni hippie)",
           "variantes": [
-            { "id": "avi", "corto": "Avi", "nombre": "Azul Viento" },
-            { "id": "azh", "corto": "Azh", "nombre": "Azul hielo" },
-            { "id": "azu", "corto": "Azu", "nombre": "Azul" },
-            { "id": "com", "corto": "Com", "nombre": "Común" },
-            { "id": "dia", "corto": "Dia", "nombre": "Diamantes" },
-            { "id": "dor", "corto": "Dor", "nombre": "Dorado" },
-            { "id": "fue", "corto": "Fue", "nombre": "Fucsia Viento" },
-            { "id": "hol", "corto": "Hol", "nombre": "Holográfica" },
-            { "id": "maz", "corto": "Maz", "nombre": "Azul Matrix" },
-            { "id": "nar", "corto": "Nar", "nombre": "Naranja" },
-            { "id": "pxd", "corto": "Pxd", "nombre": "PixelGlitter dorado" },
-            { "id": "ref", "corto": "Ref", "nombre": "Rojo Viento" },
-            { "id": "roj", "corto": "Roj", "nombre": "Rojo" },
-            { "id": "tor", "corto": "Tor", "nombre": "Tornasolado" }
+            { "id": "avi", "corto": "AVI", "nombre": "Azul Viento" },
+            { "id": "azh", "corto": "AHI", "nombre": "Azul hielo" },
+            { "id": "azu", "corto": "AZU", "nombre": "Azul" },
+            { "id": "com", "corto": "COM", "nombre": "Común" },
+            { "id": "dia", "corto": "DIA", "nombre": "Diamantes" },
+            { "id": "dor", "corto": "DOR", "nombre": "Dorado" },
+            { "id": "fue", "corto": "FVI", "nombre": "Fucsia Viento" },
+            { "id": "hol", "corto": "HOL", "nombre": "Holográfica" },
+            { "id": "maz", "corto": "AMA", "nombre": "Azul Matrix" },
+            { "id": "nar", "corto": "NAR", "nombre": "Naranja" },
+            { "id": "pxd", "corto": "PIX", "nombre": "PixelGlitter dorado" },
+            { "id": "ref", "corto": "RVI", "nombre": "Rojo Viento" },
+            { "id": "roj", "corto": "ROJ", "nombre": "Rojo" },
+            { "id": "tor", "corto": "TOR", "nombre": "Tornasolado" }
           ],
           "cartas": [1222]
         }
@@ -1044,9 +1044,9 @@
         {
           "_de": "el tracker de Ismael, APK 7.3, 2026-10-05",
           "variantes": [
-            { "id": "com", "corto": "Com", "nombre": "Común" },
-            { "id": "gci", "corto": "Gci", "nombre": "Glitter círculos" },
-            { "id": "gli", "corto": "Gli", "nombre": "Glitter" }
+            { "id": "com", "corto": "COM", "nombre": "Común" },
+            { "id": "gci", "corto": "GCI", "nombre": "Glitter círculos" },
+            { "id": "gli", "corto": "GLI", "nombre": "Glitter" }
           ],
           "cartas": [504, 505, 506, 507, 508, 509, 510, 511, 512, 513]
         }
@@ -1138,13 +1138,13 @@
       "grupos": [
         {
           "variantes": [
-            { "id": "pla", "corto": "Pla", "nombre": "Plateado" },
-            { "id": "dor", "corto": "Dor", "nombre": "Dorado" }
+            { "id": "pla", "corto": "PLA", "nombre": "Plateado" },
+            { "id": "dor", "corto": "DOR", "nombre": "Dorado" }
           ],
           "cartas": [1, 2, 3, 4, 5, 6, 7, 8, 9]
         },
         {
-          "variantes": [{ "id": "tor", "corto": "Tor", "nombre": "Tornasolado" }],
+          "variantes": [{ "id": "tor", "corto": "TOR", "nombre": "Tornasolado" }],
           "cartas": [10, 11, 12, 13, 14, 15, 16, 17, 18]
         }
       ]

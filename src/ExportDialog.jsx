@@ -263,6 +263,8 @@ function buildText(mode, selectedExpansions, catalog, quantities, heading, varia
    horizontal y la planilla deja de ser alta por culpa de los nombres parados. Y van en
    TRES letras, no dos («no se entiende bien»): el id con la primera en mayúscula, la
    regla anotada en el propio catálogo. */
+/* El gris de «no existe en ese fondo»: más oscuro que el Plateado (un #d9d9d9 se confundía con él) y SIN «—»; la leyenda lo dice con palabras. */
+const ABSENT_GRAY = '#9a9a9a'
 const variantShort = (v) => v.corto ?? v.id.toUpperCase()
 
 /* La columna de cada acabado lleva su foto o su color: `columnStyleOf`, en `color.js`. */
@@ -316,7 +318,7 @@ function sheetImageCanvas(table, legendDate, images = new Map()) {
   const probe = document.createElement('canvas').getContext('2d')
   probe.font = '12px system-ui, sans-serif'
   const cardW = Math.ceil(Math.max(60, ...rows.map((r) => probe.measureText(r.label).width + 16)))
-  probe.font = '600 11px system-ui, sans-serif'
+  probe.font = '800 11px system-ui, sans-serif'
   const colW = Math.ceil(Math.max(26, ...cols.map((v) => probe.measureText(variantShort(v)).width + 12)))
   const headH = 24
   const rowH = 22
@@ -355,7 +357,7 @@ function sheetImageCanvas(table, legendDate, images = new Map()) {
   ctx.fillText(`${exp.nombre} · ${ownedCells} de ${offeredCells} variantes`, pad, 21)
   ctx.fillStyle = '#555'
   ctx.font = '11px system-ui, sans-serif'
-  ctx.fillText(`✓ la tenés · vacía: te falta · — no existe en ese fondo · ${legendDate}`, pad, 38)
+  ctx.fillText(`✓ la tenés · vacía: te falta · gris oscuro: no existe en ese fondo · ${legendDate}`, pad, 38)
   keyLines.forEach((k, i) => ctx.fillText(k, pad, 53 + i * 15))
 
   const left = pad
@@ -384,7 +386,7 @@ function sheetImageCanvas(table, legendDate, images = new Map()) {
       ctx.fillStyle = s.cell
       ctx.fillRect(x, top + headH, colW, rows.length * rowH)
     }
-    ctx.font = '600 11px system-ui, sans-serif'
+    ctx.font = '800 11px system-ui, sans-serif'
     if (img) {
       /* El rótulo en una chapita clara: sobre una foto no hay un color de texto que se lea siempre. */
       const tw = ctx.measureText(variantShort(v)).width
@@ -406,11 +408,8 @@ function sheetImageCanvas(table, legendDate, images = new Map()) {
     r.cells.forEach((cell, ci) => {
       const x = left + cardW + ci * colW
       if (!cell) {
-        ctx.fillStyle = '#d9d9d9'
+        ctx.fillStyle = ABSENT_GRAY
         ctx.fillRect(x, y, colW, rowH)
-        ctx.fillStyle = '#8a8a8a'
-        ctx.font = '12px system-ui, sans-serif'
-        ctx.fillText('—', x + colW / 2, y + rowH / 2 + 1)
       } else if (cell.owned) {
         ctx.fillStyle = styles[ci] ? styles[ci].cellInk : '#1a1a1a'
         ctx.font = '700 13px system-ui, sans-serif'
@@ -557,7 +556,7 @@ function VariantsSheet({ catalog, quantities, heading, onClose }) {
       <div className="print-sheet-body">
         <h1>{heading ? `${heading} · ` : ''}Planilla de variantes</h1>
         <p className="print-sheet-legend">
-          ✓ la tenés · vacía: te falta · — no existe en ese fondo
+          ✓ la tenés · vacía: te falta · gris oscuro: no existe en ese fondo
           · {legendDate}
         </p>
         {tables.map(({ exp, cols, rows, offeredCells, ownedCells }) => {
@@ -601,9 +600,10 @@ function VariantsSheet({ catalog, quantities, heading, onClose }) {
                       <td
                         key={cols[i].id}
                         className={c ? (c.owned ? 'owned' : '') : 'absent'}
+                        title={c ? undefined : 'No existe en ese fondo'}
                         style={c && styles[i] ? cellStyle(styles[i]) : undefined}
                       >
-                        {c ? (c.owned ? '✓' : '') : '—'}
+                        {c ? (c.owned ? '✓' : '') : null}
                       </td>
                     ))}
                   </tr>
