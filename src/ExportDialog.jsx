@@ -391,13 +391,15 @@ function sheetImageCanvas(table, legendDate, images = new Map()) {
     ctx.font = '600 10px system-ui, sans-serif'
     ctx.letterSpacing = '1px'
     if (img) {
-      /* El rótulo en una chapita clara: sobre una foto no hay un color de texto que se lea siempre. */
-      const tw = ctx.measureText(variantShort(v)).width
-      const cw = Math.min(colW - 2, tw + 8)
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'
-      ctx.fillRect(x + (colW - cw) / 2, top + headH / 2 - 8, cw, 16)
+      /* Sobre una foto: blanco con contorno oscuro, sin chapita. */
+      ctx.lineJoin = 'round'
+      ctx.lineWidth = 3
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.75)'
+      ctx.strokeText(variantShort(v), x + colW / 2, top + headH / 2 + 1)
+      ctx.fillStyle = '#fff'
+    } else {
+      ctx.fillStyle = s ? s.headInk : '#1a1a1a'
     }
-    ctx.fillStyle = s ? s.headInk : '#1a1a1a'
     ctx.fillText(variantShort(v), x + colW / 2, top + headH / 2 + 1)
     ctx.letterSpacing = '0px'
   })

@@ -2608,5 +2608,5 @@ body.with-install-bar { padding-bottom: var(--install-height, 150px); }
 .grid.detailed .card.filled .detail-label,
 .grid.detailed .card.filled .backup-detail { background: rgba(255, 255, 255, 0.9); color: var(--ink); border-radius: 4px; padding: 0 5px; align-self: flex-start; }
 
-/* El rótulo del encabezado sobre una foto: chapita clara, como en la imagen que se comparte. */
-.print-table th span.on-photo { background: rgba(255, 255, 255, 0.9); color: #1a1a1a; border-radius: 3px; padding: 0 3px; }
+/* El rótulo del encabezado sobre una foto: blanco con contorno oscuro y SIN caja (la chapita blanca se sacó, Angel 2026-11-24); igual que en la imagen que se comparte. */
+.print-table th span.on-photo { color: #fff; text-shadow: 0 0 2px rgba(0,0,0,.9), 0 0 2px rgba(0,0,0,.9), 0 1px 3px rgba(0,0,0,.7); }
