@@ -318,8 +318,10 @@ function sheetImageCanvas(table, legendDate, images = new Map()) {
   const probe = document.createElement('canvas').getContext('2d')
   probe.font = '12px system-ui, sans-serif'
   const cardW = Math.ceil(Math.max(60, ...rows.map((r) => probe.measureText(r.label).width + 16)))
-  probe.font = '800 11px system-ui, sans-serif'
+  probe.font = '600 10px system-ui, sans-serif'
+  probe.letterSpacing = '1px'
   const colW = Math.ceil(Math.max(26, ...cols.map((v) => probe.measureText(variantShort(v)).width + 12)))
+  probe.letterSpacing = '0px'
   const headH = 24
   const rowH = 22
   const pad = 14
@@ -386,7 +388,8 @@ function sheetImageCanvas(table, legendDate, images = new Map()) {
       ctx.fillStyle = s.cell
       ctx.fillRect(x, top + headH, colW, rows.length * rowH)
     }
-    ctx.font = '800 11px system-ui, sans-serif'
+    ctx.font = '600 10px system-ui, sans-serif'
+    ctx.letterSpacing = '1px'
     if (img) {
       /* El rótulo en una chapita clara: sobre una foto no hay un color de texto que se lea siempre. */
       const tw = ctx.measureText(variantShort(v)).width
@@ -396,6 +399,7 @@ function sheetImageCanvas(table, legendDate, images = new Map()) {
     }
     ctx.fillStyle = s ? s.headInk : '#1a1a1a'
     ctx.fillText(variantShort(v), x + colW / 2, top + headH / 2 + 1)
+    ctx.letterSpacing = '0px'
   })
 
   rows.forEach((r, ri) => {
